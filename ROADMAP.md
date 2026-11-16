@@ -92,7 +92,7 @@ Goal: it looks and feels like one app.
 - Dark mode (tokens are ready for it: one extra block of variables).
 - Dashboard tidy-up: decide which cards stay, their order, and what she looks at first.
 - Consistency pass: buttons, dialogs, empty states, loading states, narrow tiled windows.
-- PDF page editing (rotate, delete, reorder, merge) if time allows. Otherwise it moves to 2027.
+- PDF page editing is now phase P1 of the Study track.
 
 Done when: a walk through every page finds no screen that looks unfinished.
 
@@ -106,10 +106,24 @@ Done when: she uses v1.0 on the first day of spring classes without thinking abo
 
 ---
 
-## Materials track (lab integrator + quiz engine), no deadline
+## Study track: Materials, quiz engine, notes, flashcards, PDFs (no deadline)
 
-Built in phases, each one usable on its own. Where they sit in the weeks above is still to be
-decided with her (proposal: M1 in week 3, M2 in week 5, the rest in January).
+One build order across five areas. Each phase is usable on its own and is finished properly before
+the next starts. Placement in the weeks above is a proposal (see "Proposed placement" below).
+
+| # | Phase | Area |
+|---|---|---|
+| 1 | M1 · Materials home + lab integrator | Materials |
+| 2 | M2 · Quiz format + quiz engine core | Quiz engine |
+| 3 | N1 · Notes editor that feels like Docs / Notion | Notes |
+| 4 | F1 · Flashcards on par with Anki | Flashcards |
+| 5 | P1 · PDF page editing + find | PDFs |
+| 6 | M3 · Full quiz engine | Quiz engine |
+| 7 | N2 · Connected notes | Notes |
+| 8 | M4 · Cases and other materials | Materials |
+| 9 | F2 · Smarter flashcards | Flashcards |
+| 10 | P2 · PDF reading comfort | PDFs |
+| 11 | M5 · Prompt kit | Materials |
 
 - **M1 · Materials home + lab integrator.** Study → Materials replaces Recall Labs. Materials
   folder setting (default `Study Lab/Materials`); one-time "move my labs into Materials" that
@@ -121,19 +135,49 @@ decided with her (proposal: M1 in week 3, M2 in week 5, the rest in January).
   errors point to the line). Types: multiple choice, SATA (all-or-nothing), true/false, fill in
   the blank, drop-downs, calculation. Practice mode. Answers stored in the synced store by file +
   question fingerprint; the file itself is never changed.
+- **N1 · Notes editor that feels like Docs / Notion.** No visible Markdown: formatting shows as
+  formatting and the symbols only appear on the line being edited (Obsidian "live preview"
+  style); files stay Markdown on Drive. Toolbar and `/` menu (heading, table, callout, checklist,
+  card, divider, image). Real tables (add rows / columns, Tab between cells). Callouts, text
+  colours and highlights. Properties (course, tags, date) as chips. Pasting from Google Docs keeps
+  headings, lists, bold and tables.
+- **F1 · Flashcards on par with Anki.** Card browser: every card in one table with search and
+  filters (course, deck, tag, new / learning / due / suspended), edit in place, bulk suspend /
+  reschedule / delete. Anki `.apkg` import (notes, images, and review history if she wants it).
+  Deck options (new cards and review limits per deck). Leech detection, sibling burying. A stats
+  page (reviews per day, retention, intervals, forecast).
+- **P1 · PDF page editing + find.** Page thumbnails sidebar; rotate, delete, reorder by dragging,
+  insert a blank page, extract pages to a new PDF, merge PDFs (pdf-lib; the original is backed up
+  first, as with annotations). Find in PDF (Ctrl+F) with hits highlighted. Free-text notes on the
+  page; adjust a highlight's ends after making it.
 - **M3 · The rest of the quiz engine.** Sorting, matching, categorise, grid. Exam mode (timer,
   flags, review screen), missed only, weak topics, shuffle. Results by topic; missed question →
   flashcard; quiz + lab results feed Weak spots and exam readiness.
+- **N2 · Connected notes.** Mind map area (any note's outline as a mind map, plus standalone mind
+  maps), graph view of links, Notes home with folder tiles, covers and icons on notes, embeds (a
+  PDF page or highlight, a card, a material) and "unlinked mentions".
 - **M4 · Cases and other materials.** Patient cases (full chart and SOAP layouts, write-up
-  questions with model answer + checklist), summaries, mind maps (viewer + mind map area),
-  slide decks.
+  questions with model answer + checklist), summaries, mind maps from Claude, slide decks.
+- **F2 · Smarter flashcards.** FSRS parameters tuned to her own review history; image occlusion
+  upgrades (shapes, grouped masks, labels); custom study sessions (Anki's "custom study"); cards
+  from a mind map branch.
+- **P2 · PDF reading comfort.** Two-page and continuous modes, a dark reading mode, and PDF text
+  and highlights in Ctrl+K search.
 - **M5 · Prompt kit.** Copy-ready prompts for Claude / NotebookLM per material type and per case
   topic (planned later, at her request).
 - **Later:** hot spot and highlight questions.
 
+### Proposed placement (to confirm with her)
 
+- Week 3 (Exam 5): **M1**, so her labs are in Materials while she studies.
+- Week 4: **M2**. The calendar and tasks polish moves to January, together with the Planner merge.
+- Week 5: **N1**, plus only the term change from the courses week (archive fall, add spring).
+- Week 6: look and feel as planned (rail, glass, folder tiles, icon already done).
+- January, before and around the start of spring: **F1, P1, M3**, the Planner merge, Courses
+  into Study. Then N2, M4, F2, P2, M5 during spring.
 
-- PDF page editing, if it didn't fit in week 6.
+## Later (after v1.0, not before)
+
 - More course modules from the week 5 list.
 - Statistics: study time per course, card retention over the term.
 
@@ -151,7 +195,8 @@ Add things here as they come up (date, page, what happened). Each one is either 
   the streak panel. **Week 6.**
 - Nov 16 · New look being tried: **Frosted glass** (soft pastel colour blooms behind translucent,
   blurred cards with a thin bright edge) and **roomier spacing** (bigger gaps and padding than now,
-  28px corners; she said "cozy" but meant more room).
+  28px corners; she said "cozy" but meant more room). Both are tweaks on the canvas next to the
+  current pastel look; decide before week 6.
 - Nov 16 · Notes as **folder tiles** (tab on top, frosted body; the open/last-used folder takes
   its course colour and recent notes peek out as paper sheets). Notes home gets a folder grid
   (one per course, plus PDF notes and Inbox); Study Home's Recent notes card becomes 4 folders.
@@ -160,4 +205,4 @@ Add things here as they come up (date, page, what happened). Each one is either 
   merge into a Planner tab. The app will later get a personal-life side next to the student side.
   Decide the structure before week 5 (courses) and week 4 (planner).
 - Nov 16 · Renamed to **Mosaic** ("your student life in full view") and gave it the **glass
-  tiles** app icon (option C). Done now, since both were small. Both are tweaks on the canvas next to the current pastel look; decide before week 6.
+  tiles** app icon (option C). Done now, since both were small.
