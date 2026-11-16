@@ -245,7 +245,7 @@ Recall Labs. Decisions she approved:
 - Imports: Anki and CSV (built with the card library). No AI features.
 - Libraries (npm, no system packages): CodeMirror 6 (notes editor), ts-fsrs (FSRS scheduling),
   pdfjs-dist (viewing), pdf-lib (editing).
-- Phases: S1 Study tab shell with Recall Labs moved in (DONE); S2 notes (DONE); S3 cards in notes + FSRS (DONE) (editor, [[links]], backlinks,
+- Phases: S1 Study tab shell with Recall Labs moved in (DONE); S2 notes (DONE); S3 cards in notes + FSRS (DONE); S4 card library (DONE) (editor, [[links]], backlinks,
   #tags, templates, class notes from calendar events, notes on course pages); S3 cards written in
   notes (`Q :: A`, `:::` two-way, `{{cloze}}`, list cards) + FSRS review + dashboard "cards due";
   S4 card library (note types with fields, Drug type, table → cards, CSV/Anki import, image
@@ -305,6 +305,33 @@ Recall Labs. Decisions she approved:
 - Wired in: Cards tab badge, dashboard Flashcards card, Study Home card, course page "N to review",
   study plan suggestion "Review N flashcards" (block `href`), heatmap (+½ per review), streak
   (`markStudyDay("reviews")`).
+
+## Study S4 (built): card library
+
+- Library cards live in the synced store, not in notes: collection `cardItems` (one item = note type
+  id + fields + course + tags), note types in collection `cardTypes` (seeded built-ins, u=1).
+  Store `src/lib/stores/library.svelte.ts`; pure logic `src/lib/cardTypes.ts` (node-tested).
+- Built-in types: Basic, Basic both ways, Cloze, Drug (generic/brand/class/indication/ADEs/
+  counseling; templates brand→generic, generic→brand, generic→class, indication, ADEs, counseling,
+  each only when its fields are filled), Image occlusion. Custom types: fields + card templates
+  with `{{Field}}`, `{{#F}}…{{/F}}`, `{{^F}}`, `{{cloze:F}}`; renaming a field rewrites templates.
+- Review keys: `fl:<itemId>:<template>`, cloze `:cN`, occlusion `:m<maskId>`. `allCards()` in the
+  srs store returns note cards and library cards together; scope `library` is the library deck.
+- Import (`ImportDialog.svelte`): CSV / TSV / Anki "Notes in plain text" export (auto separator,
+  quotes, `#separator` / `#html` headers, HTML stripped), column → field mapping guessed from
+  headers, course and tags for the batch.
+- Image occlusion (`OcclusionEditor.svelte`, `OcclusionView.svelte`): paste or pick an image
+  (saved to the notes folder `attachments/card-…`), draw boxes; one card per box, "hide all" or
+  "hide one" mode. Card title is the Header field.
+- Table cards in notes: a Markdown table with `:: table` on the line above makes one card per filled
+  cell (row header + column header → cell), key `id:t<hash(row|col)>`, so drug comparison tables work.
+- Exam-aware (Settings in Cards, default on): when a course has an exam coming, a review's due date
+  is capped at the evening before it (if that is more than 1 h away). Course-level for now, so a
+  Ther IV card counts for both Exam 4 and Exam 5; linking a deck to one exam is a possible later step.
+- Cards page: exam readiness panel per upcoming exam (cards due before it, "Fit before exam" pulls
+  everything into the window, Cram); cram (`#/study/cards/cram/<scope>`) reviews without changing
+  FSRS state. Library at `#/study/cards/library[/<itemId>]` with type filter chips, quick add per type,
+  search and course filter.
 
 ## Other decisions
 
