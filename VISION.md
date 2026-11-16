@@ -84,6 +84,11 @@ but connect like Obsidian (links, backlinks, tags, properties, mind map), stored
   cases** (no audio). She also wants a **mind map area**. All of these come from Claude /
   NotebookLM through a **standard Mosaic format + ready-made prompts**, so the app can read
   whatever she generates.
+- **Uploaded material files are read-only to Mosaic**: it shows them and never changes the file.
+  Her progress (quiz answers, scores, missed questions, case write-ups) is stored separately in
+  the synced store, keyed by the file and a fingerprint of each question.
+- **Patient cases come in two layouts: SOAP and a full patient chart.** The questions after a case
+  depend on its topic, so the prompts carry standard question sets per topic.
 - Mosaic itself still has **no AI features**: it doesn't call any AI. It is built to take in
   what she makes with AI elsewhere.
 
