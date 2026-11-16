@@ -67,6 +67,10 @@ the app there is **no Markdown feel at all**: a Notion-style block editor (no sy
 the line being typed, block handles, + button, selection toolbar, slash menu), RemNote-style
 cards and cloze inline, Obsidian-style [[links]] and linked references. The live-preview editor
 (N1) was a step there; she found it still too Obsidian / Markdown. Mockup first, then build.
+The full Notion look (mockup v1) was "too much like Notion": keep **Mosaic's own note page**
+(frosted card, properties row, toolbar, tree on the left, side panel on the right) and add a
+**cover**, a **page icon**, **tags as chips** and the fuller **side panel** (cards in this note,
+outline, links, backlinks). Title shown once. Mockup v2 on the canvas.
 
 She wants notes that feel like Google Docs / Notion (simple, pretty, tables, no visible syntax)
 but connect like Obsidian (links, backlinks, tags, properties, mind map), stored as local files.
