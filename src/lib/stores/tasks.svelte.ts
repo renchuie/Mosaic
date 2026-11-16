@@ -54,3 +54,25 @@ export const blankTask = (partial: Partial<Task> = {}): Task => ({
   created: Date.now(),
   ...partial,
 });
+
+// ---- board --------------------------------------------------------------------
+
+/** Your own status columns (collection "columns"); built-in ones are todo / doing / done. */
+export type Column = { name: string; order: number };
+export const customColumns = () => entries<Column>("columns").sort((a, b) => a[1].order - b[1].order);
+export function saveColumn(id: string | null, c: Column) {
+  put("columns", id ?? `col-${newId()}`, c);
+}
+/** Deleting a column moves its tasks back to To do. */
+export function deleteColumn(id: string) {
+  for (const [tid, t] of tasks()) if (t.status === id) put("tasks", tid, { ...t, status: "todo" });
+  del("columns", id);
+}
+
+/** Change several tasks at once (a drop on the board re-numbers the column it lands in). */
+export function patchTasks(patches: [string, Partial<Task>][]) {
+  for (const [id, p] of patches) {
+    const t = getTask(id);
+    if (t) put("tasks", id, { ...t, ...p });
+  }
+}

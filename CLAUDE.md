@@ -161,12 +161,35 @@ Do not go back to thin coloured blocks on a plain grid.
   filters, groups Overdue, Today, Tomorrow, This week, Later (one row per repeating task), No due
   date, Done (optional). The board view is still Phase 4.
 
+## Phase 4: board, study plan, activity (built)
+
+- Tasks page has tabs List / Board / Study plan (`#/tasks`, `#/tasks/board`, `#/tasks/plan`),
+  files in `src/routes/tasks/`.
+- Board (`Board.svelte`): group by status (To do, In progress, her own columns from synced
+  collection `columns`, Done), by course (COURSES + No course) or by tag (tags are her own
+  categories; "+ Add tag" makes one). Dragging is pointer-based (not HTML drag-and-drop, which
+  Tauri's file-drop handling can block on Linux); the board auto-scrolls near its edges. A drop
+  sets status / course / tag and renumbers `order` for the column it lands in. A repeating task
+  shows once, as its next unticked day; dropping it on Done ticks that day. Deleting a custom
+  column moves its tasks to To do. Done shows the last 14 days. Per-column quick add.
+- Study plan (`src/lib/plan.ts` pure, `src/lib/stores/plan.svelte.ts`): synced collection `plans`
+  keyed by day, `{blocks, start?}`; block = title, minutes, study/break, done, spentMs, optional
+  taskId / labRel / course. Times are worked out from the start time. The timer is per machine
+  (local `timer.json`), keeps counting across page changes and restarts (capped at the block length
+  + 30 min if left running), chimes once when time is up, and saves time on pause / done.
+  Checking off a study block counts toward the streak. Suggestions: Study events on the calendar
+  that day, tasks due soon or overdue (using their estimate), and recent Recall Labs (missed review,
+  sim run). Unfinished blocks from yesterday can be brought over.
+- Floating timer pill (`TimerPill.svelte`) on every page except the plan; the dashboard's
+  Current block card is the real next / running block.
+- Activity heatmap (`Heatmap.svelte`, `src/lib/stores/activity.svelte.ts`) on the dashboard: score
+  per day = study minutes + 20 per lab opened + 10 per task done; as many weeks as fit. `days`
+  records are now `{labs, blocks}` counts (old records are `1` = one lab).
+- Tested: drags in all three groupings, custom columns, the timer across pages, and the timer across
+  a real app restart (`STUDYDESK_ROUTE=selftest-timer`, run twice).
+
 ## Other decisions
 
-- Tasks (Phase 4 still to do): BOARD view, switchable between columns by status and columns by
-  course, and she can add her own categories/columns, built on the task records above. Daily study
-  plan with ordered blocks, durations (task estimates help), start/pause timer that survives page
-  changes, check-off.
 - Streak: a day counts if she opened a lab or checked off a study block. Activity heatmap feeds it.
 - Grades: each course can be weighted by category or by points. Show current grade and what is
   needed on remaining items to hit a target. Fall 2026 courses: Therapeutics IV, Pharmacy Law,
@@ -181,11 +204,13 @@ Do not go back to thin coloured blocks on a plain grid.
    (restyled once to the soft pastel look)
 2. Recall Labs: folder dashboards, scanner + cache, in-app viewer, real progress on the dashboard. DONE
 3. Local calendar (week, agenda, exams) and sync through the Drive folder. DONE
-4. Tasks board and daily study plan with timer; activity heatmap.
+4. Tasks board and daily study plan with timer; activity heatmap. DONE (tasks as calendar
+   entries were added just before it)
 5. Courses and grades; Top 200/300 tracker.
 6. Settings, JSON backup, polish.
 
-Sample data lives in `src/lib/sample/data.ts`; each phase replaces its part with a real store.
+All Phase 1 sample data has been replaced; `src/lib/sample/data.ts` only holds the TONES list, and
+`src/lib/sample/labs.ts` is preview data for running the UI in a plain browser.
 
 ## Commands
 

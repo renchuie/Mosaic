@@ -3,7 +3,11 @@
   import LabCard from "../lib/components/LabCard.svelte";
   import Wave from "../lib/components/Wave.svelte";
   import MiniMonth from "../lib/components/MiniMonth.svelte";
-  import { TONES, focusBlock } from "../lib/sample/data";
+  import { TONES } from "../lib/sample/data";
+  import Heatmap from "../lib/components/Heatmap.svelte";
+  import { fmtClock, fmtDuration } from "../lib/plan";
+  import { completeBlock, getPlan, isRunning, nowBlock, pauseBlock, spent, startBlock } from "../lib/stores/plan.svelte";
+  import { studiedMinutes } from "../lib/plan";
   import { addDays, dueLabel, fmtTime, fromKey, todayKey } from "../lib/calendar";
   import { editEvent, editTask, exams, newEvent, newTask, occ, tagStyle } from "../lib/stores/calendar.svelte";
   import { overdue as overdueTasks, tasksOn, toggleTask } from "../lib/stores/tasks.svelte";
@@ -11,6 +15,10 @@
   import { inherited, labHref, labs, labsIn, streakInfo } from "../lib/stores/labs.svelte";
 
   const now = new Date();
+  const nb = $derived(nowBlock());
+  const nbNext = $derived(nb ? nb.plan.blocks.filter((b) => !b.done && b.id !== nb.block.id)[0] : undefined);
+  const todayPlan = $derived(getPlan(todayKey()));
+  const nbLeft = $derived(nb ? nb.plan.blocks.filter((b) => !b.done).length : 0);
   const cap = (x: string) => x.charAt(0).toUpperCase() + x.slice(1);
   const when = (n: number) => (n === 0 ? "Today" : n === 1 ? "Tomorrow" : `${n} days`);
 
@@ -131,6 +139,14 @@
 
     <section class="card">
       <div class="sec-head">
+        <h2 class="h2">Activity</h2>
+        <span class="tag">Study time, labs and tasks</span>
+      </div>
+      <Heatmap />
+    </section>
+
+    <section class="card">
+      <div class="sec-head">
         <h2 class="h2">Tasks</h2>
         <a class="link" href="#/tasks">All tasks <Icon name="arrow" size={14} /></a>
       </div>
@@ -175,13 +191,32 @@
     </section>
 
     <section class="card focus t-sage">
-      <span class="label">Current block</span>
-      <h2 class="h2">{focusBlock.title}</h2>
-      <div class="timer display">{focusBlock.elapsed}<small>of {focusBlock.minutes}:00</small></div>
-      <div class="focus-row">
-        <button class="btn primary" type="button"><Icon name="pause" size={16} /> Pause</button>
-        <span class="next">Next: {focusBlock.next}</span>
-      </div>
+      {#if nb}
+        {@const b = nb.block}
+        {@const ms = spent(nb.date, b)}
+        <span class="label">{isRunning(nb.date, b.id) ? "Studying now" : ms ? "Paused" : "Up next"} · {nbLeft} {nbLeft === 1 ? "block" : "blocks"} left today</span>
+        <h2 class="h2">{b.title}</h2>
+        <div class="timer display">{fmtClock(ms)}<small>of {fmtClock(b.minutes * 60000)}</small></div>
+        <div class="focus-row">
+          {#if isRunning(nb.date, b.id)}
+            <button class="btn primary" type="button" onclick={pauseBlock}><Icon name="pause" size={16} /> Pause</button>
+          {:else}
+            <button class="btn primary" type="button" onclick={() => startBlock(nb.date, b.id)}><Icon name="play" size={16} /> {ms ? "Resume" : "Start"}</button>
+          {/if}
+          <button class="btn quiet done-btn" type="button" onclick={() => completeBlock(nb.date, b.id)}><Icon name="check" size={16} /> Done</button>
+        </div>
+        <a class="next" href="#/tasks/plan">{nbNext ? `Next: ${nbNext.title} · ${fmtDuration(nbNext.minutes)}` : "Last block today"} →</a>
+      {:else if todayPlan.blocks.length}
+        <span class="label">Study plan</span>
+        <h2 class="h2">All blocks done for today</h2>
+        <p class="next">{fmtDuration(studiedMinutes(todayPlan))} studied. Nice work.</p>
+        <div class="focus-row"><a class="btn quiet done-btn" href="#/tasks/plan">Add another block</a></div>
+      {:else}
+        <span class="label">Study plan</span>
+        <h2 class="h2">No blocks planned for today</h2>
+        <p class="next">Plan your day in blocks and run a timer for each.</p>
+        <div class="focus-row"><a class="btn primary" href="#/tasks/plan">Plan my day</a></div>
+      {/if}
     </section>
 
     <section class="card">
@@ -498,7 +533,16 @@
     flex-wrap: wrap;
   }
   .next {
+    display: block;
     font-size: 13.5px;
+    margin-top: 10px;
+    text-decoration: none;
+  }
+  a.next:hover {
+    text-decoration: underline;
+  }
+  .done-btn {
+    background: rgba(255, 253, 251, 0.6);
   }
 
   .timeline {

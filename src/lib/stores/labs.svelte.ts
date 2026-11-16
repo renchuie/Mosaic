@@ -132,10 +132,14 @@ export function recordOpen(rel: string) {
   markStudyDay();
 }
 
-/** A day counts toward the streak (opened a lab; Phase 4 adds study-block check-offs). */
-export function markStudyDay() {
+/** A day counts toward the streak: you opened a lab or checked off a study block.
+ *  Older records are just 1 (= one lab opened). */
+export function markStudyDay(what: "labs" | "blocks" = "labs") {
   const today = dayKey();
-  if (!get("days", today)) put("days", today, 1);
+  const cur = get<number | { labs?: number; blocks?: number }>("days", today);
+  const rec = typeof cur === "number" ? { labs: cur } : { ...(cur ?? {}) };
+  rec[what] = (rec[what] ?? 0) + 1;
+  put("days", today, rec);
 }
 
 /** While a lab is open its progress is not overwritten by sync; on leaving, capture and push it. */

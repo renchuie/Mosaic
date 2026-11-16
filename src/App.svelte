@@ -8,6 +8,7 @@
   import Tasks from "./routes/Tasks.svelte";
   import EventEditor from "./lib/components/EventEditor.svelte";
   import TagManager from "./lib/components/TagManager.svelte";
+  import TimerPill from "./lib/components/TimerPill.svelte";
   import ComingSoon from "./routes/ComingSoon.svelte";
 
   const soon = {
@@ -37,6 +38,7 @@
 </div>
 <EventEditor />
 <TagManager />
+<TimerPill />
 
 <style>
   .shell {

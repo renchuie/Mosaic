@@ -4,6 +4,24 @@ import { labs, labsIn, rescan } from "./stores/labs.svelte";
 import { invoke, log } from "./tauri";
 import { entries, sync, syncNow } from "./stores/synced.svelte";
 import { exams } from "./stores/calendar.svelte";
+import { addBlock, clock, completeBlock, getPlan, spent, startBlock } from "./stores/plan.svelte";
+import { todayKey } from "./calendar";
+
+/** Run 1 starts a timer and quits; run 2 shows it kept counting across the restart, then finishes it. */
+export async function timerTest() {
+  const d = todayKey();
+  const b = getPlan(d).blocks.find((x) => x.title === "Selftest block" && !x.done);
+  if (!b) {
+    const id = addBlock(d, { title: "Selftest block", minutes: 25 });
+    startBlock(d, id);
+    log(`timer started on ${id}`);
+  } else {
+    log(`timer after restart: running=${!!clock.timer?.startedAt} spent=${Math.round(spent(d, b) / 1000)}s`);
+    completeBlock(d, b.id);
+    log(`completed; done=${getPlan(d).blocks.find((x) => x.id === b.id)?.done} spentMs=${getPlan(d).blocks.find((x) => x.id === b.id)?.spentMs}`);
+  }
+  setTimeout(() => void invoke("debug_quit"), 6000);
+}
 
 export async function selfTest() {
   const t0 = performance.now();

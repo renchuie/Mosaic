@@ -240,6 +240,8 @@ export type Task = {
   /** repeating tasks: days that were deleted */
   skip?: string[];
   subtasks?: Subtask[];
+  /** position on the board after you drag it (lower = higher up) */
+  order?: number;
   created: number;
 };
 
