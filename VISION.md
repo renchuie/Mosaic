@@ -13,7 +13,7 @@ with a homepage and pages she can design herself, and a personal side for the re
 ## What "this app gets me" means
 
 Pretty **and** practical. Notion and xTiles can look beautiful, but making them useful takes
-hours of setup and they still don't make her productive. Study Desk should be useful on day one
+hours of setup and they still don't make her productive. Mosaic should be useful on day one
 and pretty on day one, and customisation is a bonus, never a requirement.
 
 ## Principles (in priority order)
@@ -77,5 +77,5 @@ but connect like Obsidian (links, backlinks, tags, properties, mind map), stored
 
 ## Why she dropped every other app
 
-Each one was always missing something she couldn't add with plugins or its own features. Study
-Desk can grow with her because she shapes it.
+Each one was always missing something she couldn't add with plugins or its own features. Mosaic
+can grow with her because she shapes it.
