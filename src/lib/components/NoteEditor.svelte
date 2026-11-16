@@ -109,6 +109,21 @@
     }
     return Decoration.set(out, true);
   }
+  // hidden card ids (<!--sd:xxxxxx-->): invisible, and the cursor steps over them
+  const ids = new MatchDecorator({ regexp: /\s*<!--sd:[a-z0-9]+-->/g, decoration: () => Decoration.replace({}) });
+  const idPlugin = ViewPlugin.fromClass(
+    class {
+      decorations: DecorationSet;
+      constructor(v: EditorView) {
+        this.decorations = ids.createDeco(v);
+      }
+      update(u: ViewUpdate) {
+        this.decorations = ids.updateDeco(u, this.decorations);
+      }
+    },
+    { decorations: (v) => v.decorations, provide: (p) => EditorView.atomicRanges.of((v) => v.plugin(p)?.decorations ?? Decoration.none) },
+  );
+
   const imageField = StateField.define<DecorationSet>({
     create: images,
     update: (d, tr) => (tr.docChanged ? images(tr.state) : d),
@@ -164,6 +179,7 @@
           syntaxHighlighting(style),
           EditorView.lineWrapping,
           markPlugin,
+          idPlugin,
           imageField,
           autocompletion({ override: [complete], icons: false }),
           theme,
@@ -224,6 +240,19 @@
     const line = view.state.doc.line(Math.min(Math.max(1, n + 1), view.state.doc.lines));
     view.dispatch({ selection: { anchor: line.from }, effects: EditorView.scrollIntoView(line.from, { y: "start", yMargin: 40 }) });
     view.focus();
+  }
+  /** Add text at the end of lines (card ids) without moving the cursor. */
+  export function appendToLines(list: { line: number; text: string }[]) {
+    if (!view || !list.length) return;
+    const doc = view.state.doc;
+    view.dispatch({
+      changes: list.filter((x) => x.line < doc.lines).map((x) => {
+        const l = doc.line(x.line + 1);
+        const trimmed = l.text.replace(/\s+$/, "");
+        return { from: l.from + trimmed.length, to: l.to, insert: x.text };
+      }),
+      annotations: [],
+    });
   }
   export function focus() {
     view?.focus();

@@ -10,7 +10,7 @@ export function activityByDay(): Map<string, DayActivity> {
   const m = new Map<string, DayActivity>();
   const at = (d: string) => {
     let a = m.get(d);
-    if (!a) m.set(d, (a = { minutes: 0, labs: 0, tasks: 0, blocks: 0 }));
+    if (!a) m.set(d, (a = { minutes: 0, labs: 0, tasks: 0, blocks: 0, reviews: 0 }));
     return a;
   };
   for (const [d, v] of entries<DayRec>("days")) {
@@ -21,6 +21,7 @@ export function activityByDay(): Map<string, DayActivity> {
       a.blocks += v.blocks ?? 0;
     }
   }
+  for (const [d, r] of entries<{ reviews: number }>("reviewDays")) if (r?.reviews) at(d).reviews = r.reviews;
   for (const [d, p] of entries<Plan>("plans")) {
     const min = studiedMinutes(p);
     if (min) at(d).minutes += min;
@@ -42,7 +43,7 @@ export function heatmap(weeks = 20) {
   const cols = Array.from({ length: weeks }, (_, w) =>
     Array.from({ length: 7 }, (_, i) => {
       const date = addDays(first, w * 7 + i);
-      const a = data.get(date) ?? { minutes: 0, labs: 0, tasks: 0, blocks: 0 };
+      const a = data.get(date) ?? { minutes: 0, labs: 0, tasks: 0, blocks: 0, reviews: 0 };
       return { date, future: date > today, a, level: activityLevel(activityScore(a)) };
     }),
   );

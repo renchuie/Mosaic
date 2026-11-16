@@ -1,0 +1,444 @@
+<script lang="ts">
+  import Icon from "../../lib/components/Icon.svelte";
+  import { cardHtml } from "../../lib/cards";
+  import { fromKey } from "../../lib/calendar";
+  import { courseByName, courses } from "../../lib/stores/courses.svelte";
+  import { imageUrl, noteHref, notes } from "../../lib/stores/notes.svelte";
+  import { saveSettings, settings } from "../../lib/stores/settings.svelte";
+  import { allCards, counts, dayRev, ensureIds, fmtInterval, forecast, retention, setSuspended, statusOf } from "../../lib/stores/srs.svelte";
+
+  const enc = (s: string) => encodeURIComponent(s);
+  let backfilled = $state(0);
+  $effect(() => {
+    if (notes.loaded) void ensureIds().then((n) => (backfilled += n));
+  });
+
+  const all = $derived(counts());
+  const fc = $derived(forecast(14));
+  const fmax = $derived(Math.max(1, ...fc.map((x) => x.n)));
+  const ret = $derived(retention(30));
+  const today = $derived(dayRev());
+  const refs = $derived(allCards());
+  const byCourse = $derived(
+    courses()
+      .map(([id, c]) => ({ id, c, k: counts({ kind: "course", name: c.name }) }))
+      .filter((x) => x.k.total),
+  );
+  const byNote = $derived(
+    [...new Set(refs.map((r) => r.note.rel))]
+      .map((rel) => ({ rel, e: notes.files[rel], k: counts({ kind: "note", rel }) }))
+      .filter((x) => x.e && x.k.total)
+      .sort((a, b) => b.k.due + b.k.newToday - (a.k.due + a.k.newToday) || b.k.total - a.k.total),
+  );
+
+  let q = $state("");
+  let showList = $state(false);
+  const list = $derived(
+    refs
+      .filter((r) => r.card.lineId)
+      .filter((r) => !q.trim() || `${r.card.front} ${r.card.back} ${r.note.p.title}`.toLowerCase().includes(q.trim().toLowerCase()))
+      .slice(0, 200),
+  );
+  const st = (r: (typeof refs)[0]) => statusOf(r.rec);
+  const dueText = (r: (typeof refs)[0]) =>
+    !r.rec ? "New" : r.rec.suspended ? "Suspended" : r.rec.due <= Date.now() ? "Due now" : `in ${fmtInterval(r.rec.due - Date.now())}`;
+</script>
+
+<div class="cards">
+  <section class="hero">
+    <div class="big">
+      <span class="label">Due now</span>
+      <b class="display">{all.due}</b>
+      <span>{all.newToday} new today · {all.learning} learning</span>
+    </div>
+    <div class="go">
+      {#if all.due + all.newToday > 0}
+        <a class="btn primary lg" href="#/study/cards/review/all"><Icon name="play" size={18} /> Review {all.due + all.newToday} cards</a>
+      {:else if all.total}
+        <p class="done">All caught up for now 🎉</p>
+      {/if}
+      <p class="muted small">{all.total} cards in your notes{backfilled ? ` · ${backfilled} new cards found` : ""}</p>
+    </div>
+  </section>
+
+  {#if !all.total}
+    <section class="card how">
+      <h2 class="h2">Write cards right in your notes</h2>
+      <ul>
+        <li><code>ACE inhibitor cough :: bradykinin build-up</code> <span>basic card</span></li>
+        <li><code>Digoxin ::: narrow therapeutic index</code> <span>two cards, both ways</span></li>
+        <li><code>Start {"{{SGLT2i}}"} regardless of diabetes</code> <span>cloze (hide the part in braces)</span></li>
+        <li><code>Four pillars of GDMT ::</code> with bullets indented under it <span>list card</span></li>
+      </ul>
+      <a class="btn quiet" href="#/study/notes">Open notes</a>
+    </section>
+  {:else}
+    <div class="stats">
+      <div class="card"><span class="label">Total</span><b class="display">{all.total}</b><span class="muted">{all.new} not seen yet</span></div>
+      <div class="card"><span class="label">Mature</span><b class="display">{all.mature}</b><span class="muted">interval ≥ 3 weeks</span></div>
+      <div class="card"><span class="label">Retention</span><b class="display">{ret === null ? "–" : `${Math.round(ret * 100)}%`}</b><span class="muted">last 30 days</span></div>
+      <div class="card"><span class="label">Today</span><b class="display">{today.reviews}</b><span class="muted">reviews · {Math.round(today.ms / 60000)} min</span></div>
+    </div>
+
+    <div class="cols">
+      <div class="main">
+        <section class="card">
+          <h2 class="h2">Decks</h2>
+          <p class="muted small">A deck is every card in a course's notes, or in one note.</p>
+          <ul class="decks">
+            {#each byCourse as d (d.id)}
+              <li style="--c: {d.c.color}">
+                <span class="dot"></span><b>{d.c.name}</b>
+                <span class="nums"><span class="n-due">{d.k.due}</span><span class="n-new">{d.k.newToday}</span><span class="muted">{d.k.total}</span></span>
+                <a class="btn quiet sm" href="#/study/cards/review/course:{enc(d.c.name)}" class:off={!d.k.due && !d.k.newToday}>Review</a>
+              </li>
+            {/each}
+          </ul>
+          <h3 class="label sub">By note</h3>
+          <ul class="decks">
+            {#each byNote as d (d.rel)}
+              {@const c = d.e.p.meta.course ? courseByName(String(d.e.p.meta.course)) : undefined}
+              <li style="--c: {c ? c[1].color : 'var(--hairline)'}">
+                <span class="dot"></span><a class="nl" href={noteHref(d.rel)}>{d.e.p.title}</a>
+                <span class="nums"><span class="n-due">{d.k.due}</span><span class="n-new">{d.k.newToday}</span><span class="muted">{d.k.total}</span></span>
+                <a class="btn quiet sm" href="#/study/cards/review/note:{enc(d.rel)}" class:off={!d.k.due && !d.k.newToday}>Review</a>
+              </li>
+            {/each}
+          </ul>
+          <p class="legend muted"><span class="n-due">due</span> <span class="n-new">new today</span> total</p>
+        </section>
+
+        <section class="card">
+          <div class="lh">
+            <h2 class="h2">All cards</h2>
+            <button type="button" class="btn quiet sm" onclick={() => (showList = !showList)}>{showList ? "Hide" : "Show"}</button>
+          </div>
+          {#if showList}
+            <input class="input" bind:value={q} placeholder="Search cards" aria-label="Search cards" />
+            <ul class="clist">
+              {#each list as r (r.card.key)}
+                <li class:sus={st(r) === "suspended"}>
+                  <div class="cf">{@html cardHtml(r.card.front, (s) => imageUrl(r.note.rel, s))}</div>
+                  <div class="cb muted">{@html cardHtml(r.card.back, (s) => imageUrl(r.note.rel, s))}</div>
+                  <div class="cm">
+                    <a href={noteHref(r.note.rel)} onclick={() => (notes.jump = { rel: r.note.rel, line: r.card.line })}>{r.note.p.title}</a>
+                    <span class="tag">{r.card.kind}</span>
+                    <span>{dueText(r)}</span>
+                    <button type="button" class="mini" onclick={() => setSuspended(r.card.key, st(r) !== "suspended")}>{st(r) === "suspended" ? "Unsuspend" : "Suspend"}</button>
+                  </div>
+                </li>
+              {/each}
+            </ul>
+          {/if}
+        </section>
+      </div>
+
+      <aside class="side">
+        <section class="card">
+          <h2 class="h2">Next 2 weeks</h2>
+          <div class="fc" role="img" aria-label="Reviews due per day for the next 14 days">
+            {#each fc as d, i (d.date)}
+              <div class="col" title="{fromKey(d.date).toDateString()}: {d.n} reviews">
+                <span class="v">{d.n || ""}</span>
+                <span class="bar" style="height: {(d.n / fmax) * 100}%"></span>
+                <span class="d" class:today={i === 0}>{fromKey(d.date).toLocaleDateString("en-US", { weekday: "narrow" })}</span>
+              </div>
+            {/each}
+          </div>
+        </section>
+        <section class="card">
+          <h2 class="h2">Settings</h2>
+          <label class="field"><span class="label">New cards per day</span>
+            <input class="input" type="number" min="0" max="500" value={settings.newPerDay} onchange={(e) => saveSettings({ newPerDay: Math.max(0, Number(e.currentTarget.value) || 0) })} /></label>
+          <label class="field"><span class="label">Target retention</span>
+            <select class="input" value={String(settings.retention)} onchange={(e) => saveSettings({ retention: Number(e.currentTarget.value) })}>
+              {#each [0.8, 0.85, 0.9, 0.93, 0.95] as r}<option value={String(r)}>{Math.round(r * 100)}%{r === 0.9 ? " (recommended)" : r >= 0.93 ? " (more reviews)" : " (fewer reviews)"}</option>{/each}
+            </select></label>
+          <p class="muted small">Scheduling uses FSRS, the same method as modern Anki. Higher retention means you remember more, with more reviews.</p>
+        </section>
+      </aside>
+    </div>
+  {/if}
+</div>
+
+<style>
+  .cards {
+    display: grid;
+    gap: var(--gap);
+    container-type: inline-size;
+  }
+  .hero {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+    flex-wrap: wrap;
+    padding: 24px 28px;
+    border-radius: 30px;
+    background: radial-gradient(120% 160% at 0% 0%, #5a4a4e 0%, var(--charcoal) 60%);
+    color: var(--on-primary);
+    box-shadow: var(--shadow-lift);
+  }
+  .big {
+    display: grid;
+    line-height: 1.1;
+  }
+  .big .label {
+    color: var(--on-primary);
+    opacity: 0.7;
+  }
+  .big b {
+    font-size: 64px;
+    font-weight: 600;
+  }
+  .big span:last-child {
+    color: var(--peach);
+  }
+  .go {
+    display: grid;
+    gap: 8px;
+    justify-items: end;
+  }
+  .lg {
+    min-height: 54px;
+    padding: 0 26px;
+    font-size: 17px;
+    background: var(--sage);
+    color: var(--charcoal);
+  }
+  .done {
+    font-size: 18px;
+    font-weight: 600;
+  }
+  .go .muted {
+    color: rgba(255, 253, 251, 0.7);
+  }
+  .small {
+    font-size: 13.5px;
+  }
+  .how ul {
+    list-style: none;
+    margin: 12px 0;
+    padding: 0;
+    display: grid;
+    gap: 8px;
+  }
+  .how li {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+  .how code,
+  .card code {
+    padding: 4px 10px;
+    border-radius: 8px;
+    background: var(--panel);
+    font-size: 13.5px;
+  }
+  .how li span {
+    color: var(--text-muted);
+    font-size: 13.5px;
+  }
+  .stats {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 12px;
+  }
+  @container (max-width: 700px) {
+    .stats {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+  .stats .card {
+    display: grid;
+    padding: 14px 16px;
+  }
+  .stats b {
+    font-size: 28px;
+    font-weight: 600;
+  }
+  .stats .muted {
+    font-size: 12.5px;
+  }
+  .cols {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 320px;
+    gap: var(--gap);
+    align-items: start;
+  }
+  @container (max-width: 900px) {
+    .cols {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+  .main,
+  .side {
+    display: grid;
+    gap: var(--gap);
+    min-width: 0;
+  }
+  .side .card {
+    display: grid;
+    gap: 10px;
+  }
+  .decks {
+    list-style: none;
+    margin: 10px 0 0;
+    padding: 0;
+    display: grid;
+    gap: 4px;
+  }
+  .decks li {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto auto;
+    gap: 12px;
+    align-items: center;
+    min-height: 46px;
+    padding: 0 6px 0 12px;
+    border-radius: 14px;
+    background: color-mix(in srgb, var(--c) 18%, var(--white));
+  }
+  .dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--c);
+  }
+  .decks b,
+  .nl {
+    font-weight: 600;
+    font-size: 14.5px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    text-decoration: none;
+  }
+  .nums {
+    display: inline-flex;
+    gap: 12px;
+    font-size: 14px;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+  }
+  .n-due {
+    color: #3f7366;
+  }
+  .n-new {
+    color: #7a5bbf;
+  }
+  .nums .muted {
+    font-weight: 500;
+  }
+  .sm {
+    min-height: 34px;
+    padding: 0 14px;
+    font-size: 13px;
+  }
+  .off {
+    opacity: 0.45;
+  }
+  .sub {
+    display: block;
+    margin-top: 16px;
+  }
+  .legend {
+    margin-top: 8px;
+    font-size: 12px;
+    display: flex;
+    gap: 12px;
+    justify-content: flex-end;
+  }
+  .lh {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 10px;
+  }
+  .clist {
+    list-style: none;
+    margin: 10px 0 0;
+    padding: 0;
+    display: grid;
+    gap: 6px;
+    max-height: 520px;
+    overflow-y: auto;
+  }
+  .clist li {
+    display: grid;
+    gap: 4px;
+    padding: 10px 12px;
+    border-radius: 14px;
+    background: var(--panel);
+  }
+  .clist li.sus {
+    opacity: 0.55;
+  }
+  .cf {
+    font-weight: 600;
+  }
+  .cb {
+    font-size: 13.5px;
+  }
+  .cm {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    align-items: center;
+    font-size: 12.5px;
+    color: var(--text-muted);
+  }
+  .mini {
+    margin-left: auto;
+    min-height: 28px;
+    padding: 0 10px;
+    border: 0;
+    border-radius: var(--radius-pill);
+    background: var(--surface);
+    font-size: 12px;
+  }
+  .cf :global(.gap),
+  .cb :global(mark) {
+    background: var(--butter);
+    border-radius: 4px;
+    padding: 0 3px;
+  }
+  .cf :global(ul),
+  .cb :global(ul) {
+    margin: 0;
+    padding-left: 18px;
+  }
+  .fc {
+    display: grid;
+    grid-template-columns: repeat(14, minmax(0, 1fr));
+    gap: 4px;
+    height: 150px;
+    align-items: end;
+  }
+  .col {
+    display: grid;
+    grid-template-rows: auto 1fr auto;
+    justify-items: center;
+    height: 100%;
+    align-items: end;
+  }
+  .v {
+    font-size: 10.5px;
+    color: var(--text-muted);
+  }
+  .bar {
+    width: 100%;
+    min-height: 2px;
+    border-radius: 6px 6px 2px 2px;
+    background: linear-gradient(180deg, var(--sage), var(--sage-deep));
+  }
+  .d.today {
+    font-weight: 700;
+    color: var(--text);
+  }
+  .d {
+    font-size: 10.5px;
+    color: var(--text-muted);
+    padding-top: 4px;
+  }
+</style>

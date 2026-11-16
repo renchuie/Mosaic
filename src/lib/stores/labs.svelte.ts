@@ -134,9 +134,9 @@ export function recordOpen(rel: string) {
 
 /** A day counts toward the streak: you opened a lab or checked off a study block.
  *  Older records are just 1 (= one lab opened). */
-export function markStudyDay(what: "labs" | "blocks" = "labs") {
+export function markStudyDay(what: "labs" | "blocks" | "reviews" = "labs") {
   const today = dayKey();
-  const cur = get<number | { labs?: number; blocks?: number }>("days", today);
+  const cur = get<number | { labs?: number; blocks?: number; reviews?: number }>("days", today);
   const rec = typeof cur === "number" ? { labs: cur } : { ...(cur ?? {}) };
   rec[what] = (rec[what] ?? 0) + 1;
   put("days", today, rec);

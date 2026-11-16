@@ -10,6 +10,9 @@ export type Settings = {
   syncDir: string;
   /** folder of Markdown notes (Study → Notes) */
   notesRoot: string;
+  /** flashcards: new cards introduced per day, and FSRS target retention (0.7–0.97) */
+  newPerDay: number;
+  retention: number;
 };
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -20,6 +23,8 @@ export const DEFAULT_SETTINGS: Settings = {
   syncEnabled: true,
   syncDir: "~/GoogleDrive/Pharmacy School/Study Lab/Study Desk Sync",
   notesRoot: "~/GoogleDrive/Pharmacy School/Study Lab/Notes",
+  newPerDay: 20,
+  retention: 0.9,
 };
 
 export const settings = $state<Settings>({ ...DEFAULT_SETTINGS });

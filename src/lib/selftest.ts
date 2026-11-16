@@ -7,6 +7,7 @@ import { exams } from "./stores/calendar.svelte";
 import { addBlock, clock, completeBlock, getPlan, spent, startBlock } from "./stores/plan.svelte";
 import { todayKey } from "./calendar";
 import { notes, refreshNotes } from "./stores/notes.svelte";
+import { counts, ensureIds } from "./stores/srs.svelte";
 
 /** Run 1 starts a timer and quits; run 2 shows it kept counting across the restart, then finishes it. */
 export async function timerTest() {
@@ -45,6 +46,9 @@ export async function selfTest() {
     log(`notes root=${notes.root} error=${notes.error} files=${Object.keys(notes.files).join(" | ")} dirs=${notes.dirs.join(" | ")}`);
     const hf = Object.values(notes.files).find((n) => n.p.title === "Heart failure");
     if (hf) log(`HF links=${hf.p.links.join(",")} tags=${hf.p.tags.join(",")} course=${hf.p.meta.course}`);
+    const added = await ensureIds();
+    const k = counts();
+    log(`cards: ids added=${added} total=${k.total} new=${k.new} due=${k.due} newToday=${k.newToday}`);
     log(`selftest done (${ms()})`);
   } catch (e) {
     log(`selftest error: ${e} (${ms()})`);

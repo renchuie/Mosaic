@@ -245,7 +245,7 @@ Recall Labs. Decisions she approved:
 - Imports: Anki and CSV (built with the card library). No AI features.
 - Libraries (npm, no system packages): CodeMirror 6 (notes editor), ts-fsrs (FSRS scheduling),
   pdfjs-dist (viewing), pdf-lib (editing).
-- Phases: S1 Study tab shell with Recall Labs moved in (DONE); S2 notes (DONE) (editor, [[links]], backlinks,
+- Phases: S1 Study tab shell with Recall Labs moved in (DONE); S2 notes (DONE); S3 cards in notes + FSRS (DONE) (editor, [[links]], backlinks,
   #tags, templates, class notes from calendar events, notes on course pages); S3 cards written in
   notes (`Q :: A`, `:::` two-way, `{{cloze}}`, list cards) + FSRS review + dashboard "cards due";
   S4 card library (note types with fields, Drug type, table → cards, CSV/Anki import, image
@@ -282,6 +282,29 @@ Recall Labs. Decisions she approved:
 - Layout gotcha: a container query can't style the element that is the container. NotesView and
   Calendar wrap themselves (`.nwrap`, `.calwrap`) for that reason.
 - Empty `<input type=date>` shows today's date in WebKitGTK; add class `empty` (greyed) when unset.
+
+## Study S3 (built): flashcards in notes + FSRS review
+
+- Syntax (`src/lib/cards.ts`, pure, node-tested): `Q :: A` basic, `Q ::: A` two cards (forward and
+  reverse), `{{cloze}}` (each gap its own card; `{{c1::…}}` gaps hide together; `{{answer::hint}}`),
+  `Question ::` with indented bullets below = list card. `Field ::` with nothing after it (the drug
+  template) is not a card. Code blocks are skipped. Context = heading path + up to two parent bullets.
+- Every card line gets a hidden stable id `<!--sd:xxxxxx-->` appended (review keys: `id`, `id:r`,
+  `id:cN`). The editor adds ids to the open note while typing (`appendToLines`, cursor kept) and
+  hides them as atomic ranges; `ensureIds()` adds them to other notes (skips `notes.editing`) with
+  the usual mtime conflict check.
+- Store `src/lib/stores/srs.svelte.ts` (ts-fsrs, enable_fuzz, max interval 10 y): synced
+  collections `srs` (FSRS card state per key, dates as ms, `suspended`) and `reviewDays` (reviews,
+  new, again, ms per day). Settings: `newPerDay` (20), `retention` (0.9). Learning cards may show up
+  to 20 min early (Anki's learn-ahead). Undo restores the previous record (deletes it for a new card).
+- UI: Study → Cards (`CardsView.svelte`): due now hero, stats (total, mature ≥ 21 d, 30-day
+  retention, today), decks by course and by note, 14-day forecast, searchable card list with suspend,
+  settings. Review (`ReviewSession.svelte`, `#/study/cards/review/all|course:<name>|note:<rel>`):
+  context breadcrumb, Space to show, 1–4 to rate with next-interval labels, Z undo, "Edit in note"
+  jumps to the line (`notes.jump`), summary at the end.
+- Wired in: Cards tab badge, dashboard Flashcards card, Study Home card, course page "N to review",
+  study plan suggestion "Review N flashcards" (block `href`), heatmap (+½ per review), streak
+  (`markStudyDay("reviews")`).
 
 ## Other decisions
 

@@ -14,6 +14,8 @@ export type Block = {
   taskId?: string;
   labRel?: string;
   course?: string;
+  /** a link the block opens (e.g. a flashcard review) */
+  href?: string;
 };
 
 /** One plan per day (synced collection "plans", keyed by "YYYY-MM-DD"). */
@@ -79,10 +81,10 @@ export function move<T>(list: T[], from: number, to: number): T[] {
 
 // ---- activity ----------------------------------------------------------------
 
-export type DayActivity = { minutes: number; labs: number; tasks: number; blocks: number };
+export type DayActivity = { minutes: number; labs: number; tasks: number; blocks: number; reviews?: number };
 
 /** One number per day for the heatmap: study minutes, plus credit for labs opened and tasks finished. */
-export const activityScore = (a: DayActivity) => a.minutes + 20 * a.labs + 10 * a.tasks;
+export const activityScore = (a: DayActivity) => a.minutes + 20 * a.labs + 10 * a.tasks + (a.reviews ?? 0) / 2;
 
 /** 0–4 for the heatmap colour. */
 export function activityLevel(score: number): 0 | 1 | 2 | 3 | 4 {

@@ -11,6 +11,7 @@
     addBlock, bringOver, clock, completeBlock, getPlan, isRunning, pauseBlock, removeBlock, reopenBlock, setBlocks, setStart, spent, startBlock, updateBlock,
   } from "../../lib/stores/plan.svelte";
   import { overdue, tasksOn } from "../../lib/stores/tasks.svelte";
+  import { counts as cardCounts } from "../../lib/stores/srs.svelte";
 
   let date = $state(todayKey());
   const today = todayKey();
@@ -66,6 +67,13 @@
       ])
       .filter((x) => !inPlan((b) => b.title === x.title)),
   );
+  const cardIdea = $derived.by(() => {
+    if (date !== today) return null;
+    const k = cardCounts();
+    const n = k.due + k.newToday;
+    if (!n || inPlan((b) => b.href === "#/study/cards/review/all")) return null;
+    return { n, minutes: Math.max(5, Math.ceil((k.due * 8 + k.newToday * 20) / 60 / 5) * 5) };
+  });
   const calIdeas = $derived(
     occ(date, date)
       .filter((o) => o.ev.kind === "study" && !o.ev.allDay && o.ev.start && o.ev.end)
@@ -78,6 +86,7 @@
   function look(b: Block): { color: string; icon: string } {
     if (b.kind === "break") return { color: "#F7E3B0", icon: "coffee" };
     if (b.labRel) return { color: "#F6CFA8", icon: "labs" };
+    if (b.href?.includes("/cards/")) return { color: "#CDB4F7", icon: "star" };
     const t = b.taskId ? getTask(b.taskId) : undefined;
     if (t) return { color: tagOf(t.tag ?? "task").color, icon: tagIcon(t.tag ?? "task") };
     return { color: "#A9CDC3", icon: "book" };
@@ -140,6 +149,7 @@
               {/if}
               <button class="btn go" type="button" onclick={() => completeBlock(date, cur.id)}><Icon name="check" size={16} /> Done</button>
               {#if cur.labRel}<a class="btn" href={labHref(cur.labRel)}><Icon name="labs" size={16} /> Open lab</a>{/if}
+              {#if cur.href}<a class="btn" href={cur.href}><Icon name="star" size={16} /> Open</a>{/if}
               {#if cur.taskId}<button class="btn" type="button" onclick={(e) => editTask(cur.taskId!, null, e)}><Icon name="tasks" size={16} /> Task</button>{/if}
             </div>
           </div>
@@ -232,6 +242,12 @@
       {#if date >= today}
         <section class="card ideas">
           <h2 class="h2">Suggestions</h2>
+          {#if cardIdea}
+            <h3 class="label">Flashcards</h3>
+            <button type="button" class="idea" onclick={() => addBlock(date, { title: `Review ${cardIdea!.n} flashcards`, minutes: cardIdea!.minutes, href: "#/study/cards/review/all" })}>
+              <span class="plus">+</span><span class="it"><b>Review {cardIdea.n} flashcards</b><span>about {fmtDuration(cardIdea.minutes)}</span></span>
+            </button>
+          {/if}
           {#if calIdeas.length}
             <h3 class="label">Study blocks on your calendar</h3>
             {#each calIdeas as s (s.key)}
@@ -258,7 +274,7 @@
               </button>
             {/each}
           {/if}
-          {#if !calIdeas.length && !taskIdeas.length && !labIdeas.length}
+          {#if !cardIdea && !calIdeas.length && !taskIdeas.length && !labIdeas.length}
             <p class="muted">Nothing to suggest yet. Tasks with estimates, your Recall Labs and Study events on the calendar show up here.</p>
           {/if}
         </section>

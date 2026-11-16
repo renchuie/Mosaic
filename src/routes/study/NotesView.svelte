@@ -3,6 +3,7 @@
   import NoteEditor from "../../lib/components/NoteEditor.svelte";
   import { fromKey } from "../../lib/calendar";
   import { joinNote, splitNote, type Meta } from "../../lib/notes";
+  import { assignIds, cardId } from "../../lib/cards";
   import { courseByName, courseNames } from "../../lib/stores/courses.svelte";
   import {
     allNotes, allTags, backlinks, createNote, dirOf, getNote, imageUrl, linkName, moveNote, noteHref, notes, recentNotes,
@@ -32,6 +33,7 @@
       body = s.body;
       loadedMtime = note.mtime;
       loadedRel = rel;
+      notes.editing = rel;
       title = linkName(note);
       status = "saved";
       version++;
@@ -52,6 +54,12 @@
   async function flush(force = false) {
     if (!loadedRel) return;
     const r = loadedRel;
+    // give new card lines their hidden id; the editor change triggers another save
+    const ids = assignIds(body, cardId);
+    if (ids.inserted.length && editor) {
+      editor.appendToLines(ids.inserted);
+      return;
+    }
     try {
       await saveNote(r, joinNote($state.snapshot(meta) as Meta, body), force ? undefined : loadedMtime);
       if (loadedRel === r) {
@@ -118,6 +126,19 @@
   let newOpen = $state(false);
   let newMode = $state<"note" | "folder">("note");
   let newFolder = $state("");
+
+  $effect(() => () => {
+    if (notes.editing === loadedRel) notes.editing = null;
+  });
+  // "Edit in note" from a flashcard: jump to the card's line once the editor is ready
+  $effect(() => {
+    const j = notes.jump;
+    if (j && editor && j.rel === loadedRel) {
+      const line = j.line;
+      notes.jump = null;
+      setTimeout(() => editor?.gotoLine(line), 50);
+    }
+  });
 
   const back = $derived(rel ? backlinks(rel) : []);
   const outline = $derived(note ? note.p.headings : []);

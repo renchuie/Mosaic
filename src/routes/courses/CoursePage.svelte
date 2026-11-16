@@ -11,6 +11,7 @@
   import { toggleTask } from "../../lib/stores/tasks.svelte";
   import { createNote, noteHref, notesForCourse } from "../../lib/stores/notes.svelte";
   import { fileNameFor } from "../../lib/notes";
+  import { counts as cardCounts } from "../../lib/stores/srs.svelte";
   import DrugTracker from "./DrugTracker.svelte";
   import GradesModule from "./GradesModule.svelte";
   import { courseEditor } from "./editor.svelte";
@@ -30,6 +31,7 @@
   const labs = $derived(course ? labsFor(course.name) : []);
   const study = $derived(course ? studyFor(course.name) : { week: 0, total: 0 });
   const today = todayKey();
+  const cardsHere = $derived(course ? cardCounts({ kind: "course", name: course.name }) : null);
   const courseNotes = $derived(course ? notesForCourse(course.name) : []);
   async function newCourseNote() {
     if (!course) return;
@@ -168,6 +170,13 @@
             </div>
           {:else}
             <p class="muted small">Link a Recall Labs folder to this course (Labs → folder → Link this folder) to see its labs, notes and files here.</p>
+          {/if}
+          {#if cardsHere?.total}
+            <div class="cardsrow">
+              <Icon name="star" size={16} />
+              <span><b>{cardsHere.due + cardsHere.newToday}</b> flashcards to review <span class="muted">· {cardsHere.total} in this course's notes</span></span>
+              {#if cardsHere.due + cardsHere.newToday}<a class="mini" href="#/study/cards/review/course:{encodeURIComponent(course.name)}">Review</a>{/if}
+            </div>
           {/if}
           <p class="muted small">{fmtDuration(study.total)} studied in plan blocks for this course so far.</p>
         </section>
@@ -526,6 +535,24 @@
   .folder .muted {
     font-weight: 400;
     font-size: 13px;
+  }
+  .cardsrow {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 10px;
+    border-radius: 14px;
+    background: color-mix(in srgb, #cdb4f7 25%, var(--white));
+    font-size: 13.5px;
+  }
+  .cardsrow > span {
+    flex: 1;
+  }
+  .cardsrow .mini {
+    display: inline-flex;
+    align-items: center;
+    text-decoration: none;
+    background: var(--surface);
   }
   .cnotes {
     list-style: none;

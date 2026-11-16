@@ -6,6 +6,8 @@
   import { labHref, labs, labsIn } from "../../lib/stores/labs.svelte";
   import { getNote, noteHref, notes, notesForCourse, recentNotes } from "../../lib/stores/notes.svelte";
   import NewNoteDialog from "./NewNoteDialog.svelte";
+  import { counts as cardCounts } from "../../lib/stores/srs.svelte";
+  const cardsNow = $derived(cardCounts());
 
   const lastRel = (() => {
     try {
@@ -104,9 +106,14 @@
           <a class="crs" href="#/courses/{r.id}" style="--c: {r.c.color}"><span class="cd"></span><span>{r.c.name}</span><b>{r.n}</b></a>
         {/each}
       </section>
-      <section class="card soon">
-        <h2 class="h2">Coming next</h2>
-        <p class="muted small">Flashcards written in your notes (<code>Q :: A</code>, <code>{"{{cloze}}"}</code>) with spaced-repetition review, then the card library and the PDF viewer.</p>
+      <section class="card due">
+        <div class="sh"><h2 class="h2">Flashcards</h2><a class="link" href="#/study/cards">All <Icon name="arrow" size={14} /></a></div>
+        {#if cardsNow.total}
+          <p><b class="display dn">{cardsNow.due + cardsNow.newToday}</b> to review today <span class="muted">({cardsNow.due} due · {cardsNow.newToday} new)</span></p>
+          {#if cardsNow.due + cardsNow.newToday}<a class="btn primary" href="#/study/cards/review/all"><Icon name="play" size={15} /> Review now</a>{/if}
+        {:else}
+          <p class="muted small">Write <code>Q :: A</code> or <code>{"{{cloze}}"}</code> in any note and it becomes a card.</p>
+        {/if}
       </section>
     </aside>
   </div>
@@ -344,7 +351,14 @@
   .small {
     font-size: 13.5px;
   }
-  .soon code {
+  .due {
+    background: linear-gradient(150deg, color-mix(in srgb, #cdb4f7 35%, var(--white)), var(--surface) 70%);
+  }
+  .dn {
+    font-size: 30px;
+    font-weight: 600;
+  }
+  .due code {
     font-size: 12px;
     background: var(--chip);
     padding: 1px 5px;

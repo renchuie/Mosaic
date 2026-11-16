@@ -22,6 +22,7 @@
       c.a.labs ? `${c.a.labs} lab${c.a.labs === 1 ? "" : "s"} opened` : "",
       c.a.blocks ? `${c.a.blocks} block${c.a.blocks === 1 ? "" : "s"} done` : "",
       c.a.tasks ? `${c.a.tasks} task${c.a.tasks === 1 ? "" : "s"} done` : "",
+      c.a.reviews ? `${c.a.reviews} card${c.a.reviews === 1 ? "" : "s"} reviewed` : "",
     ].filter(Boolean);
     return `${fromKey(c.date).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })}: ${parts.join(", ") || "no activity"}`;
   };

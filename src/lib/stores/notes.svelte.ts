@@ -15,6 +15,10 @@ export const notes = $state({
   loaded: false,
   loading: false,
   error: null as string | null,
+  /** note open in the editor (its card ids are added by the editor, not in the background) */
+  editing: null as string | null,
+  /** line to jump to when a note opens (from "Edit in note" on a card) */
+  jump: null as { rel: string; line: number } | null,
 });
 
 const fileOf = (rel: string) => rel.split("/").pop()!;

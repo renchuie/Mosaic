@@ -2,17 +2,20 @@
   import Icon from "../../lib/components/Icon.svelte";
   import { route } from "../../lib/router.svelte";
 
-  const tab = $derived(route.page === "labs" ? "labs" : route.rest.startsWith("notes") ? "notes" : "home");
+  import { counts } from "../../lib/stores/srs.svelte";
+  const tab = $derived(route.page === "labs" ? "labs" : route.rest.startsWith("notes") ? "notes" : route.rest.startsWith("cards") ? "cards" : "home");
+  const due = $derived(counts());
   const TABS = [
     { id: "home", label: "Home", href: "#/study", icon: "dashboard" },
     { id: "notes", label: "Notes", href: "#/study/notes", icon: "pen" },
+    { id: "cards", label: "Cards", href: "#/study/cards", icon: "star" },
     { id: "labs", label: "Recall Labs", href: "#/labs", icon: "labs" },
   ];
 </script>
 
 <nav class="snav" aria-label="Study">
   {#each TABS as t}
-    <a href={t.href} class:on={tab === t.id} aria-current={tab === t.id ? "page" : undefined}><Icon name={t.icon} size={16} /> {t.label}</a>
+    <a href={t.href} class:on={tab === t.id} aria-current={tab === t.id ? "page" : undefined}><Icon name={t.icon} size={16} /> {t.label}{#if t.id === "cards" && due.due + due.newToday}<span class="badge">{due.due + due.newToday}</span>{/if}</a>
   {/each}
 </nav>
 
@@ -40,6 +43,16 @@
     font-weight: 500;
     color: var(--text-muted);
     white-space: nowrap;
+  }
+  .badge {
+    min-width: 22px;
+    padding: 1px 7px;
+    border-radius: var(--radius-pill);
+    background: var(--sage);
+    color: var(--charcoal);
+    font-size: 12px;
+    font-weight: 700;
+    text-align: center;
   }
   a.on {
     background: var(--surface);

@@ -7,6 +7,7 @@
   import Heatmap from "../lib/components/Heatmap.svelte";
   import GradeRing from "../lib/components/GradeRing.svelte";
   import { courses, gradeOf } from "../lib/stores/courses.svelte";
+  import { counts as cardCounts } from "../lib/stores/srs.svelte";
   import { fmtClock, fmtDuration } from "../lib/plan";
   import { completeBlock, getPlan, isRunning, nowBlock, pauseBlock, spent, startBlock } from "../lib/stores/plan.svelte";
   import { studiedMinutes } from "../lib/plan";
@@ -21,6 +22,7 @@
   const nbNext = $derived(nb ? nb.plan.blocks.filter((b) => !b.done && b.id !== nb.block.id)[0] : undefined);
   const todayPlan = $derived(getPlan(todayKey()));
   const nbLeft = $derived(nb ? nb.plan.blocks.filter((b) => !b.done).length : 0);
+  const cardsNow = $derived(cardCounts());
   const courseRows = $derived(courses().map(([id, c]) => ({ id, c, g: gradeOf(id) })));
   const cap = (x: string) => x.charAt(0).toUpperCase() + x.slice(1);
   const when = (n: number) => (n === 0 ? "Today" : n === 1 ? "Tomorrow" : `${n} days`);
@@ -238,6 +240,23 @@
         <h2 class="h2">No blocks planned for today</h2>
         <p class="next">Plan your day in blocks and run a timer for each.</p>
         <div class="focus-row"><a class="btn primary" href="#/tasks/plan">Plan my day</a></div>
+      {/if}
+    </section>
+
+    <section class="card flash">
+      <div class="sec-head"><h2 class="h2">Flashcards</h2><a class="link" href="#/study/cards">Cards <Icon name="arrow" size={14} /></a></div>
+      {#if cardsNow.total}
+        <div class="fl">
+          <span class="fn display">{cardsNow.due + cardsNow.newToday}</span>
+          <span class="ft">to review today<small>{cardsNow.due} due · {cardsNow.newToday} new</small></span>
+        </div>
+        {#if cardsNow.due + cardsNow.newToday}
+          <a class="btn primary add" href="#/study/cards/review/all"><Icon name="play" size={15} /> Review now</a>
+        {:else}
+          <p class="muted">All caught up.</p>
+        {/if}
+      {:else}
+        <p class="muted">Write <code>Q :: A</code> or <code>{"{{cloze}}"}</code> in a note and it becomes a card.</p>
       {/if}
     </section>
 
@@ -639,6 +658,33 @@
     padding: 9px 14px;
     border-radius: var(--radius-sm);
     font-size: 14.5px;
+  }
+  .flash {
+    background: linear-gradient(150deg, color-mix(in srgb, #cdb4f7 35%, var(--white)), var(--surface) 70%);
+  }
+  .fl {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .fn {
+    font-size: 40px;
+    font-weight: 600;
+    line-height: 1;
+  }
+  .ft {
+    display: grid;
+    font-size: 14px;
+  }
+  .ft small {
+    color: var(--text-muted);
+    font-size: 12.5px;
+  }
+  .flash code {
+    font-size: 12.5px;
+    background: var(--chip);
+    padding: 1px 5px;
+    border-radius: 5px;
   }
   .add {
     margin-top: 12px;
