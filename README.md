@@ -106,6 +106,25 @@ my vision exists, we can build on it with human creativity and effort.
 
 Mosaic is free, open source, and transparent about how it's made.
 
+## Inspirations and thanks
+
+Mosaic wouldn't exist without the apps that shaped how I study:
+
+- **[Obsidian](https://obsidian.md)**, for showing me what it means to build a personal knowledge
+  base, and how to learn by connecting ideas.
+- **[Notion](https://www.notion.com)**, my gateway to caring about my notes.
+- **[RemNote](https://www.remnote.com)**, for bringing active recall right into my notes.
+- **[Anki](https://apps.ankiweb.net)**, for proving how powerful spaced repetition can be.
+- **[xTiles](https://xtiles.app)**, for showing that a workspace can be visual and free-form.
+
+And thank you to the open-source projects Mosaic is built on, including
+[Tauri](https://tauri.app), [Svelte](https://svelte.dev), [Tiptap](https://tiptap.dev) and
+[ProseMirror](https://prosemirror.net), [CodeMirror](https://codemirror.net),
+[ts-fsrs](https://github.com/open-spaced-repetition/ts-fsrs) (the FSRS scheduler),
+[pdf.js](https://mozilla.github.io/pdf.js/), [pdf-lib](https://pdf-lib.js.org), and the
+[Atkinson Hyperlegible Next](https://www.brailleinstitute.org/freefont/) font by the Braille
+Institute.
+
 ## License
 
 Mosaic is free software under the [GNU General Public License v3.0](LICENSE). You're welcome to
