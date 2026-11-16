@@ -122,4 +122,8 @@ Add things here as they come up (date, page, what happened). Each one is either 
   the streak panel. **Week 6.**
 - Nov 16 · New look being tried: **Frosted glass** (soft pastel colour blooms behind translucent,
   blurred cards with a thin bright edge) and **roomier spacing** (bigger gaps and padding than now,
-  28px corners; she said "cozy" but meant more room). Both are tweaks on the canvas next to the current pastel look; decide before week 6.
+  28px corners; she said "cozy" but meant more room).
+- Nov 16 · Notes as **folder tiles** (tab on top, frosted body; the open/last-used folder takes
+  its course colour and recent notes peek out as paper sheets). Notes home gets a folder grid
+  (one per course, plus PDF notes and Inbox); Study Home's Recent notes card becomes 4 folders.
+  **Week 6.** Both are tweaks on the canvas next to the current pastel look; decide before week 6.
