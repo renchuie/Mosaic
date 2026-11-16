@@ -77,6 +77,8 @@ const cells = (row: string) => row.trim().replace(/^\||\|$/g, "").split("|").map
 function tableAfter(ls: Line[], k: number): { header: string[]; rows: string[][] } | null {
   let j = k + 1;
   while (j < ls.length && !ls[j].text.trim()) j++;
+  // the editor's hidden line for column widths and cell colours sits right above the table
+  if (j < ls.length && /^\s*<!--\s*mosaic-table\b/.test(ls[j].raw)) j++;
   const tl: string[] = [];
   for (; j < ls.length && /^\s*\|/.test(ls[j].raw); j++) tl.push(ls[j].raw);
   if (tl.length < 3 || !/^\s*\|?\s*:?-+/.test(tl[1])) return null;

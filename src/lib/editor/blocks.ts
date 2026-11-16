@@ -282,9 +282,27 @@ const MTable = Table.extend({
   addAttributes() {
     return { ...this.parent?.(), cards: { default: false, rendered: false }, aligns: hidden(null) };
   },
-}).configure({ resizable: false });
-const MCell = TableCell.extend({ content: "paragraph" });
-const MHeader = TableHeader.extend({ content: "paragraph" });
+}).configure({ resizable: true, cellMinWidth: 60, lastColumnResizable: false });
+// cells hold lines, bullets, numbers and to-dos (joined with <br> in the file) and can have a colour
+const cellAttrs = {
+  bg: {
+    default: null,
+    parseHTML: (el: HTMLElement) => el.dataset.color || null,
+    renderHTML: (a: Record<string, unknown>) => (a.bg ? { "data-color": a.bg, class: "tinted" } : {}),
+  },
+};
+const MCell = TableCell.extend({
+  content: "(paragraph | bullet | ordered | todo)+",
+  addAttributes() {
+    return { ...this.parent?.(), ...cellAttrs };
+  },
+});
+const MHeader = TableHeader.extend({
+  content: "(paragraph | bullet | ordered | todo)+",
+  addAttributes() {
+    return { ...this.parent?.(), ...cellAttrs };
+  },
+});
 
 // ---- inline nodes ----------------------------------------------------------------------------
 
@@ -620,7 +638,6 @@ function enter(editor: Editor): boolean {
   const { $from, empty } = state.selection;
   const node = $from.parent;
   const name = node.type.name;
-  if (inTable(state)) return true; // one paragraph per cell: Tab moves on
   if (!LIST.includes(name) && !(name === "paragraph" && node.attrs.indent) && name !== "heading") return false;
   if (name === "heading") {
     if (!empty || $from.parentOffset !== node.content.size) return false;

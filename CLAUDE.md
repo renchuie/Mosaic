@@ -234,6 +234,14 @@ Markdown" view, the `<>` chip on the note header).
   record `hlActive`. The active palette fills the toolbar / selection-bar dots and Ctrl+Shift+1…9
   (`setPaletteSource` in blocks.ts); Ctrl+Shift+0 and the struck dot remove a highlight. In files:
   yellow = `==…==`, others `<mark class="word">`. Only hex colours reach the CSS.
+- Tables (Nov 16): cells hold `(paragraph | bullet | ordered | todo)+`, written in the cell joined by
+  `<br>` (`- item`, `1. item`, `- [ ] item`; `cellBlocks` / `cellMd` in mdDoc.ts), so table cards
+  get list answers. Columns resize by dragging (Tiptap `resizable`, cell `colwidth`); cells take a
+  colour (`bg` attr = a highlight colour word, rendered with `data-color` → `--hl`). Widths and
+  colours are saved in one hidden line right above the table:
+  `<!--mosaic-table {"w":[160,null],"bg":{"row,col":"rose"}}-->` (`TABLE_META`; cards.ts skips it
+  when reading `:: table`). Table bar: rows / columns, 🎨 Colour (applies to all selected cells),
+  ↔ Auto widths, Flashcards. Enter inside a cell adds a line (Tab moves to the next cell).
 - Saving on leave (bug found Nov 16: leaving a note within the 700 ms autosave lost the last
   edit): BlockEditor keeps a `dirty` flag and hands its Markdown to `onleave` in `onDestroy`;
   NotesView's `leaveFor(rel)` rebuilds the file from the saved front matter + title and saves it a

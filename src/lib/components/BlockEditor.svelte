@@ -12,7 +12,7 @@
   import { getMarkRange } from "@tiptap/core";
   import type { Node as PMNode } from "@tiptap/pm/model";
   import { mosaicExtensions, setPaletteSource, FLOW } from "../editor/blocks";
-  import { activePalette, hlColor, styleManager, visibleCallouts } from "../stores/blockStyles.svelte";
+  import { activePalette, hlColor, hlColors, styleManager, visibleCallouts } from "../stores/blockStyles.svelte";
   setPaletteSource(activePalette);
   import { docToMd, mdToDoc, type PMNode as JNode } from "../editor/mdDoc";
   import { htmlToMd, richHtml } from "../editor/htmlToMd";
@@ -428,6 +428,27 @@
     editor.commands.focus();
   }
 
+  let cellPick = $state(false);
+  $effect(() => {
+    if (!tableBar) cellPick = false;
+  });
+  /** Forget dragged column widths of the table the cursor is in. */
+  function resetWidths() {
+    if (!editor || !tableBar) return;
+    const pos = tableBar.pos;
+    const table = editor.state.doc.nodeAt(pos);
+    if (!table) return;
+    const tr = editor.state.tr;
+    table.descendants((c, off) => {
+      if (c.type.name === "tableCell" || c.type.name === "tableHeader") {
+        if (c.attrs.colwidth) tr.setNodeMarkup(pos + 1 + off, undefined, { ...c.attrs, colwidth: null });
+        return false;
+      }
+      return true;
+    });
+    editor.view.dispatch(tr);
+  }
+
   // ---- callouts and quotes ------------------------------------------------------------------------
   let calloutMenu = $state<{ pos: number; x: number; y: number } | null>(null);
   function setCalloutKind(kind: string) {
@@ -474,7 +495,12 @@
         if (!dom || !wrap) return null;
         const r = dom.getBoundingClientRect();
         const w = wrap.getBoundingClientRect();
-        return { y: r.top - w.top, x: r.left - w.left, cards: !!n.attrs.cards, pos: rf.before(d) };
+        let sized = false;
+        n.descendants((c) => {
+          if (Array.isArray(c.attrs.colwidth) && c.attrs.colwidth.some((x: unknown) => typeof x === "number")) sized = true;
+          return !sized && c.type.name === "tableRow";
+        });
+        return { y: r.top - w.top, x: r.left - w.left, cards: !!n.attrs.cards, pos: rf.before(d), sized };
       }
     }
     return null;
@@ -784,6 +810,21 @@
       <button type="button" title="Add a column to the right" aria-label="Add a column to the right" onclick={() => editor?.chain().focus().addColumnAfter().run()}>→+</button>
       <button type="button" title="Delete this column" aria-label="Delete this column" onclick={() => editor?.chain().focus().deleteColumn().run()}>−</button>
       <span class="sep"></span>
+      <span class="cwrap">
+        <button type="button" title="Cell colour (select several cells by dragging across them)" aria-label="Cell colour" aria-expanded={cellPick} onclick={() => (cellPick = !cellPick)}>🎨 Colour</button>
+        {#if cellPick}
+          <span class="cpop" role="menu">
+            {#each hlColors() as [k, c] (k)}
+              <button type="button" class="dot" style="background: {c.color}" title={c.label} aria-label={c.label} onclick={() => { editor?.chain().focus().setCellAttribute("bg", k).run(); cellPick = false; }}></button>
+            {/each}
+            <button type="button" class="dot none" title="No colour" aria-label="No colour" onclick={() => { editor?.chain().focus().setCellAttribute("bg", null).run(); cellPick = false; }}></button>
+          </span>
+        {/if}
+      </span>
+      {#if tableBar.sized}
+        <button type="button" title="Let the columns size themselves again" onclick={resetWidths}>↔ Auto widths</button>
+      {/if}
+      <span class="sep"></span>
       <button type="button" class="study" class:on={tableBar.cards} onclick={() => editor?.chain().focus().updateAttributes("table", { cards: !tableBar.cards }).run()}>{tableBar.cards ? "✓ " : ""}Flashcards</button>
       <button type="button" onclick={() => editor?.chain().focus().deleteTable().run()} title="Delete table">✕</button>
     </div>
@@ -867,6 +908,35 @@
   }
   .pop.up {
     transform: translateY(-100%);
+  }
+  .cwrap {
+    position: relative;
+  }
+  .cpop {
+    position: absolute;
+    top: calc(100% + 6px);
+    left: 0;
+    z-index: 7;
+    display: grid;
+    grid-template-columns: repeat(7, 22px);
+    gap: 6px;
+    padding: 8px;
+    border-radius: 14px;
+    background: var(--surface-float, var(--surface));
+    box-shadow: var(--shadow-lift);
+    border: var(--edge, 0);
+    animation: pop 0.16s var(--spring, ease) backwards;
+  }
+  .tbar .cpop .dot {
+    min-width: 0;
+    width: 22px;
+    height: 22px;
+    padding: 0;
+    border-radius: 50%;
+    box-shadow: inset 0 0 0 1px rgba(59, 48, 51, 0.12);
+  }
+  .tbar .cpop .dot.none {
+    background: linear-gradient(135deg, transparent 44%, #c25a64 45% 55%, transparent 56%), var(--surface);
   }
   .cmenu {
     position: absolute;

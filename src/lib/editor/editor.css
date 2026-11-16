@@ -486,7 +486,51 @@ button.dot[data-color] {
 .mosaic-doc td .b-p,
 .mosaic-doc th .b-p {
   padding: 0;
+  margin: 0;
   min-height: 0;
+}
+.mosaic-doc td .b-li,
+.mosaic-doc th .b-li {
+  min-height: 0;
+  margin: 0;
+  padding-top: 0;
+  padding-bottom: 0;
+}
+/* card-line backgrounds are for lines of the page, not for cells */
+.mosaic-doc td .b-p,
+.mosaic-doc td .b-li,
+.mosaic-doc th .b-p,
+.mosaic-doc th .b-li {
+  --cp: 0px !important;
+  background: none !important;
+}
+.mosaic-doc td.tinted,
+.mosaic-doc th.tinted {
+  background: var(--hl, #f9de8c);
+}
+/* column resizing: drag the right edge of a column */
+/* columns she has sized keep their width; others share the rest */
+.mosaic-doc table:has(col[style*="width"]) {
+  table-layout: fixed;
+}
+.mosaic-doc th,
+.mosaic-doc td {
+  position: relative;
+}
+.mosaic-doc .column-resize-handle {
+  position: absolute;
+  top: 0;
+  right: -2px;
+  bottom: 0;
+  width: 4px;
+  z-index: 2;
+  border-radius: 2px;
+  background: color-mix(in srgb, var(--lavender, #c9b8f0) 90%, #7a5bbf);
+  pointer-events: none;
+}
+.mosaic-doc.resize-cursor,
+.resize-cursor .mosaic-doc {
+  cursor: col-resize;
 }
 .mosaic-doc table.cards,
 .mosaic-doc .cards table {

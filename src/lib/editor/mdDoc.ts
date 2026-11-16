@@ -313,9 +313,59 @@ function splitRow(row: string): string[] {
   return r.split(/(?<!\\)\|/).map((c) => c.trim());
 }
 
-function cell(type: "tableHeader" | "tableCell", s: string): PMNode {
-  const content = parseInline(s, [], { arrow: false, cell: true });
-  return { type, content: [content.length ? { type: "paragraph", attrs: { indent: 0, sid: null }, content } : { type: "paragraph", attrs: { indent: 0, sid: null } }] };
+/** Column widths and cell colours, kept in a comment line just above the table (hidden elsewhere):
+ *  `<!--mosaic-table {"w":[160,null,220],"bg":{"0,1":"rose","2,0":"mint"}}-->` (bg key = "row,col"). */
+export const TABLE_META = /^\s*<!--\s*mosaic-table\s+(\{.*?\})\s*-->\s*$/;
+type TableMeta = { w?: (number | null)[]; bg?: Record<string, string> };
+function readMeta(line: string): TableMeta | null {
+  const m = TABLE_META.exec(line);
+  if (!m) return null;
+  try {
+    const v = JSON.parse(m[1]);
+    return v && typeof v === "object" ? v : null;
+  } catch {
+    return null;
+  }
+}
+
+/** A cell's lines (joined with <br> in the file): text, "- " bullets, "1. " numbers, "- [ ] " to-dos. */
+function cellBlocks(s: string): PMNode[] {
+  const out: PMNode[] = [];
+  for (const part of s.split(/<br\s*\/?>/i)) {
+    let m: RegExpExecArray | null;
+    const inline = (t: string) => parseInline(t, [], { arrow: false, cell: true });
+    const mk = (type: string, attrs: Record<string, unknown>, t: string) => {
+      const content = inline(t);
+      out.push(content.length ? { type, attrs, content } : { type, attrs });
+    };
+    if ((m = /^\s*[-*+]\s+\[([ xX])\]\s?(.*)$/.exec(part))) mk("todo", { indent: 0, sid: null, checked: /x/i.test(m[1]) }, m[2]);
+    else if ((m = /^\s*[-*+]\s(.*)$/.exec(part))) mk("bullet", { indent: 0, sid: null }, m[1]);
+    else if ((m = /^\s*(\d{1,3})[.)]\s(.*)$/.exec(part))) mk("ordered", { indent: 0, sid: null, num: Number(m[1]) }, m[2]);
+    else mk("paragraph", { indent: 0, sid: null }, part.trim());
+  }
+  // drop empty lines at the ends, keep at least one
+  while (out.length > 1 && !out[out.length - 1].content && out[out.length - 1].type === "paragraph") out.pop();
+  return out.length ? out : [{ type: "paragraph", attrs: { indent: 0, sid: null } }];
+}
+
+function cell(type: "tableHeader" | "tableCell", s: string, attrs: Record<string, unknown> = {}): PMNode {
+  return { type, attrs: { colspan: 1, rowspan: 1, colwidth: null, bg: null, ...attrs }, content: cellBlocks(s) };
+}
+
+/** A cell's blocks back to one line of Markdown. */
+function cellMd(c: PMNode | undefined): string {
+  let n = 0;
+  const parts = (c?.content ?? []).map((b) => {
+    const t = serializeInline(b.content, true);
+    if (b.type === "bullet") return `- ${t}`;
+    if (b.type === "todo") return `- [${b.attrs?.checked ? "x" : " "}] ${t}`;
+    if (b.type === "ordered") return `${(n = n ? n + 1 : Number(b.attrs?.num ?? 1) || 1)}. ${t}`;
+    n = 0;
+    return t;
+  });
+  while (parts.length && !parts[parts.length - 1].trim()) parts.pop();
+  while (parts.length && !parts[0].trim()) parts.shift();
+  return parts.join("<br>");
 }
 
 export function parseBlocks(lines: string[]): PMNode[] {
@@ -366,7 +416,7 @@ export function parseBlocks(lines: string[]): PMNode[] {
       continue;
     }
     // maths / raw HTML blocks: kept exactly
-    if (/^\$\$/.test(line) || (/^\s*<(?!mark\b)[a-zA-Z!/]/.test(line) && !/^\s*<mark\b/.test(line))) {
+    if (/^\$\$/.test(line) || (/^\s*<(?!mark\b)[a-zA-Z!/]/.test(line) && !/^\s*<mark\b/.test(line) && !TABLE_META.test(line))) {
       const body = [line];
       let j = i + 1;
       if (/^\$\$/.test(line) && !/^\$\$.*\$\$\s*$/.test(line.trim()) ) {
@@ -398,17 +448,22 @@ export function parseBlocks(lines: string[]): PMNode[] {
     }
     // ":: table" + table
     const tableAt = (k: number) => k + 1 < lines.length && /^\s*\|/.test(lines[k]) && TABLE_SEP.test(lines[k + 1]) && lines[k + 1].includes("-");
+    /** A table (with its optional mosaic-table line just above) starting at line k. */
+    const tableFrom = (k: number): { t: number; meta: TableMeta | null } | null =>
+      TABLE_META.test(lines[k] ?? "") && tableAt(k + 1) ? { t: k + 1, meta: readMeta(lines[k]) } : tableAt(k) ? { t: k, meta: null } : null;
     let cardsLine: { sid: string | null } | null = null;
-    let t = i;
+    let found = tableFrom(i);
     if ((m = /^::\s*table\b(.*)$/i.exec(line.trim()))) {
       let k = i + 1;
       while (k < lines.length && !lines[k].trim()) k++;
-      if (tableAt(k)) {
+      const f = tableFrom(k);
+      if (f) {
         cardsLine = { sid: ID_RE.exec(line)?.[1] ?? null };
-        t = k;
+        found = f;
       }
     }
-    if (tableAt(t)) {
+    if (found) {
+      const { t, meta } = found;
       const rows: string[] = [lines[t]];
       let j = t + 2;
       for (; j < lines.length && /^\s*\|/.test(lines[j]); j++) rows.push(lines[j]);
@@ -417,10 +472,14 @@ export function parseBlocks(lines: string[]): PMNode[] {
       const body = rows.slice(1).map(splitRow);
       const n = Math.max(head.length, ...body.map((r) => r.length));
       const pad = (r: string[]) => Array.from({ length: n }, (_, k) => r[k] ?? "");
+      const at = (r: number, c: number) => ({
+        colwidth: typeof meta?.w?.[c] === "number" ? [meta!.w![c]] : null,
+        bg: typeof meta?.bg?.[`${r},${c}`] === "string" ? meta!.bg![`${r},${c}`] : null,
+      });
       push(
         block("table", { cards: !!cardsLine, sid: cardsLine?.sid ?? null, aligns: aligns.length === n ? aligns : null }, [
-          { type: "tableRow", content: pad(head).map((c) => cell("tableHeader", c)) },
-          ...body.map((r) => ({ type: "tableRow", content: pad(r).map((c) => cell("tableCell", c)) })),
+          { type: "tableRow", content: pad(head).map((c, ci) => cell("tableHeader", c, at(0, ci))) },
+          ...body.map((r, ri) => ({ type: "tableRow", content: pad(r).map((c, ci) => cell("tableCell", c, at(ri + 1, ci))) })),
         ]),
       );
       structural();
@@ -581,18 +640,25 @@ function serializeBlocks(nodes: PMNode[], seen: Set<string>, owners: Owner[], ba
       case "table": {
         const rows = n.content ?? [];
         const ncol = Math.max(1, ...rows.map((r) => r.content?.length ?? 0));
-        const cells = rows.map((r) =>
-          Array.from({ length: ncol }, (_, k) => {
-            const c = r.content?.[k];
-            return (c?.content ?? []).map((p) => serializeInline(p.content, true)).filter(Boolean).join("<br>");
-          }),
-        );
+        const cells = rows.map((r) => Array.from({ length: ncol }, (_, k) => cellMd(r.content?.[k])));
+        // widths (first row) and cell colours go in the mosaic-table line
+        const w = Array.from({ length: ncol }, (_, k) => {
+          const cw = rows[0]?.content?.[k]?.attrs?.colwidth as number[] | null | undefined;
+          return Array.isArray(cw) && typeof cw[0] === "number" ? Math.round(cw[0]) : null;
+        });
+        while (w.length && w[w.length - 1] === null) w.pop();
+        const bg: Record<string, string> = {};
+        rows.forEach((r, ri) => r.content?.forEach((c, ci) => typeof c.attrs?.bg === "string" && c.attrs.bg && (bg[`${ri},${ci}`] = c.attrs.bg as string)));
+        const meta: TableMeta = {};
+        if (w.length) meta.w = w;
+        if (Object.keys(bg).length) meta.bg = bg;
         if (n.attrs?.cards) {
           const sid = n.attrs?.sid as string | null;
           owners.push({ line, path: here });
           out.push(":: table" + (sid && !seen.has(sid) ? ` <!--sd:${sid}-->` : ""));
           if (sid) seen.add(sid);
         }
+        if (meta.w || meta.bg) out.push(`<!--mosaic-table ${JSON.stringify(meta)}-->`);
         const aligns = Array.isArray(n.attrs?.aligns) && (n.attrs.aligns as string[]).length === ncol ? (n.attrs.aligns as string[]) : Array(ncol).fill("---");
         const row = (r: string[]) => `| ${r.join(" | ")} |`;
         out.push(row(cells[0] ?? Array(ncol).fill("")), row(aligns), ...cells.slice(1).map(row));
