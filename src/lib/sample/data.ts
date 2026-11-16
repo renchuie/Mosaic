@@ -1,4 +1,5 @@
-// Sample data for Phase 1. Later phases replace each export with a real store.
+// Data not yet backed by a real store. Exams are the two real ones you gave me;
+// Phase 3 replaces them with Google Calendar. Today/tasks/focus are samples until Phases 3–4.
 
 export type Tone = "rose" | "peach" | "sage" | "butter";
 
@@ -10,39 +11,6 @@ export const user = { name: "Jazmine" };
 export const exams = [
   { id: "ther4-exam4", title: "Ther IV Exam 4", course: "Therapeutics IV", date: "2026-11-17T09:00" },
   { id: "ther4-exam5", title: "Ther IV Exam 5", course: "Therapeutics IV", date: "2026-12-04T09:00" },
-  { id: "law-final", title: "Pharmacy Law Final", course: "Pharmacy Law", date: "2026-12-10T13:00" },
-];
-
-export const labs = [
-  {
-    slug: "ther4-exam5",
-    title: "Ther IV Exam 5 lab",
-    version: "3.14.1",
-    sectionsTried: 4,
-    avgBest: 71,
-    missed: 12,
-    lastSim: 74,
-    bestSim: 78,
-    lastOpened: "Today, 8:12 PM",
-  },
-  {
-    slug: "ther4-exam4",
-    title: "Ther IV Exam 4 lab",
-    version: "3.14.1",
-    sectionsTried: 9,
-    avgBest: 88,
-    missed: 5,
-    lastSim: 86,
-    bestSim: 91,
-    lastOpened: "Yesterday",
-  },
-];
-
-export const lectures = [
-  { title: "Heart failure", lab: "ther4-exam5", progress: 82, revisit: 3 },
-  { title: "Arrhythmias", lab: "ther4-exam5", progress: 64, revisit: 6 },
-  { title: "Anticoagulation", lab: "ther4-exam5", progress: 45, revisit: 3 },
-  { title: "Stroke", lab: "ther4-exam5", progress: 0, revisit: 0 },
 ];
 
 export const today = {
@@ -62,5 +30,3 @@ export const today = {
 };
 
 export const focusBlock = { title: "Exam 4 sim run", minutes: 60, elapsed: "24:10", next: "Missed questions · 45 min" };
-
-export const streak = { days: 6, week: [true, true, true, false, true, true, true] };

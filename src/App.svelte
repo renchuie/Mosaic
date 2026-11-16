@@ -2,22 +2,28 @@
   import Sidebar from "./lib/components/Sidebar.svelte";
   import { route } from "./lib/router.svelte";
   import Dashboard from "./routes/Dashboard.svelte";
+  import Labs from "./routes/Labs.svelte";
+  import Settings from "./routes/Settings.svelte";
   import ComingSoon from "./routes/ComingSoon.svelte";
 
   const soon = {
-    labs: { title: "Recall Labs", phase: 2, text: "Finds your labs in Google Drive, opens them here, and shows your progress." },
     calendar: { title: "Calendar", phase: 3, text: "Week view, 14-day agenda, exams, and study blocks written to Google Calendar." },
     tasks: { title: "Tasks", phase: 4, text: "Boards by status or course, your own categories, and the daily study plan with a timer." },
     courses: { title: "Courses", phase: 5, text: "Assessments, current grade, what you need on what's left, and Top 200/300 quizzes." },
-    settings: { title: "Settings", phase: 6, text: "Name, labs folder, calendars, exam keywords, and JSON backup." },
   } as const;
+
+  const viewer = $derived(route.page === "labs" && /\.html?$/i.test(route.rest));
 </script>
 
 <div class="shell">
   <Sidebar />
-  <main>
+  <main class:flush={viewer}>
     {#if route.page === "dashboard"}
       <Dashboard />
+    {:else if route.page === "labs"}
+      <Labs />
+    {:else if route.page === "settings"}
+      <Settings />
     {:else}
       <ComingSoon {...soon[route.page]} />
     {/if}
@@ -38,6 +44,10 @@
     border-radius: 34px;
     box-shadow: var(--shadow);
     padding: 26px 26px 32px;
+  }
+  main.flush {
+    padding: 0;
+    overflow: hidden;
   }
   @media (max-width: 860px) {
     .shell {

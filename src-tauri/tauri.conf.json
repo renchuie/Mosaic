@@ -14,6 +14,7 @@
     "windows": [
       {
         "label": "main",
+        "create": false,
         "title": "Study Desk",
         "width": 1320,
         "height": 860,

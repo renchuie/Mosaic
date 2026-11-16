@@ -47,24 +47,41 @@ Everything lives in `src/styles/tokens.css`:
 - Components use semantic tokens (`--panel`, `--surface`, `--text`, `--primary` …) so dark mode
   later is one extra block of variables.
 
-## Recall Labs (Phase 2 design)
+## Recall Labs (Phase 2, built)
 
-- Labs are single self-contained HTML files under the rclone mount `~/GoogleDrive` (read from disk,
-  never the Drive API). Detect by `<meta name="recall-lab-version" content="…">` plus `<title>`.
-- Progress lives in localStorage key `recallLab.<slug>.v3` (example slug `ther4-exam4`). Fields used:
-  `best` (section id → best %), `missed` (question ids), `known` (flashcard ids),
-  `sims` (`{d, n, pct, lost, gained, other, min}`). Ignore `gut`, `gm`, `cb`, `plan`, `exam`, ….
-- Slug: found by searching the lab HTML for `recallLab.<slug>.v3`.
-- Show: sections tried (count of keys in `best`, no total), average best %, missed count, last and
-  best sim score.
-- Plan: Rust serves labs on one custom origin (`lab://localhost/…`) in an iframe; a hidden bridge
-  page on that origin reads all `recallLab.*.v3` keys and posts them to the dashboard. Lab files are
-  never modified. FIRST verify WebKitGTK persists that iframe storage across restarts; fallback is
-  serving app and labs from a single origin.
-- Scan: configurable folder, depth limit (default 3), read only the head of each `.html`, cache by
-  path + mtime + size, manual Rescan. Add a one-time "import progress" paste box for progress that
-  currently lives in her browser.
-- Current labs: Ther IV Exam 4 (exam Tue 2026-11-17), Ther IV Exam 5 (exam Fri 2026-12-04, grows).
+- Labs folder: `~/GoogleDrive/Pharmacy School/Study Lab/Recall Labs` (rclone mount; read from disk,
+  never the Drive API). Configurable in Settings, with scan depth (default 4).
+- Every folder is a dashboard (`src/routes/labs/FolderView.svelte`): its labs with progress,
+  subfolders, notes (.md .txt .docx .doc .odt .rtf .gdoc .pages) and files (everything else,
+  opened with `xdg-open`), plus a "Link this folder" card: course, exam date, colour. Those are
+  stored in app data `labs-folders.json` keyed by path relative to the labs folder (course and
+  colour inherit from parent folders; renaming a folder loses its link). A folder exam date feeds
+  the dashboard countdown as "<parent> <folder>", e.g. "Ther IV Exam 5".
+- Lab detection: `<meta name="recall-lab-version">` (any attribute order) plus `<title>`. Slug: the
+  most frequent literal `recallLab.<slug>.v3` in the file; if none (key built dynamically), slugify
+  the file name and flag `slug_guessed`. Non-lab .html files are plain files.
+- Scan (`src-tauri/src/labs.rs`): reads only the first 64 KB for the meta tag (whole file only to
+  find the slug), cached by path + mtime + size in `labs-scan-cache.json`; last tree cached in
+  `labs-tree.json` so the app opens instantly, then rescans in the background.
+- Progress: `recallLab.<slug>.v3` → `best` (sections tried = number of keys, average best %),
+  `missed` count, `known`, `sims` sorted by `d` (last and best `pct`). Parser: `src/lib/progress.ts`.
+- SERVING (important, tested): labs are served at `tauri://localhost/__labs/<rel>` through
+  `on_web_resource_request` on the main window (built in `setup`, config has `create: false`), so
+  labs and the dashboard share ONE origin and localStorage, read directly (`src/lib/labStorage.ts`)
+  with `storage` events for live updates. A separate `lab://` custom-scheme origin in an iframe was
+  tried first: WebKitGTK gave it session-only storage, so progress vanished on restart. Do not go
+  back to a separate origin. In `tauri dev`, `vite.config.ts` serves `/__labs/` the same way.
+  Trade-off: labs run on the app origin and could call app commands; acceptable because she
+  writes the labs herself.
+- Settings has "Check lab storage" (proves persistence across restarts) and a paste box to import
+  `recallLab.*` progress copied from a browser's devtools console.
+- Streak: days with a lab opened (`labs-activity.json`); study-block check-offs join in Phase 4.
+
+## Testing without a screen
+
+`STUDYDESK_ROUTE=labs/<path>` opens a page at start; `STUDYDESK_ROUTE=selftest` prints the storage
+probe, scanned labs and stored progress to stdout, then exits. With Xvfb:
+`DISPLAY=:99 STUDYDESK_ROUTE=selftest ./src-tauri/target/release/studydesk`.
 
 ## Other decisions
 
@@ -82,13 +99,14 @@ Everything lives in `src/styles/tokens.css`:
   needed on remaining items to hit a target. Fall 2026 courses: Therapeutics IV, Pharmacy Law,
   Clinical Pharmacogenetics, Advanced Pharmacy Practice (group innovation project), Clinical
   Applications. Also track Top 200/300 drug quizzes.
-- Settings: name, labs folder, calendars shown, exam keywords, JSON export/import.
+- Settings: name, labs folder and scan depth exist (Phase 2); calendars shown, exam keywords and
+  JSON export/import come in Phase 6.
 
 ## Phases
 
 1. Shell, design system, dashboard on sample data, launcher entry, install script. DONE
    (restyled once to the soft pastel look)
-2. Recall Labs: storage test, scanner + cache, hub, in-app viewer, real progress on the dashboard.
+2. Recall Labs: folder dashboards, scanner + cache, in-app viewer, real progress on the dashboard. DONE
 3. Google Calendar: walkthrough, connect, agenda, week grid, exams, countdowns, study blocks.
 4. Tasks board and daily study plan with timer; activity heatmap.
 5. Courses and grades; Top 200/300 tracker.

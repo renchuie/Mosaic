@@ -56,7 +56,7 @@
     margin-left: 1px;
   }
   h3 {
-    font-size: 18px;
+    font-size: 17px;
     line-height: 1.2;
     min-height: 2.4em;
     margin-top: 14px;

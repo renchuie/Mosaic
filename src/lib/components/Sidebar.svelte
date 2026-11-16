@@ -1,7 +1,8 @@
 <script lang="ts">
   import Icon from "./Icon.svelte";
   import { PAGES, route } from "../router.svelte";
-  import { streak } from "../sample/data";
+  import { streakInfo } from "../stores/labs.svelte";
+  const streak = $derived(streakInfo());
 
   const labels: Record<string, string> = {
     dashboard: "Dashboard",

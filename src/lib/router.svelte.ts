@@ -1,11 +1,18 @@
-// Tiny hash router: #/labs, #/calendar … Keeps Back/Forward working without a dependency.
+// Tiny hash router: #/labs, #/labs/<folder or lab path>, #/calendar …
 export const PAGES = ["dashboard", "labs", "calendar", "tasks", "courses", "settings"] as const;
 export type Page = (typeof PAGES)[number];
 
-function read(): Page {
-  const p = location.hash.replace(/^#\/?/, "").split("/")[0];
-  return (PAGES as readonly string[]).includes(p) ? (p as Page) : "dashboard";
+function read(): { page: Page; rest: string } {
+  const [head, ...tail] = location.hash.replace(/^#\/?/, "").split("/");
+  const page = (PAGES as readonly string[]).includes(head) ? (head as Page) : "dashboard";
+  let rest = "";
+  try {
+    rest = tail.map(decodeURIComponent).join("/");
+  } catch {
+    rest = tail.join("/");
+  }
+  return { page, rest };
 }
 
-export const route = $state({ page: read() });
-window.addEventListener("hashchange", () => (route.page = read()));
+export const route = $state(read());
+window.addEventListener("hashchange", () => Object.assign(route, read()));

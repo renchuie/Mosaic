@@ -13,6 +13,12 @@
     check: "M5 12.5l4.5 4.5L19 7.5",
     flame: "M12 3c1 4 5 5.5 5 10a5 5 0 0 1-10 0c0-2 1-3 2-4 .5 2 1.5 2.5 2 2.5C11 9 10.5 6 12 3z",
     clock: "M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM12 7v5l3 2",
+    folder: "M3 7.5A1.5 1.5 0 0 1 4.5 6H9l2 2h8.5A1.5 1.5 0 0 1 21 9.5v8a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 17.5z",
+    note: "M7 3h7l4 4v14H7zM14 3v4h4M10 12h5M10 16h5",
+    file: "M7 3h7l4 4v14H7zM14 3v4h4",
+    refresh: "M20 11a8 8 0 0 0-14.5-4.5M4 4v3.5h3.5M4 13a8 8 0 0 0 14.5 4.5M20 20v-3.5h-3.5",
+    back: "M15 18l-6-6 6-6",
+    external: "M14 4h6v6M20 4l-9 9M18 14v5H5V6h5",
   };
   let { name, size = 20 }: { name: string; size?: number } = $props();
 </script>

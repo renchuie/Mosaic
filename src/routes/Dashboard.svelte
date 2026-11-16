@@ -3,7 +3,9 @@
   import LabCard from "../lib/components/LabCard.svelte";
   import Wave from "../lib/components/Wave.svelte";
   import MiniMonth from "../lib/components/MiniMonth.svelte";
-  import { TONES, exams, focusBlock, labs, lectures, streak, today, user } from "../lib/sample/data";
+  import { TONES, exams as seedExams, focusBlock, today } from "../lib/sample/data";
+  import { settings } from "../lib/stores/settings.svelte";
+  import { folderExams, inherited, labHref, labs, labsIn, streakInfo } from "../lib/stores/labs.svelte";
 
   const now = new Date();
   const DAY = 86_400_000;
@@ -11,17 +13,36 @@
   const daysUntil = (iso: string) => Math.round((startOfDay(new Date(iso)) - startOfDay(now)) / DAY);
   const when = (n: number) => (n === 0 ? "Today" : n === 1 ? "Tomorrow" : `${n} days`);
 
-  const upcoming = exams
+  // Your two known exams plus any folder you gave an exam date (same title wins once).
+  const exams = $derived.by(() => {
+    const seen = new Set<string>();
+    return [...folderExams(), ...seedExams].filter((e) => {
+      const key = e.date.slice(0, 10);
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+  });
+  const upcoming = $derived(exams
     .map((e) => ({ ...e, days: daysUntil(e.date) }))
     .filter((e) => e.days >= 0)
-    .sort((a, b) => a.days - b.days);
-  const next = upcoming[0];
+    .sort((a, b) => a.days - b.days));
+  const next = $derived(upcoming[0]);
 
   let tasks = $state(today.tasks.map((t) => ({ ...t })));
   const dueLeft = $derived(tasks.filter((t) => !t.done).length);
   const overdue = $derived(tasks.filter((t) => t.overdue && !t.done).length);
-  const revisit = labs.reduce((n, l) => n + l.missed, 0);
-  const cont = labs[0];
+  const allLabs = $derived(labsIn(labs.tree).sort((a, b) => b.lastOpened - a.lastOpened || a.lab.title.localeCompare(b.lab.title)));
+  const revisit = $derived(allLabs.reduce((n, l) => n + l.progress.missed, 0));
+  const cont = $derived(allLabs[0]);
+  const streak = $derived(streakInfo());
+  const opened = (t: number) => {
+    if (!t) return "Not opened yet";
+    const d = new Date(t);
+    const isToday = d.toDateString() === new Date().toDateString();
+    return `${isToday ? "Today" : d.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })}, ${d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}`;
+  };
+  const toneFor = (rel: string, i: number) => inherited(rel, "tone") ?? TONES[i % TONES.length];
 
   const hhmm = `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
   const nowIndex = today.events.findIndex((e) => e.end > hhmm);
@@ -36,7 +57,7 @@
   <div class="main">
     <header class="hello">
       <p class="label">{dateLine}</p>
-      <h1 class="display">Hi, {user.name}.</h1>
+      <h1 class="display">Hi, {settings.name}.</h1>
       <p class="summary">
         {#if next}<b>{next.title}</b> {next.days <= 1 ? `is ${when(next.days).toLowerCase()}` : `in ${next.days} days`} ·{/if}
         {dueLeft} due today · {revisit} to revisit
@@ -57,7 +78,7 @@
       <div class="stat card">
         <span class="label">To revisit</span>
         <span class="num display">{revisit}</span>
-        <span class="sub">across {labs.length} labs</span>
+        <span class="sub">across {allLabs.length} {allLabs.length === 1 ? "lab" : "labs"}</span>
       </div>
       <div class="stat card">
         <span class="label">Streak</span>
@@ -66,32 +87,52 @@
       </div>
     </section>
 
-    <section class="continue">
-      <Wave />
-      <div class="c-body">
-        <span class="label">Continue · {cont.lastOpened}</span>
-        <h2 class="display">{cont.title}</h2>
-        <div class="chips">
-          <span class="tag glass">{cont.sectionsTried} sections tried</span>
-          <span class="tag glass">Avg best {cont.avgBest}%</span>
-          <span class="tag glass">Last sim {cont.lastSim}%</span>
-          <span class="tag glass">Best sim {cont.bestSim}%</span>
+    {#if cont}
+      <section class="continue">
+        <Wave />
+        <div class="c-body">
+          <span class="label">Continue · {opened(cont.lastOpened)}</span>
+          <h2 class="display">{cont.lab.title}</h2>
+          <div class="chips">
+            <span class="tag glass">{cont.progress.sectionsTried} sections tried</span>
+            {#if cont.progress.avgBest !== null}<span class="tag glass">Avg best {cont.progress.avgBest}%</span>{/if}
+            {#if cont.progress.lastSim !== null}<span class="tag glass">Last sim {cont.progress.lastSim}%</span>{/if}
+            {#if cont.progress.bestSim !== null}<span class="tag glass">Best sim {cont.progress.bestSim}%</span>{/if}
+            {#if cont.progress.missed}<span class="tag glass">{cont.progress.missed} to revisit</span>{/if}
+          </div>
         </div>
-      </div>
-      <a class="btn primary" href="#/labs"><Icon name="play" size={16} /> Open lab</a>
-    </section>
+        <a class="btn primary" href={labHref(cont.item.rel)}><Icon name="play" size={16} /> Open lab</a>
+      </section>
 
-    <section>
-      <div class="sec-head">
-        <h2 class="h2">Lectures</h2>
-        <a class="link" href="#/labs">All labs <Icon name="arrow" size={14} /></a>
-      </div>
-      <div class="lectures">
-        {#each lectures as l, i}
-          <LabCard title={l.title} kicker="Exam 5" progress={l.progress} revisit={l.revisit} tone={TONES[i % TONES.length]} />
-        {/each}
-      </div>
-    </section>
+      <section>
+        <div class="sec-head">
+          <h2 class="h2">Recall labs</h2>
+          <a class="link" href="#/labs">All folders <Icon name="arrow" size={14} /></a>
+        </div>
+        <div class="lectures">
+          {#each allLabs.slice(0, 4) as l, i}
+            <LabCard
+              title={l.lab.title}
+              kicker={l.folder.name || "Recall Labs"}
+              progress={l.progress.avgBest ?? 0}
+              revisit={l.progress.missed}
+              tone={toneFor(l.folder.rel, i)}
+              href={labHref(l.item.rel)}
+            />
+          {/each}
+        </div>
+      </section>
+    {:else}
+      <section class="continue">
+        <Wave />
+        <div class="c-body">
+          <span class="label">Recall Labs</span>
+          <h2 class="display">{labs.error ? "Can’t reach your labs folder" : labs.scanning ? "Looking for your labs…" : "No labs found yet"}</h2>
+          <p>{labs.error ?? "Labs are .html files with a recall-lab-version meta tag, anywhere in your labs folder."}</p>
+        </div>
+        <a class="btn primary" href="#/settings">Check Settings</a>
+      </section>
+    {/if}
 
     <section class="card">
       <div class="sec-head">
@@ -174,8 +215,10 @@
         <h2 class="h2">Quick play</h2>
       </div>
       <div class="quick">
-        {#each labs as l}
-          <a class="btn quiet" href="#/labs"><Icon name="play" size={14} /> {l.title}</a>
+        {#each allLabs.slice(0, 5) as l}
+          <a class="btn quiet" href={labHref(l.item.rel)}><Icon name="play" size={14} /> {l.lab.title}</a>
+        {:else}
+          <p class="muted">Your labs will show up here.</p>
         {/each}
       </div>
     </section>
