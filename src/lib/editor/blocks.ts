@@ -328,11 +328,11 @@ const Arrow = Node.create({
       { class: "a", viewBox: "0 0 24 24", width: "15", height: "15", fill: "none", stroke: "currentColor", "stroke-width": "2.6", "stroke-linecap": "round", "stroke-linejoin": "round", "aria-hidden": "true" },
       ["http://www.w3.org/2000/svg path", { d: node.attrs.two ? "M4 8.5h15M15.5 5l3.5 3.5-3.5 3.5M20 15.5H5M8.5 12L5 15.5 8.5 19" : "M4 12h15M14 6.5l5.5 5.5-5.5 5.5" }],
     ],
-    // list card (answer = the bullets under the line): a return arrow pointing down into them
+    // list card (answer = the bullets under the line): an arrow going right, then down into them
     [
       "http://www.w3.org/2000/svg svg",
       { class: "l", viewBox: "0 0 24 24", width: "15", height: "15", fill: "none", stroke: "currentColor", "stroke-width": "2.6", "stroke-linecap": "round", "stroke-linejoin": "round", "aria-hidden": "true" },
-      ["http://www.w3.org/2000/svg path", { d: "M19 5v6.5a3.5 3.5 0 0 1-3.5 3.5H5.5M9.5 11l-4 4 4 4" }],
+      ["http://www.w3.org/2000/svg path", { d: "M3.5 6h9a3.5 3.5 0 0 1 3.5 3.5v10M11.5 15l4.5 4.5 4.5-4.5" }],
     ],
   ],
   renderText: ({ node }) => (node.attrs.two ? " ::: " : " :: "),

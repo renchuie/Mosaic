@@ -211,7 +211,7 @@ Markdown" view, the `<>` chip on the note header).
   course chip is a Mosaic menu (no native select); `NoteToolbar.svelte` is shared by the header
   and a floating bar at the bottom shown while typing once the header has scrolled away.
 - List-card arrows (an arrow ending a line whose next line is indented deeper) get class `list`
-  from the decoration plugin and show a ↵ icon (the arrow node renders both SVGs; CSS picks).
+  from the decoration plugin and show a right-then-down arrow icon (the arrow node renders both SVGs; CSS picks).
   Cloze pairing bar (`.cbar`, cursor in a cloze on a line with 2+ clozes): Own card / existing
   group numbers / + new group, sets the cloze `n` (`{{cN::…}}`); numbered clozes show a badge.
   Card line tints follow the arrow colour (`ARROW_COLOURS` entries 3–4 → `--card-bg`, `--card-bg2`
