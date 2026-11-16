@@ -71,6 +71,10 @@ The full Notion look (mockup v1) was "too much like Notion": keep **Mosaic's own
 (frosted card, properties row, toolbar, tree on the left, side panel on the right) and add a
 **cover**, a **page icon**, **tags as chips** and the fuller **side panel** (cards in this note,
 outline, links, backlinks). Title shown once. Mockup v2 on the canvas.
+She loves v2. Additions: the notes list and side panel **fold away** for more room;
+flashcards use **arrows** (→ one way, ⇄ both ways); and, like RemNote, a note can be **paired
+with a PDF** (lecture slides) and shown **side by side** (resizable, swappable, page chips that
+jump the PDF, "follow note" scrolling, selection → To note / Card / Cloze).
 
 She wants notes that feel like Google Docs / Notion (simple, pretty, tables, no visible syntax)
 but connect like Obsidian (links, backlinks, tags, properties, mind map), stored as local files.
