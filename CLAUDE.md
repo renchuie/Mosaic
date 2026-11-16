@@ -159,6 +159,31 @@ Everything lives in `src/styles/tokens.css`:
 - Folder pages show a Quizzes section (best, last, attempts, to redo); Materials home counts
   quizzes.
 
+## Notes editor like Docs / Notion (N1, built)
+
+- Files stay Markdown; the editor hides the syntax. `src/lib/editor/livePreview.ts` (CodeMirror,
+  lezer syntax tree): on lines the selection is NOT on, heading `#`s, `**` `*` `~~`, inline code
+  backticks, link `[…](url)` (text shown as a link; Ctrl+click opens), `[[target|alias]]` brackets
+  and target, `==` and `<mark class="…">` tags are hidden; the line being edited shows raw
+  Markdown (Obsidian live preview). Bullets are dots, `- [ ]` / `- [x]` are clickable checkboxes
+  (checked lines struck through), `---` is a divider, quotes get a bar, `> [!note|tip|warning|
+  exam|info|…] Title` blocks are coloured callout boxes with a badge.
+- Tables (`findTables`, a StateField with block widgets): shown as a real table unless the
+  cursor is inside; clicking a cell opens the raw table at that cell. Tab / Shift-Tab select the
+  next / previous cell's text, Enter adds a row, Enter on an empty row leaves the table.
+- Enter on an empty `>` line ends a quote or callout (leaves a blank line after it).
+- "/" menu (`slashMenu`, part of the autocomplete source): headings, lists, checklist, table,
+  callouts, quote, divider, code block, flashcard, two-way card, cloze, note link, highlight.
+  Block types typed mid-line go on a new line.
+- Shortcuts: Ctrl+B / I, Ctrl+Shift+X strike, Ctrl+Shift+H highlight, Ctrl+K note link. Toolbar:
+  H1–H3, bold, italic, strike, highlight colours (yellow = `==…==`, others = `<mark class="rose|
+  sage|peach|lavender|blue">`), bullet / numbered / checklist, table, callout, divider, links,
+  card syntax.
+- Pasting rich HTML (`src/lib/editor/htmlToMd.ts`): Google Docs and web pages keep headings,
+  bold / italic / strike (Docs uses inline styles and a fake outer `<b>`), background-colour
+  highlights, nested lists, tables, links (Google redirect links unwrapped). Bold is dropped
+  from headings and table headers.
+
 ## Recall Labs (Phase 2, built; now inside Materials)
 
 - Labs folder: `~/GoogleDrive/Pharmacy School/Study Lab/Recall Labs` (rclone mount; read from disk,

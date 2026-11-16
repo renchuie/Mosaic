@@ -207,17 +207,28 @@
         <div class="toolbar" role="toolbar" aria-label="Formatting">
           <button type="button" onclick={() => editor?.linePrefix("# ")} title="Heading 1">H1</button>
           <button type="button" onclick={() => editor?.linePrefix("## ")} title="Heading 2">H2</button>
+          <button type="button" onclick={() => editor?.linePrefix("### ")} title="Heading 3">H3</button>
+          <span class="sep"></span>
           <button type="button" onclick={() => editor?.wrap("**")} title="Bold (Ctrl+B)"><b>B</b></button>
-          <button type="button" onclick={() => editor?.wrap("*")} title="Italic"><i>I</i></button>
-          <button type="button" onclick={() => editor?.wrap("==")} title="Highlight"><span class="hl">H</span></button>
+          <button type="button" onclick={() => editor?.wrap("*")} title="Italic (Ctrl+I)"><i>I</i></button>
+          <button type="button" onclick={() => editor?.wrap("~~")} title="Strike-through (Ctrl+Shift+X)"><s>S</s></button>
+          <span class="hlpick" role="group" aria-label="Highlight colour">
+            {#each [["yellow", "var(--butter)"], ["rose", "var(--rose)"], ["sage", "var(--sage)"], ["peach", "var(--peach)"], ["lavender", "var(--lavender)"], ["blue", "#b9d4ee"]] as [n, c]}
+              <button type="button" class="sw" style="--c: {c}" title="Highlight {n}" aria-label="Highlight {n}" onclick={() => editor?.colour(n)}></button>
+            {/each}
+          </span>
           <span class="sep"></span>
-          <button type="button" onclick={() => editor?.linePrefix("- ")} title="Bullet">•</button>
+          <button type="button" onclick={() => editor?.linePrefix("- ")} title="Bullet list">•</button>
+          <button type="button" onclick={() => editor?.linePrefix("1. ")} title="Numbered list">1.</button>
           <button type="button" onclick={() => editor?.linePrefix("- [ ] ")} title="Checklist">☐</button>
-          <button type="button" onclick={() => editor?.insert("\n| Drug | Class | Key point |\n| --- | --- | --- |\n|  |  |  |\n")} title="Table">▦</button>
+          <button type="button" onclick={() => editor?.block("| Drug | Class | Key point |\n| --- | --- | --- |\n|  |  |  |\n")} title="Table">▦</button>
+          <button type="button" onclick={() => editor?.block("> [!note] Note\n> ")} title="Callout">❝</button>
+          <button type="button" onclick={() => editor?.block("---\n")} title="Divider">―</button>
           <span class="sep"></span>
-          <button type="button" onclick={() => editor?.wrap("[[", "]]", "Note name")} title="Link to a note">[[ ]]</button>
+          <button type="button" onclick={() => editor?.wrap("[[", "]]", "Note name")} title="Link to a note (Ctrl+K)">[[ ]]</button>
           <button type="button" class="card" onclick={() => editor?.insert(" :: ")} title="Flashcard: Question :: Answer">Q :: A</button>
           <button type="button" class="card" onclick={() => editor?.wrap("{{", "}}", "hidden part")} title="Cloze flashcard">{"{{ }}"}</button>
+          <span class="hint">Type <kbd>/</kbd> for more</span>
         </div>
       </header>
       <div class="edwrap">
@@ -517,10 +528,36 @@
     color: #a8434f;
     font-weight: 600;
   }
-  .hl {
-    background: var(--butter);
-    padding: 0 3px;
-    border-radius: 3px;
+  .hlpick {
+    display: inline-flex;
+    gap: 3px;
+    padding: 0 4px;
+  }
+  .toolbar .sw {
+    min-width: 0;
+    width: 18px;
+    height: 18px;
+    min-height: 0;
+    padding: 0;
+    border-radius: 50%;
+    background: var(--c);
+    box-shadow: inset 0 0 0 1px rgba(59, 48, 51, 0.1);
+  }
+  .toolbar .sw:hover {
+    transform: scale(1.25);
+    background: var(--c);
+  }
+  .hint {
+    margin-left: auto;
+    font-size: 12px;
+    color: var(--text-muted);
+  }
+  .hint kbd {
+    font: inherit;
+    font-weight: 700;
+    padding: 0 5px;
+    border-radius: 5px;
+    background: var(--chip);
   }
   .sep {
     width: 1px;

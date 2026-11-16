@@ -10,6 +10,8 @@
   import { HighlightStyle, syntaxHighlighting } from "@codemirror/language";
   import { autocompletion, type CompletionContext } from "@codemirror/autocomplete";
   import { tags as t } from "@lezer/highlight";
+  import { livePreview, livePreviewTheme, slashMenu } from "../editor/livePreview";
+  import { htmlToMd, richHtml } from "../editor/htmlToMd";
 
   let {
     value,
@@ -42,21 +44,9 @@
     { tag: t.strikethrough, textDecoration: "line-through", color: "var(--text-muted)" },
     { tag: [t.link, t.url], color: "#7a5bbf" },
     { tag: t.monospace, fontFamily: "ui-monospace, monospace", fontSize: "0.92em", backgroundColor: "var(--chip)", borderRadius: "4px" },
-    { tag: t.quote, color: "var(--text-muted)", fontStyle: "italic" },
     { tag: [t.processingInstruction, t.meta, t.contentSeparator], color: "color-mix(in srgb, var(--text-muted) 70%, transparent)" },
   ]);
 
-  class Bullet extends WidgetType {
-    toDOM() {
-      const s = document.createElement("span");
-      s.className = "cm-bullet";
-      s.textContent = "•";
-      return s;
-    }
-    ignoreEvent() {
-      return false;
-    }
-  }
   class Img extends WidgetType {
     src: string;
     constructor(src: string) {
@@ -78,14 +68,13 @@
   }
 
   const marks = new MatchDecorator({
-    regexp: /==[^=\n]+==|\[\[([^\]\n]+)\]\]|(?:^|(?<=\s))#[A-Za-z][\w/-]*|\{\{[^}\n]+\}\}|(?<=\S )(:{2,3})(?= )|^(\s*)[-*+](?= )/gm,
+    regexp: /==[^=\n]+==|\[\[([^\]\n]+)\]\]|(?:^|(?<=\s))#[A-Za-z][\w/-]*|\{\{[^}\n]+\}\}|(?<=\S )(:{2,3})(?= )/gm,
     decorate: (add, from, to, m) => {
       if (m[0].startsWith("==")) add(from, to, Decoration.mark({ class: "cm-hl" }));
       else if (m[1] !== undefined) add(from, to, Decoration.mark({ class: "cm-wikilink", attributes: { "data-link": /\.pdf\s*(#|$)/i.test(m[1].split("|")[0]) ? m[1].split("|")[0].trim() : m[1].split("|")[0].split("#")[0].trim(), title: "Open" } }));
       else if (m[0].startsWith("#")) add(from, to, Decoration.mark({ class: "cm-tagmark" }));
       else if (m[0].startsWith("{{")) add(from, to, Decoration.mark({ class: "cm-cloze" }));
       else if (m[2] !== undefined) add(from, to, Decoration.mark({ class: "cm-cardsep" }));
-      else if (m[3] !== undefined) add(from + m[3].length, to, Decoration.replace({ widget: new Bullet() }));
     },
   });
   const markPlugin = ViewPlugin.fromClass(
@@ -131,6 +120,8 @@
   });
 
   function complete(ctx: CompletionContext) {
+    const slash = slashMenu(ctx);
+    if (slash) return slash;
     const link = ctx.matchBefore(/\[\[[^\]\n]*/);
     if (link) {
       return {
@@ -174,7 +165,18 @@
         doc: value,
         extensions: [
           history(),
-          keymap.of([indentWithTab, ...defaultKeymap, ...historyKeymap]),
+          keymap.of([
+            { key: "Mod-b", run: () => (wrap("**"), true) },
+            { key: "Mod-i", run: () => (wrap("*"), true) },
+            { key: "Mod-Shift-x", run: () => (wrap("~~"), true) },
+            { key: "Mod-Shift-h", run: () => (wrap("=="), true) },
+            { key: "Mod-k", run: () => (wrap("[[", "]]", "Note name"), true) },
+            indentWithTab,
+            ...defaultKeymap,
+            ...historyKeymap,
+          ]),
+          livePreview(),
+          livePreviewTheme,
           markdown({ base: markdownLanguage }),
           syntaxHighlighting(style),
           EditorView.lineWrapping,
@@ -198,6 +200,16 @@
             },
             paste(e, v) {
               const file = [...(e.clipboardData?.files ?? [])].find((f) => f.type.startsWith("image/"));
+              const html = e.clipboardData?.getData("text/html") ?? "";
+              if (!file && html && richHtml(html)) {
+                // Google Docs and web pages: keep headings, bold, lists, tables, links
+                const md = htmlToMd(html);
+                if (md) {
+                  e.preventDefault();
+                  v.dispatch(v.state.replaceSelection(md));
+                  return true;
+                }
+              }
               if (!file) return false;
               e.preventDefault();
               const r = new FileReader();
@@ -223,11 +235,26 @@
     view.dispatch({ changes: { from: s.from, to: s.to, insert: before + text + after }, selection: { anchor: s.from + before.length, head: s.from + before.length + text.length } });
     view.focus();
   }
+  /** Coloured highlight: <mark class="rose">…</mark> (yellow uses ==…==). */
+  export function colour(name: string) {
+    if (name === "yellow") wrap("==");
+    else wrap(`<mark class="${name}">`, "</mark>");
+  }
   export function linePrefix(prefix: string) {
     if (!view) return;
     const line = view.state.doc.lineAt(view.state.selection.main.head);
-    const cur = /^(#{1,6} |- \[ \] |- |> )/.exec(line.text)?.[0] ?? "";
+    const cur = /^(#{1,6} |- \[[ xX]\] |- |\d+\. |> )/.exec(line.text)?.[0] ?? "";
     view.dispatch({ changes: { from: line.from, to: line.from + cur.length, insert: cur === prefix ? "" : prefix } });
+    view.focus();
+  }
+  /** Insert a block (callout, divider, table) on its own line. */
+  export function block(text: string) {
+    if (!view) return;
+    const s = view.state.selection.main;
+    const line = view.state.doc.lineAt(s.head);
+    const lead = line.text.trim() ? "\n" : "";
+    const at = line.text.trim() ? line.to : line.from;
+    view.dispatch({ changes: { from: at, to: line.text.trim() ? at : line.to, insert: lead + text }, selection: { anchor: at + lead.length + text.length } });
     view.focus();
   }
   export function insert(text: string) {
