@@ -1,18 +1,9 @@
 // Sample data for Phase 1. Later phases replace each export with a real store.
 
-export type Tone = "pink" | "lilac" | "lime" | "aqua" | "yellow";
+export type Tone = "rose" | "peach" | "sage" | "butter";
 
-/** Approved header/body colour pairs for lab and course cards. */
-export const PAIRS: [Tone, Tone][] = [
-  ["pink", "lilac"],
-  ["lilac", "aqua"],
-  ["lime", "yellow"],
-  ["aqua", "lime"],
-  ["lilac", "yellow"],
-  ["pink", "yellow"],
-  ["lilac", "lime"],
-  ["pink", "lime"],
-];
+/** Card tones, cycled across lab and course cards. */
+export const TONES: Tone[] = ["rose", "sage", "peach", "butter"];
 
 export const user = { name: "Jazmine" };
 

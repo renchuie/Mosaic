@@ -19,34 +19,32 @@ laptop (NVIDIA GPU) through `./install.sh`.
   app id / Hyprland class and the webview data dir are both `studydesk`.
 - App data: JSON files in `~/.local/share/studydesk/`, written atomically from Rust. Separate per
   machine; export/import JSON moves it between PC and laptop.
-- Fonts bundled through `@fontsource/*` (Unbounded, Space Mono, DM Sans). The app must work offline.
+- Fonts bundled through `@fontsource/*` (Outfit, DM Sans). The app must work offline.
 - Bundling is off (`bundle.active: false`); `install.sh` builds with `tauri build --no-bundle` and
   installs the binary, icon and `.desktop` file into `~/.local`.
 - NVIDIA: `install.sh` detects the driver and puts `WEBKIT_DISABLE_DMABUF_RENDERER=1` in the launcher.
 
-## Design (decided: softened neo-brutalist)
+## Design (decided: soft, fluid pastel)
 
-She chose to soften her original spec (2.5px borders, hard offset shadows, all-caps Unbounded 800),
-using her inspiration boards for layout. Current rules, all in `src/styles/tokens.css`:
+She dropped neo-brutalism entirely (first softened it, then switched). Do not bring back ink
+borders, hard shadows, window-dot header strips, hatched fills, Unbounded or Space Mono.
+Everything lives in `src/styles/tokens.css`:
 
-- 1.5px ink outlines, soft blurred shadows, 20px card radius, pill buttons. No hard offset shadows.
-- Unbounded 500–700 in sentence case for titles and big numbers; Space Mono 700 uppercase for small
-  labels and tags; DM Sans for body. Touch targets at least 44px.
-- Page is Blush; cards are off-white or a palette colour; sidebar is Yellow with a black active pill.
-- Lab/lecture cards keep the coloured header strip with three outlined window dots, and hatched
-  progress fills.
-- Palette: ink #111111, blush #FFD6E7, pink #FF8CB4 (wrong/alerts), yellow #FFDA5C (focus/sidebar),
-  lime #D6EE5A (right/primary go), aqua #ADF2E8, lilac #CDB4F7, lemon #FBFBC0, cream #F5EAD7,
-  lavender #F6F2FF, ice #EFFFFD, slate #5A5A5A (muted text).
-- Header/body colour pairs for lab and course cards (`PAIRS`): pink/lilac, lilac/aqua, lime/yellow,
-  aqua/lime, lilac/yellow, pink/yellow, lilac/lime, pink/lime.
-  Never: black/grey, grey/grey, lime/black, aqua/pink, yellow/aqua.
-- Components use the semantic tokens (`--bg`, `--surface`, `--text`, `--line` …) so dark mode later
-  is one extra block of variables.
-- Layout: left sidebar (Dashboard, Labs, Calendar, Tasks, Courses, Settings, streak panel at the
-  bottom), main card grid, right column (countdown, current block, mini month, today, quick play).
-  Must hold up in narrow tiled windows: right column drops below ~1180px, sidebar becomes an icon
-  rail below ~860px.
+- No outlines. Soft blurred warm shadows, 26px card radius, pill buttons, gentle gradients and
+  layered wave shapes (`Wave.svelte`) as decoration. Touch targets at least 44px.
+- Palette taken from her pastel reference: rose #F2B8B5 (deep #E3949B), peach #F6CFA8,
+  sage #A9CDC3 (deep #7FB3A6), butter #F7E3B0, each with a `-soft` tint; ivory #FBF6F0 panel,
+  white #FFFDFB cards, charcoal #3B3033 text and primary buttons, mauve #6F6164 muted text.
+- Meaning: rose = exams/alerts/overdue, sage = done/study/go, peach and butter = neutral accents.
+- Card tones cycle through `TONES` (rose, sage, peach, butter) using the `--g-*` gradients.
+- Fonts: Outfit 400–600 for headings and big numbers (sentence case), DM Sans for body and labels.
+- Layout: backdrop is a soft rose-to-sage gradient; the sidebar sits directly on it and the active
+  nav item is a tab that flows into the big rounded ivory main panel. Sidebar has the streak panel
+  at the bottom. Main card grid plus right column (countdown, current block, mini month, today,
+  quick play). Must hold up in narrow tiled windows: right column drops below ~1180px, sidebar
+  becomes an icon rail below ~860px.
+- Components use semantic tokens (`--panel`, `--surface`, `--text`, `--primary` …) so dark mode
+  later is one extra block of variables.
 
 ## Recall Labs (Phase 2 design)
 
@@ -88,6 +86,7 @@ using her inspiration boards for layout. Current rules, all in `src/styles/token
 ## Phases
 
 1. Shell, design system, dashboard on sample data, launcher entry, install script. DONE
+   (restyled once to the soft pastel look)
 2. Recall Labs: storage test, scanner + cache, hub, in-app viewer, real progress on the dashboard.
 3. Google Calendar: walkthrough, connect, agenda, week grid, exams, countdowns, study blocks.
 4. Tasks board and daily study plan with timer; activity heatmap.

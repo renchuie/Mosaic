@@ -27,20 +27,26 @@
 <style>
   .shell {
     display: grid;
-    grid-template-columns: 216px minmax(0, 1fr);
-    gap: var(--gap);
+    grid-template-columns: 212px minmax(0, 1fr);
     height: 100%;
-    padding: var(--gap);
+    padding: 14px;
   }
   main {
     min-width: 0;
     overflow-y: auto;
-    /* room so card shadows and focus rings are not clipped by the scroller */
-    padding: 2px 4px 24px 2px;
+    background: var(--panel);
+    border-radius: 34px;
+    box-shadow: var(--shadow);
+    padding: 26px 26px 32px;
   }
   @media (max-width: 860px) {
     .shell {
-      grid-template-columns: 64px minmax(0, 1fr);
+      grid-template-columns: 62px minmax(0, 1fr);
+      padding: 10px;
+    }
+    main {
+      padding: 20px 18px 28px;
+      border-radius: 28px;
     }
   }
 </style>

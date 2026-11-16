@@ -1,46 +1,53 @@
-/* Design tokens. Components use the semantic tokens (bottom half) only,
-   so dark mode later is a second block that redefines them. */
+/* Design tokens: soft, fluid pastel look. Components use the semantic tokens
+   (second block) only, so dark mode later is one block that redefines them. */
 :root {
   /* palette */
-  --ink: #111111;
-  --blush: #ffd6e7;
-  --pink: #ff8cb4;
-  --yellow: #ffda5c;
-  --lime: #d6ee5a;
-  --aqua: #adf2e8;
-  --lilac: #cdb4f7;
-  --lemon: #fbfbc0;
-  --cream: #f5ead7;
-  --lavender: #f6f2ff;
-  --ice: #effffd;
-  --slate: #5a5a5a;
+  --rose: #f2b8b5;
+  --rose-deep: #e3949b;
+  --rose-soft: #fbe4e1;
+  --peach: #f6cfa8;
+  --peach-soft: #fcebd9;
+  --sage: #a9cdc3;
+  --sage-deep: #7fb3a6;
+  --sage-soft: #dcebe4;
+  --butter: #f7e3b0;
+  --butter-soft: #fcf3d9;
+  --ivory: #fbf6f0;
+  --white: #fffdfb;
+  --charcoal: #3b3033;
+  --mauve: #6f6164;
 
   /* semantic */
-  --bg: var(--blush);
-  --surface: #fffdfb;
-  --surface-soft: var(--lavender);
-  --tile: var(--cream);
-  --text: var(--ink);
-  --text-muted: var(--slate);
-  --line: var(--ink);
-  --hairline: rgba(17, 17, 17, 0.12);
-  --sidebar-bg: var(--yellow);
-  --go: var(--lime);
-  --alert: var(--pink);
-  --focus: var(--yellow);
+  --backdrop: linear-gradient(135deg, #ecd2cf 0%, #f1e2d6 48%, #d9e6de 100%);
+  --panel: var(--ivory);
+  --surface: var(--white);
+  --text: var(--charcoal);
+  --text-muted: var(--mauve);
+  --hairline: rgba(59, 48, 51, 0.09);
+  --chip: rgba(59, 48, 51, 0.06);
+  --primary: var(--charcoal);
+  --on-primary: var(--ivory);
+  --go: var(--sage);
+  --alert: var(--rose-deep);
+  --track: rgba(59, 48, 51, 0.08);
 
-  /* softened shape: thin ink outline, soft shadow, generous radius */
-  --border: 1.5px solid var(--line);
-  --radius: 20px;
-  --radius-sm: 12px;
+  /* tone gradients for cards */
+  --g-rose: linear-gradient(140deg, #f9d5d0 0%, #f2b8b5 100%);
+  --g-peach: linear-gradient(140deg, #fbe3c8 0%, #f4c59c 100%);
+  --g-sage: linear-gradient(140deg, #d5e8df 0%, #a9cdc3 100%);
+  --g-butter: linear-gradient(140deg, #fcf0cf 0%, #f5dc9d 100%);
+  --g-sunset: linear-gradient(120deg, #f6c3bf 0%, #f8d6b4 55%, #f9e7bd 100%);
+
+  /* shape */
+  --radius: 26px;
+  --radius-sm: 16px;
   --radius-pill: 999px;
-  --shadow: 0 1px 0 rgba(17, 17, 17, 0.05), 0 10px 24px -14px rgba(17, 17, 17, 0.28);
-  --shadow-lift: 0 2px 0 rgba(17, 17, 17, 0.06), 0 16px 30px -14px rgba(17, 17, 17, 0.34);
+  --shadow: 0 1px 2px rgba(108, 78, 72, 0.04), 0 14px 32px -18px rgba(108, 78, 72, 0.28);
+  --shadow-lift: 0 2px 4px rgba(108, 78, 72, 0.05), 0 22px 40px -18px rgba(108, 78, 72, 0.36);
 
-  --font-display: "Unbounded", system-ui, sans-serif;
-  --font-label: "Space Mono", ui-monospace, monospace;
+  --font-display: "Outfit", system-ui, sans-serif;
   --font-body: "DM Sans", system-ui, sans-serif;
 
   --hit: 44px;
-  --gap: 16px;
+  --gap: 18px;
 }

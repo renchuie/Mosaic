@@ -1,8 +1,9 @@
 <script lang="ts">
   import Icon from "../lib/components/Icon.svelte";
   import LabCard from "../lib/components/LabCard.svelte";
+  import Wave from "../lib/components/Wave.svelte";
   import MiniMonth from "../lib/components/MiniMonth.svelte";
-  import { PAIRS, exams, focusBlock, labs, lectures, streak, today, user } from "../lib/sample/data";
+  import { TONES, exams, focusBlock, labs, lectures, streak, today, user } from "../lib/sample/data";
 
   const now = new Date();
   const DAY = 86_400_000;
@@ -43,7 +44,7 @@
     </header>
 
     <section class="stats" aria-label="At a glance">
-      <div class="stat card c-yellow">
+      <div class="stat card t-rose">
         <span class="label">Next exam</span>
         <span class="num display">{next ? when(next.days) : "—"}</span>
         <span class="sub">{next?.title ?? "Nothing scheduled"}</span>
@@ -65,18 +66,19 @@
       </div>
     </section>
 
-    <section class="continue card c-lilac">
-      <div>
+    <section class="continue">
+      <Wave />
+      <div class="c-body">
         <span class="label">Continue · {cont.lastOpened}</span>
         <h2 class="display">{cont.title}</h2>
         <div class="chips">
-          <span class="tag">{cont.sectionsTried} sections tried</span>
-          <span class="tag">Avg best {cont.avgBest}%</span>
-          <span class="tag">Last sim {cont.lastSim}%</span>
-          <span class="tag">Best sim {cont.bestSim}%</span>
+          <span class="tag glass">{cont.sectionsTried} sections tried</span>
+          <span class="tag glass">Avg best {cont.avgBest}%</span>
+          <span class="tag glass">Last sim {cont.lastSim}%</span>
+          <span class="tag glass">Best sim {cont.bestSim}%</span>
         </div>
       </div>
-      <a class="btn dark" href="#/labs"><Icon name="play" size={16} /> Open lab</a>
+      <a class="btn primary" href="#/labs"><Icon name="play" size={16} /> Open lab</a>
     </section>
 
     <section>
@@ -86,7 +88,7 @@
       </div>
       <div class="lectures">
         {#each lectures as l, i}
-          <LabCard title={l.title} kicker="Exam 5" progress={l.progress} revisit={l.revisit} pair={PAIRS[i % PAIRS.length]} />
+          <LabCard title={l.title} kicker="Exam 5" progress={l.progress} revisit={l.revisit} tone={TONES[i % TONES.length]} />
         {/each}
       </div>
     </section>
@@ -94,7 +96,7 @@
     <section class="card">
       <div class="sec-head">
         <h2 class="h2">Tasks due</h2>
-        <span class="tag">{tasks.length - dueLeft}/{tasks.length}</span>
+        <span class="tag">{tasks.length - dueLeft} of {tasks.length} done</span>
       </div>
       <ul class="tasks">
         {#each tasks as t}
@@ -107,7 +109,7 @@
                 <span class="t-course muted">{t.course}</span>
               </span>
             </label>
-            <span class="tag" class:c-pink={t.overdue && !t.done}>{t.overdue && !t.done ? "Overdue" : t.due}</span>
+            <span class="tag" class:alert={t.overdue && !t.done}>{t.overdue && !t.done ? "Overdue" : t.due}</span>
           </li>
         {/each}
       </ul>
@@ -121,7 +123,7 @@
       </div>
       <ul class="countdowns">
         {#each upcoming as e, i}
-          <li class={i === 0 ? "c-pink" : "c-cream"}>
+          <li class:first={i === 0}>
             <span class="c-days display">{e.days}<small>{e.days === 1 ? "day" : "days"}</small></span>
             <span class="c-info">
               <b>{e.title}</b>
@@ -132,13 +134,13 @@
       </ul>
     </section>
 
-    <section class="card focus c-lemon">
+    <section class="card focus t-sage">
       <span class="label">Current block</span>
       <h2 class="h2">{focusBlock.title}</h2>
-      <div class="timer display">{focusBlock.elapsed}<small>/ {focusBlock.minutes}:00</small></div>
+      <div class="timer display">{focusBlock.elapsed}<small>of {focusBlock.minutes}:00</small></div>
       <div class="focus-row">
-        <button class="btn go" type="button"><Icon name="pause" size={16} /> Pause</button>
-        <span class="muted next">Next: {focusBlock.next}</span>
+        <button class="btn primary" type="button"><Icon name="pause" size={16} /> Pause</button>
+        <span class="next">Next: {focusBlock.next}</span>
       </div>
     </section>
 
@@ -158,7 +160,7 @@
           {/if}
           <li class="ev" class:past={nowIndex === -1 || i < nowIndex}>
             <span class="time">{fmt(e.start)}</span>
-            <span class="ev-card {e.kind === 'study' ? 'c-lime' : 'c-ice'}">
+            <span class="ev-card {e.kind === 'study' ? 'study' : ''}">
               <b>{e.title}</b>
               <span class="muted">{fmt(e.start)} – {fmt(e.end)}</span>
             </span>
@@ -173,7 +175,7 @@
       </div>
       <div class="quick">
         {#each labs as l}
-          <a class="btn" href="#/labs"><Icon name="play" size={14} /> {l.title}</a>
+          <a class="btn quiet" href="#/labs"><Icon name="play" size={14} /> {l.title}</a>
         {/each}
       </div>
     </section>
@@ -196,7 +198,6 @@
   .main {
     container-type: inline-size;
   }
-
   @media (max-width: 1180px) {
     .page {
       grid-template-columns: minmax(0, 1fr);
@@ -208,24 +209,26 @@
   }
 
   .hello {
-    padding: 6px 4px 2px;
+    padding: 2px 4px 0;
   }
   .hello h1 {
-    font-size: clamp(32px, 4.4vw, 52px);
+    font-size: clamp(36px, 4.6vw, 54px);
     line-height: 1.05;
-    margin: 6px 0 8px;
-  }
-  .hello .label {
-    color: var(--ink);
+    margin: 4px 0 8px;
   }
   .summary {
     font-size: 16px;
+    color: var(--text-muted);
+  }
+  .summary b {
+    color: var(--text);
+    font-weight: 500;
   }
 
   .stats {
     display: grid;
     grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: 12px;
+    gap: 14px;
   }
   @container (max-width: 720px) {
     .stats {
@@ -234,38 +237,45 @@
   }
   .stat {
     display: grid;
-    gap: 4px;
-    padding: 14px 16px;
-  }
-  .stat .label {
-    color: var(--ink);
+    gap: 2px;
+    padding: 16px 18px;
   }
   .num {
-    font-size: 21px;
-    line-height: 1.15;
+    font-size: 28px;
+    line-height: 1.2;
     font-variant-numeric: tabular-nums;
   }
   .sub {
     font-size: 13.5px;
     color: var(--text-muted);
   }
-  .stat.c-yellow .sub {
-    color: var(--ink);
+  .stat.t-rose .label,
+  .stat.t-rose .sub {
+    color: var(--text);
   }
 
   .continue {
+    position: relative;
+    overflow: hidden;
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 16px;
     flex-wrap: wrap;
+    padding: 24px;
+    border-radius: var(--radius);
+    background: var(--g-sunset);
+    box-shadow: var(--shadow);
+  }
+  .continue > :global(:not(.wave)) {
+    position: relative;
   }
   .continue .label {
-    color: var(--ink);
+    color: var(--text);
   }
   .continue h2 {
-    font-size: 22px;
-    margin: 4px 0 12px;
+    font-size: 28px;
+    margin: 2px 0 14px;
   }
   .chips {
     display: flex;
@@ -285,8 +295,13 @@
     align-items: center;
     gap: 4px;
     min-height: var(--hit);
-    font-weight: 700;
-    font-size: 13.5px;
+    font-weight: 500;
+    font-size: 14px;
+    text-decoration: none;
+    color: var(--text-muted);
+  }
+  .link:hover {
+    color: var(--text);
   }
   section > .sec-head:has(.link) {
     margin-bottom: 2px;
@@ -295,7 +310,7 @@
   .lectures {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-    gap: 12px;
+    gap: 14px;
   }
 
   .tasks {
@@ -309,7 +324,7 @@
     align-items: center;
     justify-content: space-between;
     gap: 10px;
-    border-top: 1.5px solid var(--hairline);
+    border-top: 1px solid var(--hairline);
   }
   .tasks li:first-child {
     border-top: 0;
@@ -318,7 +333,7 @@
     display: flex;
     align-items: center;
     gap: 12px;
-    min-height: 52px;
+    min-height: 54px;
     flex: 1;
     min-width: 0;
     cursor: pointer;
@@ -334,17 +349,17 @@
     place-items: center;
     width: 24px;
     height: 24px;
-    border: var(--border);
-    border-radius: 8px;
-    background: var(--surface);
+    border-radius: 50%;
+    background: var(--track);
     color: transparent;
+    transition: background 0.15s ease;
   }
   input:checked + .box {
-    background: var(--go);
-    color: var(--ink);
+    background: var(--sage);
+    color: var(--text);
   }
   input:focus-visible + .box {
-    outline: 3px solid var(--ink);
+    outline: 2.5px solid var(--charcoal);
     outline-offset: 2px;
   }
   .t-text {
@@ -355,7 +370,7 @@
     font-weight: 500;
   }
   .t-course {
-    font-size: 13px;
+    font-size: 13.5px;
   }
   li.done .t-title {
     text-decoration: line-through;
@@ -373,52 +388,55 @@
     display: flex;
     align-items: center;
     gap: 12px;
-    padding: 10px 12px;
-    border: var(--border);
+    padding: 10px 14px;
     border-radius: var(--radius-sm);
+    background: var(--peach-soft);
+  }
+  .countdowns li.first {
+    background: var(--g-rose);
   }
   .c-days {
     display: grid;
     justify-items: center;
-    min-width: 54px;
-    font-size: 24px;
+    min-width: 50px;
+    font-size: 26px;
     line-height: 1;
     font-variant-numeric: tabular-nums;
   }
   .c-days small {
-    font-family: var(--font-label);
-    font-size: 10px;
-    font-weight: 700;
+    font-family: var(--font-body);
+    font-size: 11.5px;
     letter-spacing: 0;
-    margin-top: 3px;
+    margin-top: 2px;
   }
   .c-info {
     display: grid;
-    font-size: 14px;
+    font-size: 14.5px;
     min-width: 0;
   }
-  .c-pink .muted {
-    color: var(--ink);
+  .c-info b {
+    font-weight: 500;
+  }
+  .first .muted {
+    color: var(--text);
   }
 
   .focus .label {
-    color: var(--ink);
+    color: var(--text);
   }
   .focus h2 {
-    margin-top: 4px;
+    margin-top: 2px;
   }
   .timer {
-    font-size: 34px;
-    margin: 6px 0 12px;
+    font-size: 40px;
+    margin: 4px 0 12px;
     font-variant-numeric: tabular-nums;
   }
   .timer small {
-    font-family: var(--font-label);
-    font-size: 12px;
-    font-weight: 700;
+    font-family: var(--font-body);
+    font-size: 13.5px;
     letter-spacing: 0;
     margin-left: 8px;
-    color: var(--text-muted);
   }
   .focus-row {
     display: flex;
@@ -427,7 +445,7 @@
     flex-wrap: wrap;
   }
   .next {
-    font-size: 13px;
+    font-size: 13.5px;
   }
 
   .timeline {
@@ -439,27 +457,31 @@
   }
   .ev {
     display: grid;
-    grid-template-columns: 44px minmax(0, 1fr);
+    grid-template-columns: 42px minmax(0, 1fr);
     gap: 8px;
     align-items: start;
   }
   .time {
-    font-family: var(--font-label);
-    font-size: 11.5px;
-    font-weight: 700;
+    font-size: 12.5px;
     padding-top: 10px;
     color: var(--text-muted);
     font-variant-numeric: tabular-nums;
   }
   .ev-card {
     display: grid;
-    padding: 8px 12px;
-    border: var(--border);
+    padding: 9px 14px;
     border-radius: var(--radius-sm);
-    font-size: 14px;
+    background: var(--butter-soft);
+    font-size: 14.5px;
+  }
+  .ev-card.study {
+    background: var(--sage-soft);
+  }
+  .ev-card b {
+    font-weight: 500;
   }
   .ev-card .muted {
-    font-size: 12.5px;
+    font-size: 13px;
   }
   .ev.past {
     opacity: 0.5;
@@ -470,18 +492,17 @@
     gap: 8px;
   }
   .now span {
-    font-family: var(--font-label);
-    font-size: 10.5px;
-    font-weight: 700;
-    background: var(--ink);
+    font-size: 11.5px;
+    font-weight: 500;
+    background: var(--rose-deep);
     color: #fff;
     border-radius: var(--radius-pill);
-    padding: 2px 8px;
+    padding: 2px 9px;
   }
   .now::after {
     content: "";
     flex: 1;
-    border-top: 1.5px dashed var(--ink);
+    border-top: 1.5px solid var(--rose);
   }
 
   .quick {

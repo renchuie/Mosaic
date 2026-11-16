@@ -47,77 +47,97 @@
   .sidebar {
     display: flex;
     flex-direction: column;
-    gap: 18px;
-    padding: 18px 14px;
-    background: var(--sidebar-bg);
-    border: var(--border);
-    border-radius: var(--radius);
-    box-shadow: var(--shadow);
+    gap: 22px;
+    padding: 20px 0 6px 6px;
     min-height: 0;
   }
   .brand {
     display: flex;
     align-items: center;
     gap: 10px;
-    padding: 4px 6px 8px;
+    padding: 4px 10px 6px;
   }
   .mark {
     display: grid;
     place-items: center;
-    width: 36px;
-    height: 36px;
-    border-radius: 50%;
-    background: var(--ink);
-    color: var(--yellow);
+    width: 38px;
+    height: 38px;
+    border-radius: 14px;
+    background: var(--primary);
+    color: var(--peach);
     flex: none;
   }
   .name {
-    font-size: 15px;
+    font-size: 19px;
   }
   nav {
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: 6px;
     flex: 1;
   }
   .item {
+    position: relative;
     display: flex;
     align-items: center;
     gap: 12px;
-    min-height: var(--hit);
-    padding: 0 14px;
-    border: 1.5px solid transparent;
+    min-height: 46px;
+    padding: 0 16px;
+    margin-right: 12px;
     border-radius: var(--radius-pill);
     text-decoration: none;
     font-weight: 500;
+    color: var(--text-muted);
+    transition: background 0.15s ease, color 0.15s ease;
   }
   .item:hover {
-    background: rgba(255, 255, 255, 0.45);
+    background: rgba(255, 253, 251, 0.45);
+    color: var(--text);
   }
+  /* the active tab flows into the main panel */
   .item.active {
-    background: var(--ink);
-    color: #fff;
+    margin-right: 0;
+    border-radius: var(--radius-pill) 0 0 var(--radius-pill);
+    background: var(--panel);
+    color: var(--text);
+  }
+  .item.active::before,
+  .item.active::after {
+    content: "";
+    position: absolute;
+    right: 0;
+    width: 22px;
+    height: 22px;
+    pointer-events: none;
+  }
+  .item.active::before {
+    top: -22px;
+    background: radial-gradient(circle at 0 0, transparent 21.5px, var(--panel) 22px);
+  }
+  .item.active::after {
+    bottom: -22px;
+    background: radial-gradient(circle at 0 100%, transparent 21.5px, var(--panel) 22px);
   }
   .streak {
-    background: var(--surface);
-    border: var(--border);
+    margin-right: 14px;
+    background: rgba(255, 253, 251, 0.62);
     border-radius: var(--radius-sm);
-    padding: 12px;
+    padding: 14px;
   }
   .row {
     display: flex;
     justify-content: space-between;
     align-items: center;
+    color: var(--text-muted);
   }
   .count {
-    font-size: 30px;
+    font-size: 32px;
     line-height: 1.1;
-    margin: 4px 0 10px;
+    margin: 2px 0 10px;
   }
   .count small {
-    font-family: var(--font-label);
-    font-size: 11px;
-    font-weight: 700;
+    font-family: var(--font-body);
+    font-size: 13px;
     margin-left: 6px;
     color: var(--text-muted);
     letter-spacing: 0;
@@ -131,24 +151,26 @@
     aspect-ratio: 1;
     display: grid;
     place-items: center;
-    border: 1.5px solid var(--hairline);
     border-radius: 50%;
-    font-family: var(--font-label);
-    font-size: 9.5px;
-    font-weight: 700;
+    background: var(--track);
+    font-size: 10.5px;
+    font-weight: 500;
     color: var(--text-muted);
   }
   .dot.on {
-    background: var(--lime);
-    border-color: var(--ink);
-    color: var(--ink);
+    background: var(--sage);
+    color: var(--text);
   }
 
   /* narrow (tiled) windows: icon rail */
   @media (max-width: 860px) {
     .sidebar {
-      padding: 14px 8px;
-      align-items: center;
+      padding: 16px 0 6px 4px;
+    }
+    .brand {
+      padding: 4px 0 6px;
+      justify-content: center;
+      margin-right: 6px;
     }
     .name,
     .text,
@@ -158,19 +180,27 @@
     }
     .item {
       padding: 0;
-      width: var(--hit);
+      margin-right: 6px;
       justify-content: center;
     }
+    .item.active {
+      margin-right: 0;
+      padding-right: 6px;
+    }
     .streak {
-      padding: 8px 6px;
+      margin-right: 6px;
+      padding: 8px 4px;
       text-align: center;
     }
+    .streak .row {
+      justify-content: center;
+    }
     .streak .label {
-      font-size: 9px;
+      font-size: 10px;
     }
     .count {
       font-size: 20px;
-      margin: 2px 0 0;
+      margin: 0;
     }
     .count small {
       display: none;

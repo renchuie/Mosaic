@@ -14,7 +14,7 @@
 <div class="month">
   <div class="top">
     <span class="h2">{title}</span>
-    <span class="tag c-pink">Exam day</span>
+    <span class="tag alert">Exam day</span>
   </div>
   <div class="grid" role="grid" aria-label={title}>
     {#each ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"] as d}
@@ -35,7 +35,7 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 10px;
+    margin-bottom: 12px;
   }
   .grid {
     display: grid;
@@ -44,9 +44,8 @@
     text-align: center;
   }
   .dow {
-    font-family: var(--font-label);
-    font-size: 10px;
-    font-weight: 700;
+    font-size: 11.5px;
+    font-weight: 500;
     color: var(--text-muted);
     padding-bottom: 4px;
   }
@@ -54,23 +53,20 @@
     aspect-ratio: 1;
     display: grid;
     place-items: center;
-    border: 1.5px solid transparent;
     border-radius: 50%;
-    font-size: 13px;
+    font-size: 13.5px;
     font-variant-numeric: tabular-nums;
   }
   .day.exam {
-    background: var(--alert);
-    border-color: var(--ink);
+    background: var(--rose);
     font-weight: 700;
   }
   .day.today {
-    background: var(--ink);
-    color: #fff;
+    background: var(--primary);
+    color: var(--on-primary);
     font-weight: 700;
   }
   .day.today.exam {
-    background: var(--ink);
-    box-shadow: 0 0 0 3px var(--alert);
+    box-shadow: 0 0 0 3px var(--rose);
   }
 </style>
