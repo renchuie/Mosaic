@@ -159,7 +159,47 @@ Everything lives in `src/styles/tokens.css`:
 - Folder pages show a Quizzes section (best, last, attempts, to redo); Materials home counts
   quizzes.
 
-## Notes editor like Docs / Notion (N1, built)
+## Mosaic note page (N1b, built): block editor, files stay Markdown
+
+Replaces N1's live preview as the normal view (N1's CodeMirror editor is now the "Edit as
+Markdown" view, the `<>` chip on the note header).
+- Converter `src/lib/editor/mdDoc.ts` (pure, node-tested round trip): Markdown ⇄ ProseMirror JSON.
+  The document is FLAT like Notion: paragraph / bullet / ordered / todo blocks carry an `indent`
+  level instead of nested lists (indent columns follow the parent marker, so `1.` children use 3
+  spaces). Blank lines: between two flow blocks each blank line is an empty paragraph; next to any
+  other block one blank line is layout, and a block with no blank line before it gets
+  `tight: true`. Card ids `<!--sd:…-->` are the hidden `sid` attr (duplicates dropped on save),
+  `:: table` is the table's `cards` attr, unknown HTML / `$$` blocks are `raw` blocks written back
+  as read. An opened but unedited note is never rewritten (only real edits save). `docToMd` also
+  returns `owners` (line → block path) so `assignIds` results become `sid` attrs (`setIds`).
+- Editor `src/lib/components/BlockEditor.svelte` + extensions `src/lib/editor/blocks.ts` (Tiptap v3,
+  npm `@tiptap/core`, `@tiptap/pm`, `@tiptap/extension-table`, `@tiptap/extensions`), styles in
+  `src/lib/editor/editor.css` (`.b-*` classes). Inline: bold, italic, strike, code, highlight
+  colours, web links (Ctrl+click), cloze mark, `wikilink` and `arrow` atoms (click an arrow to
+  switch → / ⇄). Typing: `#`/`##`/`###` + space, `-`, `1.`, `[]`, `>`, `---`, ```` ``` ````,
+  `**b**`, `*i*`, `~~s~~`, `==h==`, `` `c` ``, `{{cloze}}`, `[[Name]]`, ` :: ` / ` ::: ` (arrow).
+  Enter keeps the block type (empty list line steps out), Enter at a line start adds a line
+  above (the card id stays with the text), Tab / Shift-Tab indent, Backspace at the start turns a
+  block back into text. Menus: `/` blocks, `[[` notes (or "New note"), `#` tags; selection
+  toolbar (marks, colours, Cloze, Card →, [[ ]], web link); block handle (+ and ⠿: drag to move,
+  click for turn into / move / duplicate / delete); table bar (rows, columns, Flashcards toggle).
+  Paste: images saved to attachments, rich HTML via `htmlToMd`, Markdown-looking text parsed;
+  copying gives Markdown text. Svelte rejects `$`-prefixed locals: name ProseMirror `$from` `rf`.
+- Page `src/routes/study/NotesView.svelte` with `NoteHead.svelte` (cover: front matter `cover:`
+  preset name from `COVERS` or an image path; `icon:` emoji; title shown once: a leading
+  `# Title` matching the file name is taken off the editor and written back on save; course /
+  date / tag chips; toolbar; ⋯ move, remove icon / cover, delete) and `NoteSide.svelte` (panels:
+  Outline, Cards in this note with status and "Review this note", Backlinks, Links + Linked to).
+  Linked references and unlinked mentions under the note. `plainText()` in `notes.ts` cleans
+  previews.
+- Tucked panels (her pick, canvas "Tucked panels: A + C combined"): icon strips on both edges;
+  an icon slides its panel over the note as a sheet (click away / Esc closes); 📌 pins it beside
+  the note (left 250px, right 280px; pins need room: left > 1000px, right > 960px or 1240px with
+  both); focus (button or Ctrl+\) hides the strips, leaving glowing edges whose icons float out on
+  hover. `localStorage` "mosaic.notePanels" {pinL, pinR, focus} per machine.
+- Browser preview exposes `window.__notes` (sample notes only) so UI tests can read saved text.
+
+## Notes editor like Docs / Notion (N1, built; now the "Edit as Markdown" view)
 
 - Files stay Markdown; the editor hides the syntax. `src/lib/editor/livePreview.ts` (CodeMirror,
   lezer syntax tree): on lines the selection is NOT on, heading `#`s, `**` `*` `~~`, inline code
