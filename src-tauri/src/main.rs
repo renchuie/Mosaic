@@ -2,6 +2,7 @@
 // sync (per-machine files in a Google Drive folder), notes, pdfs.
 
 mod labs;
+mod materials;
 mod notes;
 mod pdfs;
 mod store;
@@ -44,6 +45,9 @@ fn main() {
             store::save_doc,
             labs::scan_labs,
             labs::open_in_system,
+            materials::paths_info,
+            materials::materials_adopt,
+            materials::materials_write,
             sync::machine_name,
             notes::notes_list,
             notes::notes_read,

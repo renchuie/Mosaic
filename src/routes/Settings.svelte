@@ -106,9 +106,9 @@
       <input bind:value={name} autocomplete="given-name" />
     </label>
     <label class="field">
-      <span class="label">Recall Labs folder</span>
+      <span class="label">Materials folder</span>
       <input bind:value={root} spellcheck="false" />
-      <span class="hint muted">Every folder inside becomes a dashboard. “~” means your home folder.</span>
+      <span class="hint muted">Recall labs and everything else you make live here. Every folder inside becomes a dashboard. “~” means your home folder.</span>
     </label>
     <label class="field">
       <span class="label">How many folder levels to scan</span>

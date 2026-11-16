@@ -8,7 +8,8 @@ import type { Tone } from "../sample/data";
 import { sampleProgress, sampleTree } from "../sample/labs";
 import { inTauri, invoke, loadDoc, saveDoc } from "../tauri";
 import { captureLabs, db, entries, get, onMerged, put, sync } from "./synced.svelte";
-import { settings } from "./settings.svelte";
+import { saveSettings, settings } from "./settings.svelte";
+import { destRel, uniqueRel } from "../materials";
 
 export type LabMeta = { title: string; version: string; slug: string; slug_guessed: boolean };
 export type Item = { name: string; rel: string; kind: "lab" | "note" | "file"; ext: string; size: number; mtime: number; lab: LabMeta | null };
@@ -28,6 +29,8 @@ const state = $state({
   /** raw localStorage values by key */
   storage: {} as Record<string, string>,
   storageError: null as string | null,
+  /** the old "Recall Labs" folder, while it hasn't been moved into Materials yet */
+  legacy: null as string | null,
 });
 export const labs = state;
 
@@ -58,6 +61,7 @@ export async function initLabs() {
     state.scannedAt = cached.scanned_at;
   }
   refreshProgress();
+  await resolveRoot().catch((e) => console.error("materials root", e));
   void rescan();
   // A lab saving progress in the viewer fires this in the dashboard document.
   window.addEventListener("storage", (e) => {
@@ -237,3 +241,93 @@ export function streakInfo() {
 export const encodeRel = (rel: string) => rel.split("/").map(encodeURIComponent).join("/");
 export const folderHref = (rel: string) => (rel ? `#/labs/${encodeRel(rel)}` : "#/labs");
 export const labHref = (rel: string) => `#/labs/${encodeRel(rel)}`;
+
+// ---- Materials: the labs folder under its new name ---------------------------------------
+
+type PathInfo = { path: string; dir: boolean; marker: boolean };
+const base = (p: string) => p.replace(/\/+$/, "").split("/").pop() ?? "";
+const sibling = (p: string, name: string) => p.replace(/\/+$/, "").replace(/[^/]+$/, name);
+
+/**
+ * Before Materials existed, labs lived in "…/Study Lab/Recall Labs". Work out which folder to
+ * use: the old one until she moves it (and offer the move), or Materials once the other
+ * computer has moved it (its marker file says so).
+ */
+async function resolveRoot() {
+  const root = settings.labsRoot;
+  const mat = sibling(root, "Materials");
+  const old = sibling(root, "Recall Labs");
+  const [r, m, o] = await invoke<PathInfo[]>("paths_info", { paths: [root, mat, old] });
+  state.legacy = null;
+  if (!r.dir) {
+    if (base(root) === "Materials" && o.dir) {
+      settings.labsRoot = old; // for this session; saved only when she moves or saves settings
+      state.legacy = old;
+    } else if (base(root) === "Recall Labs" && m.dir && m.marker) {
+      await saveSettings({ labsRoot: mat });
+    }
+  } else if (base(root) === "Recall Labs") {
+    state.legacy = root;
+  }
+}
+
+/** Move the old Recall Labs folder's contents into Materials (paths inside stay the same). */
+export async function adoptMaterials(): Promise<{ moved: number; skipped: string[] }> {
+  const from = state.legacy;
+  if (!from) return { moved: 0, skipped: [] };
+  const to = sibling(from, "Materials");
+  const res = await invoke<{ moved: number; skipped: string[] }>("materials_adopt", { from, to });
+  await saveSettings({ labsRoot: to });
+  state.legacy = null;
+  await rescan();
+  return res;
+}
+
+/** Every file path in the tree, for "is this name taken?" */
+export function allRels(folder: Folder | null = state.tree): Set<string> {
+  const out = new Set<string>();
+  const walk = (f: Folder) => {
+    out.add(f.rel);
+    for (const i of f.items) out.add(i.rel);
+    for (const c of f.folders) walk(c);
+  };
+  if (folder) walk(folder);
+  return out;
+}
+
+export type Upload = { rel: string; content: string; replace: boolean; lab: LabMeta | null; course?: string; courseDir?: string };
+
+/** Save uploaded materials, link new course folders to their course, then rescan. */
+export async function saveUploads(list: Upload[]): Promise<string[]> {
+  const saved: string[] = [];
+  for (const u of list) {
+    if (inTauri) await invoke("materials_write", { rel: u.rel, content: u.content, replace: u.replace });
+    else previewAdd(u);
+    saved.push(u.rel);
+    if (u.course && u.courseDir && !folderMeta(u.courseDir).course && !inherited(u.courseDir, "course")) setFolderMeta(u.courseDir, { course: u.course });
+  }
+  if (inTauri) await rescan();
+  return saved;
+}
+
+/** Plain-browser preview: there is no disk, so add the file to the in-memory tree. */
+function previewAdd(u: Upload) {
+  if (!state.tree) return;
+  const parts = u.rel.split("/");
+  const name = parts.pop()!;
+  let f = state.tree;
+  let rel = "";
+  for (const p of parts) {
+    rel = rel ? `${rel}/${p}` : p;
+    let next = f.folders.find((x) => x.rel === rel);
+    if (!next) {
+      next = { name: p, rel, folders: [], items: [], truncated: false };
+      f.folders.push(next);
+    }
+    f = next;
+  }
+  f.items = f.items.filter((i) => i.rel !== u.rel);
+  f.items.push({ name, rel: u.rel, kind: u.lab ? "lab" : "file", ext: name.split(".").pop() ?? "", size: u.content.length, mtime: Math.floor(Date.now() / 1000), lab: u.lab });
+}
+
+export { destRel, uniqueRel };

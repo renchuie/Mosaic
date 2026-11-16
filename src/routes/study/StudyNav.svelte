@@ -10,7 +10,7 @@
     { id: "notes", label: "Notes", href: "#/study/notes", icon: "pen" },
     { id: "cards", label: "Cards", href: "#/study/cards", icon: "star" },
     { id: "pdfs", label: "PDFs", href: "#/study/pdfs", icon: "file" },
-    { id: "labs", label: "Recall Labs", href: "#/labs", icon: "labs" },
+    { id: "labs", label: "Materials", href: "#/labs", icon: "labs" },
   ];
 </script>
 

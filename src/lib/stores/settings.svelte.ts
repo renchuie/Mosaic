@@ -26,7 +26,8 @@ export type Settings = {
 
 export const DEFAULT_SETTINGS: Settings = {
   name: "Jazmine",
-  labsRoot: "~/GoogleDrive/Pharmacy School/Study Lab/Recall Labs",
+  /** Materials folder (Study → Materials); was the Recall Labs folder before Nov 16 */
+  labsRoot: "~/GoogleDrive/Pharmacy School/Study Lab/Materials",
   scanDepth: 4,
   examKeywords: "Exam",
   syncEnabled: true,

@@ -25,7 +25,7 @@
     <a class="btn quiet" href={folderHref(parentRel(item.rel))}><Icon name="back" size={16} /> Back</a>
     <div class="title">
       <b class="display">{item.lab?.title}</b>
-      <span class="muted">{parentRel(item.rel) || "Recall Labs"}</span>
+      <span class="muted">{parentRel(item.rel) || "Materials"}</span>
     </div>
     <div class="chips">
       {#if p.avgBest !== null}<span class="tag">Avg best {p.avgBest}%</span>{/if}

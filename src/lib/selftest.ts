@@ -1,6 +1,7 @@
 // Prints what the app sees to stdout, for checking a build without clicking around.
 import { probe, readAll } from "./labStorage";
-import { labs, labsIn, rescan } from "./stores/labs.svelte";
+import { adoptMaterials, findFolder, labs, labsIn, rescan } from "./stores/labs.svelte";
+import { settings } from "./stores/settings.svelte";
 import { invoke, log } from "./tauri";
 import { entries, sync, syncNow } from "./stores/synced.svelte";
 import { exams } from "./stores/calendar.svelte";
@@ -78,6 +79,29 @@ export async function pdfTest() {
     log(`stale write: ${conflict}`);
   } catch (e) {
     log(`pdf test failed: ${e}`);
+  }
+  setTimeout(() => void invoke("debug_quit"), 800);
+}
+
+/** Materials: is the old Recall Labs folder found, does moving it keep labs and progress keys? */
+export async function materialsTest() {
+  try {
+    const before = labsIn(labs.tree).map((l) => l.lab.slug).sort();
+    log(`materials: root=${settings.labsRoot} legacy=${labs.legacy} labs=${before.length}`);
+    if (labs.legacy) {
+      const r = await adoptMaterials();
+      const after = labsIn(labs.tree).map((l) => l.lab.slug).sort();
+      log(`moved=${r.moved} skipped=${r.skipped.join("|") || "none"} root now=${settings.labsRoot} labs=${after.length} same slugs=${JSON.stringify(before) === JSON.stringify(after)}`);
+    }
+    const info = await invoke<{ path: string; dir: boolean; marker: boolean }[]>("paths_info", { paths: [settings.labsRoot] });
+    log(`marker in Materials: ${info[0]?.marker}`);
+    await invoke("materials_write", { rel: "Selftest/upload.html", content: '<meta name="recall-lab-version" content="1"><title>Selftest upload</title>', replace: true });
+    await rescan();
+    log(`upload found after rescan: ${!!findFolder("Selftest")?.items.some((i) => i.lab?.title === "Selftest upload")}`);
+    const clash = await invoke("materials_write", { rel: "Selftest/upload.html", content: "x" }).then(() => "overwrote!", (e) => String(e));
+    log(`second write without replace: ${clash}`);
+  } catch (e) {
+    log(`materials test failed: ${e}`);
   }
   setTimeout(() => void invoke("debug_quit"), 800);
 }

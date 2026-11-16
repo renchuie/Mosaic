@@ -27,9 +27,8 @@ The full vision, principles and what she likes or dislikes in each inspiration a
   (don't hard-wire everything to courses).
 - Planned structure (not built yet, likely): **Courses merge into Study** as one cohesive space
   for everything school-related; **Tasks and Calendar merge into one Planner tab**.
-- Look being explored on the design canvas "Study tab redesign" (mockups only): floating icon rail
-  (chosen), frosted glass theme, roomier spacing, folder tiles for notes and PDFs. See the
-  "Found this week" list in `ROADMAP.md`; the look is week 6 work.
+- The look from the design canvas "Study tab redesign" is built (see "Look" below). Study →
+  **Materials** (M1) is built; the quiz engine and the rest follow the Study track in `ROADMAP.md`.
 
 ## Stack (decided)
 
@@ -109,7 +108,32 @@ Everything lives in `src/styles/tokens.css`:
 - Components use semantic tokens (`--panel`, `--surface`, `--text`, `--primary` …) so dark mode
   later is one extra block of variables.
 
-## Recall Labs (Phase 2, built)
+## Materials (M1, built): the labs folder's new name, plus uploads
+
+- Study → **Materials** replaces Recall Labs (tab, page titles, Settings "Materials folder"). It is
+  the same scanned folder (`settings.labsRoot`, routes `#/labs/...`); new default
+  `~/GoogleDrive/Pharmacy School/Study Lab/Materials`.
+- Moving in (`resolveRoot` / `adoptMaterials` in the labs store, Rust `src-tauri/src/materials.rs`):
+  if the folder in use is named "Recall Labs" (or the Materials default is missing but a sibling
+  "Recall Labs" exists, which is then used for the session), the Materials page shows "Move your
+  labs into Materials?". `materials_adopt` renames the folder (or moves its entries into an
+  existing Materials, skipping name clashes) and writes `.mosaic-materials`. Paths inside stay
+  the same, so progress (keyed by slug) and folder links / exam dates (keyed by relative path)
+  carry over. Another computer whose settings still say "Recall Labs" sees the marker in the
+  sibling Materials folder and switches by itself (tested with a second HOME).
+- Upload (`UploadDialog.svelte`): Upload button on every Materials folder, or drop files anywhere
+  on Materials (window `dragDropEnabled: false` in tauri.conf so the webview gets real HTML5 file
+  drops). Each .html is read and checked (`src/lib/materials.ts`, pure, node-tested; mirrors the
+  Rust lab detection): title, version, slug. Course + "exam or topic folder" choose the place:
+  `Materials/<course folder>/<exam>/<file>` where the course folder is the top folder already
+  linked to that course, else the course code; a new course folder gets linked to its course.
+  Same slug already present → "Replace it, keep my progress" (overwrites that file in place) or
+  "Add a second copy". Non-lab HTML is skipped unless ticked. `materials_write` only writes
+  html/htm/md/txt/json inside the folder and refuses to overwrite without `replace`.
+- Materials home: chips to browse one course's labs across its exam folders.
+- Self-test: `STUDYDESK_ROUTE=selftest-materials` (move, marker, upload, refuse overwrite).
+
+## Recall Labs (Phase 2, built; now inside Materials)
 
 - Labs folder: `~/GoogleDrive/Pharmacy School/Study Lab/Recall Labs` (rclone mount; read from disk,
   never the Drive API). Configurable in Settings, with scan depth (default 4).

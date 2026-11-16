@@ -8,10 +8,19 @@
     folderHref, folderMeta, folderStats, inherited, labHref, labs, labsIn, rescan, setFolderMeta, type Folder,
   } from "../../lib/stores/labs.svelte";
   import { invoke, inTauri } from "../../lib/tauri";
+  import UploadDialog from "./UploadDialog.svelte";
 
   let { folder }: { folder: Folder } = $props();
+  let upFiles = $state<File[]>([]);
+  let upOpen = $state(false);
+  let added = $state<string | null>(null);
 
   const isRoot = $derived(folder.rel === "");
+  // Materials home: browse every lab of one course, across its exam folders
+  let byCourse = $state("");
+  const allLabs = $derived(isRoot ? labsIn(folder) : []);
+  const courseChips = $derived([...new Set(allLabs.map((l) => inherited(l.folder.rel, "course") ?? folderMeta(l.folder.rel).course).filter(Boolean))] as string[]);
+  const courseLabs = $derived(allLabs.filter((l) => (inherited(l.folder.rel, "course") ?? folderMeta(l.folder.rel).course) === byCourse).sort((a, b) => a.folder.rel.localeCompare(b.folder.rel) || a.lab.title.localeCompare(b.lab.title)));
   const meta = $derived(folderMeta(folder.rel));
   const course = $derived(meta.course ?? inherited(folder.rel, "course"));
   const tone = $derived<Tone>(meta.tone ?? inherited(folder.rel, "tone") ?? "rose");
@@ -55,7 +64,7 @@
 
 <div class="folder">
   <nav class="crumbs" aria-label="Folder path">
-    <a href={folderHref("")}>Recall Labs</a>
+    <a href={folderHref("")}>Materials</a>
     {#each crumbs as c}
       <span aria-hidden="true">/</span>
       <a href={folderHref(c.rel)} aria-current={c.rel === folder.rel ? "page" : undefined}>{c.name}</a>
@@ -66,7 +75,7 @@
     <Wave a="var(--ivory)" b="var(--white)" />
     <div class="hero-top">
       <div>
-        <h1 class="display">{isRoot ? "Recall Labs" : folder.name}</h1>
+        <h1 class="display">{isRoot ? "Materials" : folder.name}</h1>
         <div class="chips">
           {#if course}<span class="tag glass">{course}</span>{/if}
           {#if examDays !== null}
@@ -76,6 +85,10 @@
         </div>
       </div>
       <div class="actions">
+        <label class="btn primary upload">
+          <Icon name="arrow" size={16} /> Upload
+          <input type="file" accept=".html,.htm,text/html" multiple onchange={(e) => { const fs = [...(e.currentTarget.files ?? [])]; e.currentTarget.value = ""; if (fs.length) { upFiles = fs; upOpen = true; } }} />
+        </label>
         <button class="btn" type="button" onclick={() => rescan()} disabled={labs.scanning || !inTauri}>
           <Icon name="refresh" size={16} /> {labs.scanning ? "Scanning…" : "Rescan"}
         </button>
@@ -98,7 +111,34 @@
   {#if openError}
     <p class="notice">{openError}</p>
   {/if}
+  {#if added}
+    <p class="notice ok" role="status">{added}</p>
+  {/if}
 
+  {#if isRoot && allLabs.length}
+    <div class="browse" role="group" aria-label="Browse materials">
+      <button type="button" class:on={!byCourse} onclick={() => (byCourse = "")}><Icon name="folder" size={15} /> Folders</button>
+      {#each courseChips as c}<button type="button" class:on={byCourse === c} onclick={() => (byCourse = byCourse === c ? "" : c)}>{c}</button>{/each}
+      <span class="types muted"><Icon name="labs" size={14} /> {allLabs.length} recall {allLabs.length === 1 ? "lab" : "labs"} · quizzes and more coming</span>
+    </div>
+  {/if}
+
+  {#if isRoot && byCourse}
+    <section class="card courselist">
+      <h2 class="h2">{byCourse} · {courseLabs.length} {courseLabs.length === 1 ? "lab" : "labs"}</h2>
+      <ul>
+        {#each courseLabs as l (l.item.rel)}
+          <li>
+            <a href={labHref(l.item.rel)}>
+              <span class="cl-t"><b>{l.lab.title}</b><span class="muted">{l.folder.rel}</span></span>
+              <span class="bar"><span style="width: {l.progress.avgBest ?? 0}%"></span></span>
+              <span class="cl-n">{pct(l.progress.avgBest)}{l.progress.missed ? ` · ${l.progress.missed} to revisit` : ""}</span>
+            </a>
+          </li>
+        {/each}
+      </ul>
+    </section>
+  {:else}
   <div class="cols">
     <div class="main">
       {#if folder.folders.length}
@@ -146,8 +186,8 @@
         </section>
       {:else if !folder.folders.length}
         <section class="card empty">
-          <h2 class="h2">No Recall Labs here yet</h2>
-          <p class="muted">Labs are .html files with a <code>recall-lab-version</code> meta tag. Add one to this folder in Drive, then press Rescan.</p>
+          <h2 class="h2">No recall labs here yet</h2>
+          <p class="muted">Drop a recall lab's .html file anywhere on this page, or use Upload. Labs are .html files with a <code>recall-lab-version</code> meta tag.</p>
         </section>
       {/if}
 
@@ -214,9 +254,94 @@
       {/if}
     </aside>
   </div>
+  {/if}
 </div>
 
+<UploadDialog bind:open={upOpen} files={upFiles} dir={folder.rel} onsaved={(rels) => { added = `Added ${rels.length} ${rels.length === 1 ? "file" : "files"} to Materials.`; setTimeout(() => (added = null), 5000); const d = rels[0]?.split("/").slice(0, -1).join("/"); if (d !== undefined && d !== folder.rel) location.hash = folderHref(d); }} />
+
 <style>
+  .browse {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+  .browse button {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 40px;
+    padding: 0 16px;
+    border: 0;
+    border-radius: var(--radius-pill);
+    background: var(--surface);
+    font-weight: 500;
+  }
+  .browse button.on {
+    background: var(--primary);
+    color: var(--on-primary);
+  }
+  .types {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-left: 8px;
+    font-size: 13px;
+  }
+  .courselist {
+    display: grid;
+    gap: 8px;
+  }
+  .courselist ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+  .courselist a {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 160px auto;
+    align-items: center;
+    gap: 14px;
+    min-height: 52px;
+    padding: 8px 12px;
+    border-radius: 14px;
+    text-decoration: none;
+  }
+  .courselist a:hover {
+    background: var(--chip);
+    transform: translateX(3px);
+  }
+  .cl-t {
+    display: grid;
+    min-width: 0;
+  }
+  .cl-t b {
+    font-weight: 600;
+  }
+  .cl-t .muted {
+    font-size: 13px;
+  }
+  .cl-n {
+    font-size: 13px;
+    white-space: nowrap;
+  }
+  .notice.ok {
+    background: var(--sage-soft);
+    animation: rise-in 0.4s var(--spring);
+  }
+  .upload {
+    position: relative;
+    cursor: pointer;
+  }
+  .upload input {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    cursor: pointer;
+  }
+  .upload :global(svg) {
+    transform: rotate(-45deg);
+  }
   .folder {
     display: grid;
     gap: var(--gap);
