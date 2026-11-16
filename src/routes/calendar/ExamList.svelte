@@ -1,61 +1,87 @@
 <script lang="ts">
-  import { fmtTime, fromKey } from "../../lib/calendar";
-  import { editEvent, exams } from "../../lib/stores/calendar.svelte";
+  import { addMonths, daysInMonth, fromKey, monthStart } from "../../lib/calendar";
+  import { editEvent, exams, view } from "../../lib/stores/calendar.svelte";
   import { folderHref } from "../../lib/stores/labs.svelte";
   import { settings } from "../../lib/stores/settings.svelte";
+  import DayRows from "./DayRows.svelte";
+  import EventCard from "./EventCard.svelte";
 
   const list = $derived(exams());
-  const upcoming = $derived(list.filter((e) => e.days >= 0));
-  const past = $derived(list.filter((e) => e.days < 0).reverse());
-  const when = (n: number) => (n === 0 ? "Today" : n === 1 ? "Tomorrow" : `${n} days`);
-  const long = (d: string) => fromKey(d).toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" });
+  const year = $derived(Number(view.cursor.slice(0, 4)));
+  const month = $derived(view.cursor.slice(0, 7));
+  const days = $derived(Array.from({ length: daysInMonth(view.cursor) }, (_, i) => `${month}-${String(i + 1).padStart(2, "0")}`));
+  const inMonth = $derived(list.filter((e) => e.date.startsWith(month)));
+  const counts = $derived(Object.fromEntries(Array.from({ length: 12 }, (_, i) => {
+    const m = `${year}-${String(i + 1).padStart(2, "0")}`;
+    return [m, list.filter((e) => e.date.startsWith(m)).length];
+  })));
+  const next = $derived(list.find((e) => e.days >= 0));
+  /** Days with exams stay rows; runs of days without exams fold into one short row. */
+  const rows = $derived.by(() => {
+    const out: (string | [string, string])[] = [];
+    let run: [string, string] | null = null;
+    for (const d of days) {
+      if (inMonth.some((e) => e.date === d)) {
+        if (run) out.push(run);
+        run = null;
+        out.push(d);
+      } else if (run) run[1] = d;
+      else run = [d, d];
+    }
+    if (run) out.push(run);
+    return out;
+  });
+  const pick = (m: string) => (view.cursor = `${m}-01`);
+  const name = (m: string) => fromKey(`${m}-01`).toLocaleDateString("en-US", { month: "short" });
 </script>
 
 <div class="exams">
-  {#if upcoming.length}
-    <div class="grid">
-      {#each upcoming as e, i (e.key)}
-        <article class="exam" class:first={i === 0}>
-          <div class="count">
-            <b class="display">{e.days}</b>
-            <span>{e.days === 1 ? "day" : "days"}</span>
-          </div>
-          <div class="info">
-            <h3 class="display">{e.title}</h3>
-            <span>{long(e.date)}{e.start ? ` · ${fmtTime(e.start)}` : ""}</span>
-            {#if e.course}<span class="muted">{e.course}</span>{/if}
-          </div>
-          <div class="foot">
-            {#if e.days <= 1}<span class="tag glass">{when(e.days)}</span>{:else}<span></span>{/if}
-            {#if e.id}
-              <button type="button" class="btn quiet" onclick={() => editEvent(e.id!, e.date)}>Edit</button>
-            {:else if e.rel !== undefined}
-              <a class="btn quiet" href={folderHref(e.rel)}>From folder</a>
-            {/if}
-          </div>
-        </article>
-      {/each}
+  <div class="head card">
+    <div>
+      <h2 class="h2">Exam calendar</h2>
+      <p class="muted">
+        {#if next}Next: <b>{next.title}</b> in {next.days === 0 ? "0 days (today)" : next.days === 1 ? "1 day" : `${next.days} days`}{:else}No upcoming exams{/if}
+      </p>
     </div>
+    <div class="pills" role="tablist" aria-label="Month">
+      <button type="button" class="arrow" aria-label="Previous year" onclick={() => (view.cursor = addMonths(monthStart(view.cursor), -12))}>‹</button>
+      {#each Object.entries(counts) as [m, n] (m)}
+        <button type="button" role="tab" aria-selected={m === month} class:on={m === month} onclick={() => pick(m)}>
+          {name(m)}{#if n}<i>{n}</i>{/if}
+        </button>
+      {/each}
+      <button type="button" class="arrow" aria-label="Next year" onclick={() => (view.cursor = addMonths(monthStart(view.cursor), 12))}>›</button>
+    </div>
+  </div>
+
+  {#if inMonth.length}
+    <DayRows days={rows} empty={() => "No exams"}>
+      {#snippet children(d)}
+        {#each inMonth.filter((e) => e.date === d) as e (e.key)}
+          <EventCard
+            title={e.title}
+            kind={e.kind}
+            start={e.start}
+            end={e.end}
+            allDay={!e.start}
+            course={e.course}
+            location={e.location}
+            countdown={e.days}
+            onclick={(ev) => (e.id ? editEvent(e.id, e.date, ev) : (location.hash = folderHref(e.rel ?? "")))}
+          />
+        {/each}
+      {/snippet}
+    </DayRows>
   {:else}
-    <section class="card">
-      <p>No upcoming exams. Add one, or give a calendar event the type “Exam”.</p>
+    <section class="card empty">
+      <p>No exams in {fromKey(`${month}-01`).toLocaleDateString("en-US", { month: "long", year: "numeric" })}.</p>
     </section>
   {/if}
 
   <p class="muted hint">
-    Exams are events with the type Exam, events of type Other whose title contains “{settings.examKeywords}”, and Recall Lab folders with an exam date.
+    Exams are events with a tag marked “Exam” (change this under Edit tags), events tagged Other whose title contains
+    “{settings.examKeywords}”, and Recall Lab folders with an exam date.
   </p>
-
-  {#if past.length}
-    <section class="card">
-      <h2 class="h2">Past exams</h2>
-      <ul class="past">
-        {#each past as e (e.key)}
-          <li><b>{e.title}</b><span class="muted">{fromKey(e.date).toLocaleDateString("en-US", { month: "short", day: "numeric" })}</span></li>
-        {/each}
-      </ul>
-    </section>
-  {/if}
 </div>
 
 <style>
@@ -63,74 +89,59 @@
     display: grid;
     gap: var(--gap);
   }
-  .grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-    gap: 14px;
-  }
-  .exam {
+  .head {
     display: grid;
     gap: 14px;
-    padding: 18px;
-    border-radius: var(--radius);
-    background: var(--g-peach);
-    box-shadow: var(--shadow);
   }
-  .exam.first {
-    background: var(--g-rose);
+  .head p {
+    font-size: 14.5px;
   }
-  .count {
+  .pills {
     display: flex;
-    align-items: baseline;
-    gap: 8px;
+    gap: 6px;
+    overflow-x: auto;
+    padding-bottom: 2px;
   }
-  .count b {
-    font-size: 48px;
-    line-height: 1;
-    font-weight: 600;
-  }
-  .info {
-    display: grid;
-    gap: 2px;
-  }
-  .info h3 {
-    font-size: 20px;
-    font-weight: 600;
-  }
-  .info .muted {
-    color: var(--text);
-    opacity: 0.75;
-  }
-  .foot {
-    display: flex;
+  .pills button {
+    display: inline-flex;
     align-items: center;
-    justify-content: space-between;
-    gap: 8px;
+    gap: 6px;
+    flex: none;
+    min-height: 40px;
+    padding: 0 16px;
+    border: 0;
+    border-radius: var(--radius-pill);
+    background: var(--panel);
+    font-weight: 500;
+    font-size: 14px;
   }
-  .foot .btn {
-    background: rgba(255, 253, 251, 0.6);
+  .pills button.on {
+    background: var(--primary);
+    color: var(--on-primary);
+  }
+  .pills i {
+    font-style: normal;
+    display: grid;
+    place-items: center;
+    min-width: 20px;
+    height: 20px;
+    border-radius: 10px;
+    background: var(--rose);
+    color: var(--text);
+    font-size: 11.5px;
+    font-weight: 700;
+  }
+  .pills .arrow {
+    width: 40px;
+    padding: 0;
+    justify-content: center;
+    font-size: 20px;
+  }
+  .empty p {
+    color: var(--text-muted);
   }
   .hint {
-    font-size: 14px;
+    font-size: 13.5px;
     padding: 0 4px;
-  }
-  .past {
-    list-style: none;
-    margin: 12px 0 0;
-    padding: 0;
-    display: grid;
-  }
-  .past li {
-    display: flex;
-    justify-content: space-between;
-    gap: 10px;
-    padding: 10px 0;
-    border-top: 1px solid var(--hairline);
-  }
-  .past li:first-child {
-    border-top: 0;
-  }
-  .past b {
-    font-weight: 500;
   }
 </style>

@@ -5,7 +5,7 @@
   import MiniMonth from "../lib/components/MiniMonth.svelte";
   import { TONES, focusBlock, today } from "../lib/sample/data";
   import { fmtTime, fromKey, todayKey } from "../lib/calendar";
-  import { editEvent, exams, newEvent, occ } from "../lib/stores/calendar.svelte";
+  import { editEvent, exams, newEvent, occ, tagStyle } from "../lib/stores/calendar.svelte";
   import { settings } from "../lib/stores/settings.svelte";
   import { inherited, labHref, labs, labsIn, streakInfo } from "../lib/stores/labs.svelte";
 
@@ -191,7 +191,7 @@
             {/if}
             <li class="ev" class:past={!o.ev.allDay && (nowIndex === -1 || i < nowIndex)}>
               <span class="time">{o.ev.allDay ? "All day" : fmt(o.ev.start ?? "00:00")}</span>
-              <button type="button" class="ev-card k-{o.ev.kind}" onclick={() => editEvent(o.id, o.date)}>
+              <button type="button" class="ev-card tag-soft" style={tagStyle(o.ev.kind)} onclick={(e) => editEvent(o.id, o.date, e)}>
                 <b>{o.ev.title}</b>
                 <span class="muted">{o.ev.allDay ? o.ev.course ?? "" : `${fmtTime(o.ev.start)} – ${fmtTime(o.ev.end)}`}</span>
               </button>
@@ -201,7 +201,7 @@
       {:else}
         <p class="muted">Nothing on your calendar today.</p>
       {/if}
-      <button type="button" class="btn quiet add" onclick={() => newEvent()}>+ Add event</button>
+      <button type="button" class="btn quiet add" onclick={(e) => newEvent({}, e)}>+ Add event</button>
     </section>
 
     <section class="card">

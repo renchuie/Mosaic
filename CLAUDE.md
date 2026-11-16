@@ -108,20 +108,37 @@ modules (`labMerge.ts`, `calendar.ts`) import nothing, so they can be tested wit
 - Tested with two app instances (separate HOME, shared folder): migration, first pull on a new
   machine, and lab progress studied on one machine appearing on the other.
 
-## Calendar (Phase 3, built)
+## Calendar (Phase 3, built; redesigned after her feedback)
 
-- Local events (`src/lib/calendar.ts`, pure; store in `src/lib/stores/calendar.svelte.ts`):
-  title, type (class / exam / study / other), course, day, all-day or start–end, place, notes,
-  weekly repeat (weekdays + last day) with per-day skips. Dates are local "YYYY-MM-DD" strings.
-- Page (`src/routes/Calendar.svelte`): Week grid (click empty space to add, overlaps share lanes,
-  now line), Next 14 days agenda, Exams. One shared editor dialog (`EventEditor.svelte`) opened
-  from the calendar or the dashboard. Editing a repeating event changes the whole series; delete
-  offers "only this day" or "every repeat".
-- Exams = type Exam, or type Other with an exam keyword in the title (Settings, default "Exam"),
-  plus Recall Lab folders with an exam date (skipped when a calendar exam is on the same day).
-  Study blocks and classes never count, so "Exam 4 sim run" is not an exam.
-- Ther IV Exam 4 (2026-11-17) and Exam 5 (2026-12-04) are seeded as exam events.
-- Dashboard: countdown, mini month, next-exam tile and the Today timeline all read the calendar.
+She said the first version "looks too much like Google Calendar". The look now follows her two
+references: a Skejulio-style planner (card events with a tag header, side panel with mini month
+and tag checkboxes, "Create schedule" popover) and an exam calendar with month pills and day rows.
+Do not go back to thin coloured blocks on a plain grid.
+
+- Data (`src/lib/calendar.ts`, pure; store `src/lib/stores/calendar.svelte.ts`): event = title,
+  tag id (`kind`), course, day, all-day or start–end, place, description (`notes`), repeat, skips.
+  Dates are local "YYYY-MM-DD" strings.
+- Tags (collection `tags`, synced): name, colour, "counts as exam", order. Built-in class / exam /
+  study / other can be renamed and recoloured, not deleted; custom tags can be deleted (their
+  events move to Other). Colours: `PALETTE` of soft swatches or any colour; components use
+  `tagStyle(id)` (sets `--tag`, `--tag-ink`) with `color-mix` tints. Tag manager: `TagManager.svelte`.
+- Repeat: daily / weekly (chosen weekdays) / monthly (same date, or same weekday like "3rd Monday"
+  / "last Friday") / yearly, every N, ending never / on a date / after N times, plus per-day
+  skips. `describeRepeat` writes the summary. Phase 3's `{weekdays, until}` shape is still read.
+- Views (`src/routes/Calendar.svelte`): Day, Week (time grid with card events that show less as
+  they get shorter or share a lane; click empty time to add; now line with a time pill), Month,
+  List (next 14 days as day rows of cards), Exams (month pills with counts, day rows, empty runs
+  folded into one short row). Side panel (mini month, tag filters, coming up) can be hidden;
+  hidden tags and the panel state are per machine (localStorage).
+- One shared editor popover (`EventEditor.svelte`) opens beside the click on wide windows and
+  centred on narrow ones. Editing a repeating event changes the series; delete offers "only this
+  day" or "every repeat".
+- Exams = a tag marked "Exam" (e.g. a custom Quiz tag), or tag Other with an exam keyword in the
+  title (Settings, default "Exam"), plus Recall Lab folders with an exam date (skipped when a
+  calendar exam is on the same day). So "Exam 4 sim run" tagged Study is not an exam.
+- Ther IV Exam 4 (2026-11-17) and Exam 5 (2026-12-04) are seeded as exam events; the four
+  built-in tags are seeded too (u=1, so any edit wins).
+- Dashboard: countdown, mini month, next-exam tile and Today timeline read the calendar.
 
 ## Other decisions
 

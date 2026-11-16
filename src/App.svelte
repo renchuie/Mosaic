@@ -6,6 +6,7 @@
   import Settings from "./routes/Settings.svelte";
   import Calendar from "./routes/Calendar.svelte";
   import EventEditor from "./lib/components/EventEditor.svelte";
+  import TagManager from "./lib/components/TagManager.svelte";
   import ComingSoon from "./routes/ComingSoon.svelte";
 
   const soon = {
@@ -33,6 +34,7 @@
   </main>
 </div>
 <EventEditor />
+<TagManager />
 
 <style>
   .shell {

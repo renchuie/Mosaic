@@ -124,11 +124,17 @@ a {
   }
 }
 
-/* calendar event kinds */
-.k-class { background: var(--g-butter); }
-.k-exam { background: var(--g-rose); }
-.k-study { background: var(--g-sage); }
-.k-other { background: var(--g-peach); }
+/* anything coloured by a calendar tag: set style={tagStyle(id)} */
+.tag-soft { background: color-mix(in srgb, var(--tag) 34%, var(--white)); color: var(--text); }
+.tag-solid { background: var(--tag); color: var(--tag-ink); }
+.tag-dot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--tag);
+  flex: none;
+}
 
 /* form fields */
 .field {
