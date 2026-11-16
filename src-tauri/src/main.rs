@@ -1,8 +1,9 @@
 // Study Desk: Tauri shell. Modules: store (local JSON app data), labs (scanner + /__labs/ files),
-// sync (per-machine files in a Google Drive folder).
+// sync (per-machine files in a Google Drive folder), notes, pdfs.
 
 mod labs;
 mod notes;
+mod pdfs;
 mod store;
 mod sync;
 
@@ -27,6 +28,7 @@ fn main() {
     tauri::Builder::default()
         .manage(labs::LabsState::default())
         .manage(notes::NotesState::default())
+        .manage(pdfs::PdfsState::default())
         .setup(|app| {
             // The main window is built here (not from config alone) so labs can be
             // served on the app's own origin.
@@ -50,6 +52,11 @@ fn main() {
             notes::notes_mkdir,
             notes::notes_move,
             notes::notes_trash,
+            pdfs::pdfs_list,
+            pdfs::pdfs_stat,
+            pdfs::pdfs_write,
+            pdfs::pdfs_restore,
+            pdfs::pdfs_open,
             sync::sync_write,
             sync::sync_read,
             debug_route,

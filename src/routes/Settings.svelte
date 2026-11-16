@@ -5,6 +5,7 @@
   import { inTauri } from "../lib/tauri";
   import { sync, syncNow } from "../lib/stores/synced.svelte";
   import { refreshNotes } from "../lib/stores/notes.svelte";
+  import { refreshPdfs } from "../lib/stores/pdfs.svelte";
 
   let name = $state(settings.name);
   let root = $state(settings.labsRoot);
@@ -13,6 +14,8 @@
   let syncOn = $state(settings.syncEnabled);
   let syncDir = $state(settings.syncDir);
   let notesRoot = $state(settings.notesRoot);
+  let pdfRoot = $state(settings.pdfRoot);
+  let pdfDepth = $state(settings.pdfDepth);
   let saved = $state(false);
 
   async function save(e: SubmitEvent) {
@@ -27,8 +30,11 @@
       syncEnabled: syncOn,
       syncDir: syncDir.trim() || DEFAULT_SETTINGS.syncDir,
       notesRoot: notesRoot.trim() || DEFAULT_SETTINGS.notesRoot,
+      pdfRoot: pdfRoot.trim() || DEFAULT_SETTINGS.pdfRoot,
+      pdfDepth: Math.max(1, Math.min(12, Number(pdfDepth) || DEFAULT_SETTINGS.pdfDepth)),
     });
     void refreshNotes();
+    void refreshPdfs();
     if (syncChanged) void syncNow();
     saved = true;
     setTimeout(() => (saved = false), 2000);
@@ -91,6 +97,15 @@
       <span class="label">Notes folder</span>
       <input bind:value={notesRoot} spellcheck="false" />
       <span class="hint muted">Your notes are Markdown files here, so they also open in any other app.</span>
+    </label>
+    <label class="field">
+      <span class="label">PDF folder</span>
+      <input bind:value={pdfRoot} spellcheck="false" />
+      <span class="hint muted">Study → PDFs lists every PDF in here and its subfolders. Annotations are saved into the PDF; the untouched original is kept once in a hidden “.studydesk-originals” folder.</span>
+    </label>
+    <label class="field">
+      <span class="label">How many folder levels to search for PDFs</span>
+      <input type="number" min="1" max="12" bind:value={pdfDepth} />
     </label>
     <label class="field">
       <span class="label">Words that mark an exam</span>

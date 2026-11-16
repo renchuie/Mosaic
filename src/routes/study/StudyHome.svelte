@@ -6,8 +6,10 @@
   import { labHref, labs, labsIn } from "../../lib/stores/labs.svelte";
   import { getNote, noteHref, notes, notesForCourse, recentNotes } from "../../lib/stores/notes.svelte";
   import NewNoteDialog from "./NewNoteDialog.svelte";
+  import { pdfHref, pdfName, recentPdfs } from "../../lib/stores/pdfs.svelte";
   import { counts as cardCounts } from "../../lib/stores/srs.svelte";
   const cardsNow = $derived(cardCounts());
+  const reading = $derived(recentPdfs(3));
 
   const lastRel = (() => {
     try {
@@ -100,6 +102,18 @@
           <p class="muted small">Your labs show up here.</p>
         {/each}
       </section>
+      {#if reading.length}
+        <section class="card">
+          <div class="sh"><h2 class="h2">Keep reading</h2><a class="link" href="#/study/pdfs">PDFs <Icon name="arrow" size={14} /></a></div>
+          {#each reading as [rel, info] (rel)}
+            <a class="lab" href={pdfHref(rel)}>
+              <span class="lt"><Icon name="file" size={16} /></span>
+              <span class="lx"><b>{pdfName(rel)}</b><span>p. {info.page}{info.pages ? ` of ${info.pages}` : ""}{info.annots ? ` · ${info.annots} ${info.annots === 1 ? "mark" : "marks"}` : ""}</span></span>
+              <span class="bar"><span style="width: {info.pages ? Math.round((info.page / info.pages) * 100) : 0}%"></span></span>
+            </a>
+          {/each}
+        </section>
+      {/if}
       <section class="card">
         <div class="sh"><h2 class="h2">Notes by course</h2></div>
         {#each byCourse as r (r.id)}

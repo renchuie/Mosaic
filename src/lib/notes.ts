@@ -47,13 +47,14 @@ export function joinNote(meta: Meta, body: string): string {
   return lines.length ? `---\n${lines.join("\n")}\n---\n\n${b}` : b;
 }
 
-export type Parsed = { title: string; links: string[]; tags: string[]; headings: { level: number; text: string; line: number }[]; meta: Meta; words: number };
+export type Parsed = { title: string; links: string[]; /** [[folder/file.pdf#p3]] links: PDF paths */ pdfs: string[]; tags: string[]; headings: { level: number; text: string; line: number }[]; meta: Meta; words: number };
 
 /** Title, [[links]], #tags and headings of a note. Code blocks are skipped. */
 export function parseNote(text: string, fileName: string): Parsed {
   const { meta, body } = splitNote(text);
   const lines = body.split(/\r?\n/);
   const links = new Set<string>();
+  const pdfs = new Set<string>();
   const tags = new Set<string>((meta.tags ?? []).map((t) => String(t).replace(/^#/, "")));
   const headings: Parsed["headings"] = [];
   let inCode = false;
@@ -66,12 +67,15 @@ export function parseNote(text: string, fileName: string): Parsed {
     if (inCode) return;
     const h = /^(#{1,6})\s+(.+?)\s*#*\s*$/.exec(line);
     if (h) headings.push({ level: h[1].length, text: h[2], line: i });
-    for (const m of line.matchAll(/\[\[([^\]|#\n]+)(?:#[^\]|\n]*)?(?:\|[^\]\n]*)?\]\]/g)) links.add(m[1].trim());
+    for (const m of line.matchAll(/\[\[([^\]|#\n]+)(?:#[^\]|\n]*)?(?:\|[^\]\n]*)?\]\]/g)) {
+      const t = m[1].trim();
+      (/\.pdf$/i.test(t) ? pdfs : links).add(t);
+    }
     for (const m of line.replace(/`[^`]*`/g, "").matchAll(/(?:^|\s)#([A-Za-z][\w/-]*)/g)) if (!h || m.index! > 0) tags.add(m[1]);
     words += (line.match(/\S+/g) ?? []).length;
   });
   const first = headings.find((x) => x.level === 1);
-  return { title: first?.text ?? fileName.replace(/\.md$/i, ""), links: [...links], tags: [...tags], headings, meta, words };
+  return { title: first?.text ?? fileName.replace(/\.md$/i, ""), links: [...links], pdfs: [...pdfs], tags: [...tags], headings, meta, words };
 }
 
 /** Name used to match [[links]]: case-insensitive, extension-free, last path part. */

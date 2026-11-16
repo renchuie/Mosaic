@@ -358,7 +358,7 @@ pub fn open_in_system(state: State<'_, LabsState>, rel: String) -> Result<(), St
         .map_err(|e| format!("Could not run xdg-open: {e}"))
 }
 
-fn percent_decode(s: &str) -> String {
+pub fn percent_decode(s: &str) -> String {
     let b = s.as_bytes();
     let mut out = Vec::with_capacity(b.len());
     let mut i = 0;
@@ -405,6 +405,8 @@ pub fn serve(app: &AppHandle, request: &http::Request<Vec<u8>>, response: &mut h
         (rel, app.state::<LabsState>().root.lock().unwrap().clone())
     } else if let Some(rel) = path.strip_prefix(NOTES_PREFIX) {
         (rel, crate::notes::root_for_serving(&app.state::<crate::notes::NotesState>()))
+    } else if let Some(rel) = path.strip_prefix(crate::pdfs::PDFS_PREFIX) {
+        (rel, crate::pdfs::root_for_serving(&app.state::<crate::pdfs::PdfsState>()))
     } else {
         return;
     };

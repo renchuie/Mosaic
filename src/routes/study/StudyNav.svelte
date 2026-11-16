@@ -3,12 +3,13 @@
   import { route } from "../../lib/router.svelte";
 
   import { counts } from "../../lib/stores/srs.svelte";
-  const tab = $derived(route.page === "labs" ? "labs" : route.rest.startsWith("notes") ? "notes" : route.rest.startsWith("cards") ? "cards" : "home");
+  const tab = $derived(route.page === "labs" ? "labs" : route.rest.startsWith("notes") ? "notes" : route.rest.startsWith("cards") ? "cards" : route.rest.startsWith("pdfs") ? "pdfs" : "home");
   const due = $derived(counts());
   const TABS = [
     { id: "home", label: "Home", href: "#/study", icon: "dashboard" },
     { id: "notes", label: "Notes", href: "#/study/notes", icon: "pen" },
     { id: "cards", label: "Cards", href: "#/study/cards", icon: "star" },
+    { id: "pdfs", label: "PDFs", href: "#/study/pdfs", icon: "file" },
     { id: "labs", label: "Recall Labs", href: "#/labs", icon: "labs" },
   ];
 </script>

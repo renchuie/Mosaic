@@ -5,7 +5,8 @@
 export type Template = { id: string; name: string; front: string; back: string };
 export type CardType = { name: string; fields: string[]; templates: Template[]; kind?: "cloze" | "occlusion"; builtin?: boolean };
 export type Mask = { id: string; x: number; y: number; w: number; h: number; label?: string };
-export type FlashItem = { type: string; fields: Record<string, string>; course?: string; tags?: string[]; created: number };
+/** `source`: the PDF page it was made from (Study → PDFs). */
+export type FlashItem = { type: string; fields: Record<string, string>; course?: string; tags?: string[]; created: number; source?: { pdf: string; page: number } };
 
 /** Built-in types, seeded into the synced "cardTypes" collection (editable, not deletable). */
 export const BUILTIN_TYPES: Record<string, CardType> = {

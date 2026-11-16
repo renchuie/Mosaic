@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { pdfHref, pdfInfo, pdfName, pdfsForCourse } from "../../lib/stores/pdfs.svelte";
   import GradeRing from "../../lib/components/GradeRing.svelte";
   import Icon from "../../lib/components/Icon.svelte";
   import { fmtTime, fromKey, todayKey, dueLabel } from "../../lib/calendar";
@@ -33,6 +34,7 @@
   const today = todayKey();
   const cardsHere = $derived(course ? cardCounts({ kind: "course", name: course.name }) : null);
   const courseNotes = $derived(course ? notesForCourse(course.name) : []);
+  const coursePdfs = $derived(course ? pdfsForCourse(course.name).sort((a, b) => (pdfInfo(b.rel)?.opened ?? 0) - (pdfInfo(a.rel)?.opened ?? 0)) : []);
   async function newCourseNote() {
     if (!course) return;
     const rel = await createNote(fileNameFor(course.name).replace(/\.md$/, ""), `${todayKey()} notes`, "lecture", { course: course.name, date: todayKey() });
@@ -194,6 +196,19 @@
             <p class="muted small">Notes with this course set show here. Start one, or use “Take notes” on a class in the calendar.</p>
           {/if}
         </section>
+
+        {#if coursePdfs.length}
+          <section class="card">
+            <div class="sh"><h2 class="h2">PDFs</h2><a class="mini" href="#/study/pdfs">All</a></div>
+            <ul class="cnotes">
+              {#each coursePdfs.slice(0, 6) as f (f.rel)}
+                {@const info = pdfInfo(f.rel)}
+                <li><a href={pdfHref(f.rel)}><Icon name="file" size={14} /><span>{pdfName(f.rel)}</span>{#if info?.annots}<small>{info.annots} {info.annots === 1 ? "mark" : "marks"}</small>{:else if info?.opened}<small>p. {info.page}</small>{/if}</a></li>
+              {/each}
+            </ul>
+            {#if coursePdfs.length > 6}<a class="more" href="#/study/pdfs">All {coursePdfs.length} PDFs</a>{/if}
+          </section>
+        {/if}
 
         <section class="card">
           <div class="sh"><h2 class="h2">Scratch pad</h2></div>
@@ -417,6 +432,12 @@
     background: var(--panel);
     font-size: 12.5px;
     font-weight: 600;
+  }
+  a.mini {
+    display: inline-flex;
+    align-items: center;
+    color: var(--text);
+    text-decoration: none;
   }
   .small {
     font-size: 13.5px;

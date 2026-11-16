@@ -81,7 +81,7 @@
     regexp: /==[^=\n]+==|\[\[([^\]\n]+)\]\]|(?:^|(?<=\s))#[A-Za-z][\w/-]*|\{\{[^}\n]+\}\}|(?<=\S )(:{2,3})(?= )|^(\s*)[-*+](?= )/gm,
     decorate: (add, from, to, m) => {
       if (m[0].startsWith("==")) add(from, to, Decoration.mark({ class: "cm-hl" }));
-      else if (m[1] !== undefined) add(from, to, Decoration.mark({ class: "cm-wikilink", attributes: { "data-link": m[1].split("|")[0].split("#")[0].trim(), title: "Open" } }));
+      else if (m[1] !== undefined) add(from, to, Decoration.mark({ class: "cm-wikilink", attributes: { "data-link": /\.pdf\s*(#|$)/i.test(m[1].split("|")[0]) ? m[1].split("|")[0].trim() : m[1].split("|")[0].split("#")[0].trim(), title: "Open" } }));
       else if (m[0].startsWith("#")) add(from, to, Decoration.mark({ class: "cm-tagmark" }));
       else if (m[0].startsWith("{{")) add(from, to, Decoration.mark({ class: "cm-cloze" }));
       else if (m[2] !== undefined) add(from, to, Decoration.mark({ class: "cm-cardsep" }));

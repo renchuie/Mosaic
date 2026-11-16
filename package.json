@@ -28,6 +28,8 @@
     "@lezer/highlight": "^1.2.5",
     "@tauri-apps/api": "^2.12.4",
     "codemirror": "^6.0.2",
+    "pdf-lib": "^1.17.1",
+    "pdfjs-dist": "^4.10.38",
     "ts-fsrs": "^6.0.0"
   }
 }

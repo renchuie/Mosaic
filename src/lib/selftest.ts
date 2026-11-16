@@ -8,6 +8,8 @@ import { addBlock, clock, completeBlock, getPlan, spent, startBlock } from "./st
 import { todayKey } from "./calendar";
 import { notes, refreshNotes } from "./stores/notes.svelte";
 import { counts, ensureIds } from "./stores/srs.svelte";
+import { pdfs, readPdf, refreshPdfs, writePdf } from "./stores/pdfs.svelte";
+import { newAnnotId, readAnnots, writeAnnots, type Rect } from "./pdfAnnots";
 
 /** Run 1 starts a timer and quits; run 2 shows it kept counting across the restart, then finishes it. */
 export async function timerTest() {
@@ -54,4 +56,28 @@ export async function selfTest() {
     log(`selftest error: ${e} (${ms()})`);
   }
   setTimeout(() => void invoke("debug_quit"), 1500);
+}
+
+/** PDFs: list, read through /__pdfs/, save a highlight into the file (raw IPC), read it back, conflict check. */
+export async function pdfTest() {
+  try {
+    await refreshPdfs();
+    log(`pdfs: root=${pdfs.root} files=${pdfs.files.length} error=${pdfs.error}`);
+    const f = pdfs.files.find((x) => x.rel.includes("Controlled")) ?? pdfs.files[0];
+    if (!f) throw new Error("no PDFs");
+    const r = await readPdf(f.rel);
+    const a = await readAnnots(r.bytes);
+    log(`read ${f.rel}: ${r.bytes.length} bytes, mtime ${r.mtime}, backed=${r.backed}, pages=${a.pages}, marks=${a.annots.length}`);
+    const mark = { id: newAnnotId(), page: 0, kind: "highlight" as const, color: "#ffe17a", rects: [[50, 690, 300, 705]] as Rect[], text: "selftest", created: Date.now() };
+    const bytes = await writeAnnots(r.bytes, [...a.annots, mark]);
+    const m2 = await writePdf(f.rel, bytes, r.mtime);
+    const back = await readPdf(f.rel);
+    const a2 = await readAnnots(back.bytes);
+    log(`saved: mtime ${m2}, backed=${back.backed}, marks now=${a2.annots.length}, has selftest=${a2.annots.some((x) => x.id === mark.id)}`);
+    const conflict = await writePdf(f.rel, bytes, r.mtime).then(() => "no conflict!", (e) => String(e));
+    log(`stale write: ${conflict}`);
+  } catch (e) {
+    log(`pdf test failed: ${e}`);
+  }
+  setTimeout(() => void invoke("debug_quit"), 800);
 }

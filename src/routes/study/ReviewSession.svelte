@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { pdfHref, pdfName } from "../../lib/stores/pdfs.svelte";
+  import { getItem } from "../../lib/stores/library.svelte";
   // A review session: front → Space → back → rate 1–4. Learning cards come back
   // in the same session when they're due; Z undoes the last rating.
   import { onDestroy, onMount } from "svelte";
@@ -16,6 +18,7 @@
 
   let pending = $state<string[]>([]); // keys still to see
   let current = $state<CardRef | null>(null);
+  const src = $derived(current?.item ? getItem(current.item.id)?.source : undefined);
   let shown = $state(false);
   let started = $state(0);
   let shownAt = 0;
@@ -151,9 +154,12 @@
         <hr />
         <div class="back">{@html cardHtml(current.card.back, img)}</div>
       {/if}
-      <a class="edit" href={current.href} onclick={() => current?.note && (notes.jump = { rel: current.note.rel, line: current.card.line })}>
-        <Icon name="pen" size={13} /> {current.title}
-      </a>
+      <span class="edit">
+        {#if src}<a href={pdfHref(src.pdf, src.page)}><Icon name="file" size={13} /> {pdfName(src.pdf)}, p. {src.page}</a>{/if}
+        <a href={current.href} onclick={() => current?.note && (notes.jump = { rel: current.note.rel, line: current.card.line })}>
+          <Icon name="pen" size={13} /> {src && current.title === `${pdfName(src.pdf)}, p. ${src.page}` ? "Edit" : current.title}
+        </a>
+      </span>
     </article>
 
     <div class="actions">
@@ -319,6 +325,13 @@
     border: 0;
     border-top: 2px dashed var(--hairline);
     margin: 0;
+  }
+  .edit a {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: inherit;
+    text-decoration: none;
   }
   .edit {
     position: absolute;

@@ -14,8 +14,9 @@ import { initPlan } from "./lib/stores/plan.svelte";
 import { initCourses } from "./lib/stores/courses.svelte";
 import { initNotes } from "./lib/stores/notes.svelte";
 import { initLibrary } from "./lib/stores/library.svelte";
+import { initPdfs } from "./lib/stores/pdfs.svelte";
 import { inTauri, invoke } from "./lib/tauri";
-import { selfTest, timerTest } from "./lib/selftest";
+import { pdfTest, selfTest, timerTest } from "./lib/selftest";
 
 await loadSettings().catch((e) => console.error("settings", e));
 mount(App, { target: document.getElementById("app")! });
@@ -26,11 +27,13 @@ initLibrary();
 await initPlan().catch((e) => console.error("plan", e));
 await initLabs().catch((e) => console.error("labs", e));
 await initNotes().catch((e) => console.error("notes", e));
+void initPdfs().catch((e) => console.error("pdfs", e));
 
 // STUDYDESK_ROUTE=labs/... opens a page at start; STUDYDESK_ROUTE=selftest prints checks (used for testing).
 if (inTauri) {
   const start = await invoke<string | null>("debug_route").catch(() => null);
   if (start === "selftest") void selfTest();
   else if (start === "selftest-timer") void timerTest();
+  else if (start === "selftest-pdf") void pdfTest();
   else if (start) location.hash = `#/${start}`;
 }

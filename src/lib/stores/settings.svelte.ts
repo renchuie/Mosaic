@@ -10,6 +10,9 @@ export type Settings = {
   syncDir: string;
   /** folder of Markdown notes (Study → Notes) */
   notesRoot: string;
+  /** folder searched for PDFs (Study → PDFs), and how many folders deep */
+  pdfRoot: string;
+  pdfDepth: number;
   /** flashcards: new cards introduced per day, and FSRS target retention (0.7–0.97) */
   newPerDay: number;
   retention: number;
@@ -25,6 +28,8 @@ export const DEFAULT_SETTINGS: Settings = {
   syncEnabled: true,
   syncDir: "~/GoogleDrive/Pharmacy School/Study Lab/Study Desk Sync",
   notesRoot: "~/GoogleDrive/Pharmacy School/Study Lab/Notes",
+  pdfRoot: "~/GoogleDrive/Pharmacy School",
+  pdfDepth: 6,
   newPerDay: 20,
   retention: 0.9,
   examAware: true,

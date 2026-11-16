@@ -11,6 +11,7 @@
   } from "../../lib/stores/notes.svelte";
   import NewNoteDialog from "./NewNoteDialog.svelte";
   import NoteTree from "./NoteTree.svelte";
+  import { pdfHref, pdfName, resolvePdfLink } from "../../lib/stores/pdfs.svelte";
 
   let { rel }: { rel: string | null } = $props();
 
@@ -85,6 +86,11 @@
   }
 
   async function openLink(name: string) {
+    const p = resolvePdfLink(name);
+    if (p) {
+      location.hash = pdfHref(p.rel, p.page);
+      return;
+    }
     const target = resolveLink(name);
     if (target) location.hash = noteHref(target.rel);
     else {
@@ -247,11 +253,12 @@
 
   {#if rel && note}
     <aside class="right">
-      {#if course || meta.event || meta.date}
+      {#if course || meta.event || meta.date || meta.pdf}
         <section>
           <h3 class="label">Linked to</h3>
           {#if course}<a class="lk" href="#/courses/{course[0]}" style="--c: {course[1].color}"><span class="cd"></span>{course[1].name}</a>{/if}
           {#if meta.date}<a class="lk" href="#/calendar/day" ><Icon name="calendar" size={14} /> {fromKey(String(meta.date)).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })}{meta.event ? " · class" : ""}</a>{/if}
+          {#if typeof meta.pdf === "string"}<a class="lk" href={pdfHref(meta.pdf)}><Icon name="file" size={14} /> {pdfName(meta.pdf)}</a>{/if}
         </section>
       {/if}
       {#if outline.length > 1}
@@ -272,11 +279,12 @@
           <p class="muted small">No notes link here yet. Type <code>[[{title}]]</code> in another note.</p>
         {/if}
       </section>
-      {#if outLinks.length}
+      {#if outLinks.length || note?.p.pdfs?.length}
         <section>
           <h3 class="label">Links</h3>
           <ul class="ol">
             {#each outLinks as l}<li><button type="button" class:missing={!l.to} onclick={() => openLink(l.name)}>{l.name}{#if !l.to}<small> · create</small>{/if}</button></li>{/each}
+            {#each note?.p.pdfs ?? [] as p}<li><button type="button" onclick={() => openLink(p)}><Icon name="file" size={13} /> {pdfName(p)}</button></li>{/each}
           </ul>
         </section>
       {/if}

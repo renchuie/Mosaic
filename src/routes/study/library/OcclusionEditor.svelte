@@ -5,7 +5,13 @@
   import { previewImages, saveCardImage, saveItem } from "../../../lib/stores/library.svelte";
   import { imageUrl } from "../../../lib/stores/notes.svelte";
 
-  let { open = $bindable(false) }: { open: boolean } = $props();
+  type Initial = { dataUrl: string; header?: string; course?: string; source?: { pdf: string; page: number } };
+  let {
+    open = $bindable(false),
+    initial = null,
+    onsaved,
+  }: { open: boolean; /** start from this image (a PDF region) */ initial?: Initial | null; onsaved?: (itemId: string) => void } = $props();
+  let source = $state<Initial["source"]>();
   let dialog = $state<HTMLDialogElement>();
   let image = $state("");
   let masks = $state<Mask[]>([]);
@@ -24,6 +30,12 @@
       header = "";
       extra = "";
       error = null;
+      source = initial?.source;
+      if (initial) {
+        header = initial.header ?? "";
+        course = initial.course ?? "";
+        void saveCardImage(initial.dataUrl, "png").then((r) => (image = r));
+      }
       dialog.showModal();
     }
   });
@@ -73,7 +85,8 @@
     if (!image) return (error = "Pick or paste an image first.");
     if (!masks.length) return (error = "Drag over the image to cover at least one label.");
     saving = true;
-    saveItem(null, { type: "occlusion", fields: { Image: image, Masks: JSON.stringify($state.snapshot(masks)), Header: header, Extra: extra }, course: course || undefined, created: Date.now() });
+    const id = saveItem(null, { type: "occlusion", fields: { Image: image, Masks: JSON.stringify($state.snapshot(masks)), Header: header, Extra: extra }, course: course || undefined, created: Date.now(), source: source ? { ...source } : undefined });
+    onsaved?.(id);
     saving = false;
     open = false;
     dialog?.close();

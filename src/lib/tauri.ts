@@ -3,9 +3,9 @@ import { invoke as tauriInvoke } from "@tauri-apps/api/core";
 
 export const inTauri = typeof window !== "undefined" && "__TAURI_INTERNALS__" in window;
 
-export function invoke<T>(cmd: string, args?: Record<string, unknown>): Promise<T> {
+export function invoke<T>(cmd: string, args?: Record<string, unknown> | Uint8Array, options?: { headers: Record<string, string> }): Promise<T> {
   if (!inTauri) return Promise.reject(new Error(`${cmd}: not running inside the app`));
-  return tauriInvoke<T>(cmd, args);
+  return tauriInvoke<T>(cmd, args, options);
 }
 
 export async function loadDoc<T>(name: string): Promise<T | null> {
