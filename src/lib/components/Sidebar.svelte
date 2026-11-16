@@ -17,7 +17,14 @@
 
 <aside class="sidebar">
   <div class="brand">
-    <span class="mark" aria-hidden="true">✦</span>
+    <svg class="mark" viewBox="0 0 120 120" aria-hidden="true">
+      <defs><linearGradient id="mosaic-g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#FFC9DA" /><stop offset=".55" stop-color="#C9D3FF" /><stop offset="1" stop-color="#BFEBDD" /></linearGradient></defs>
+      <rect width="120" height="120" rx="28" fill="url(#mosaic-g)" />
+      <rect x="20" y="30" width="46" height="46" rx="12" fill="#fff" fill-opacity=".45" stroke="#fff" stroke-width="2" transform="rotate(-8 43 53)" />
+      <rect x="50" y="22" width="46" height="46" rx="12" fill="#fff" fill-opacity=".55" stroke="#fff" stroke-width="2" transform="rotate(6 73 45)" />
+      <rect x="38" y="52" width="46" height="46" rx="12" fill="#fff" fill-opacity=".7" stroke="#fff" stroke-width="2" />
+      <rect x="50" y="64" width="22" height="22" rx="6" fill="#7D8BE8" fill-opacity=".8" />
+    </svg>
     <span class="display name">Mosaic</span>
   </div>
 
@@ -64,9 +71,8 @@
     place-items: center;
     width: 38px;
     height: 38px;
-    border-radius: 14px;
-    background: var(--primary);
-    color: var(--peach);
+    border-radius: 12px;
+    box-shadow: 0 6px 16px -8px rgba(59, 48, 51, 0.35);
     flex: none;
   }
   .name {

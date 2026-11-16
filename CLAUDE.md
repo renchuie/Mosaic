@@ -39,6 +39,10 @@ The full vision, principles and what she likes or dislikes in each inspiration a
   Hyprland class, `~/.local/share/studydesk/` and the webview data dir (where lab progress lives
   in localStorage). Changing the identifier would move all of that; don't, unless migrating on
   purpose. The sync folder default also keeps its old name ("Study Desk Sync").
+- App icon (chosen Nov 16, option C "glass tiles"): frosted white tiles on a pink→periwinkle→mint
+  gradient. Source `packaging/studydesk.svg` (viewBox 120); the PNGs in `src-tauri/icons/` and
+  `packaging/studydesk.png` are rendered from it with Playwright. The sidebar logo is the same SVG
+  inline in `Sidebar.svelte`.
 - App data: JSON files in `~/.local/share/studydesk/`, written atomically from Rust. Anything that
   should follow her between PC and laptop goes in the synced store (see "Sync" below), not in its
   own JSON file. Machine-only data (settings, scan cache, labs tree) stays local.
