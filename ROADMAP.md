@@ -117,7 +117,7 @@ the next starts. Placement in the weeks above is a proposal (see "Proposed place
 | 2 | M2 · Quiz format + quiz engine core (DONE Nov 16) | Quiz engine |
 | 3 | N1 · Notes editor that feels like Docs / Notion (DONE Nov 16) | Notes |
 | 3b | N1b · Mosaic note page: block editor without Markdown (Tiptap, files stay .md), cover, icon, tag chips, side panel, tucked panels (icon strips + sliding sheets, focus edges, pins), arrow cards, linked references | Notes |
-| 3c | N1c · Note + paired PDF side by side | Notes / PDFs |
+| 3c | N1c · Note + paired PDF side by side (paired by hand through a "Paired with" property) | Notes / PDFs |
 | 4 | F1 · Flashcards on par with Anki | Flashcards |
 | 5 | P1 · PDF page editing + find | PDFs |
 | 6 | M3 · Full quiz engine | Quiz engine |

@@ -81,6 +81,9 @@ backlinks, links). An icon slides its panel **over** the note as a floating shee
 never gets squeezed; click away / Esc closes it. **Focus** hides the strips too, leaving glowing
 edges whose icons float out on hover. A 📌 **pins** a panel beside the note (the note makes room);
 pins are remembered per machine.
+**PDF pairing is set by hand** (decided Nov 16): a note shows a PDF beside it only when she picks
+one in its "Paired with" property (stored in the note's front matter); Mosaic never pairs
+automatically.
 
 She wants notes that feel like Google Docs / Notion (simple, pretty, tables, no visible syntax)
 but connect like Obsidian (links, backlinks, tags, properties, mind map), stored as local files.
