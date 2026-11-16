@@ -16,6 +16,9 @@ laptop (NVIDIA GPU) through `./install.sh`.
 
 ## Product direction (her words, Nov 16)
 
+The full vision, principles and what she likes or dislikes in each inspiration are in
+`VISION.md`. Read it before planning or designing anything.
+
 - The app has a lot of personality and room for customisation. Biggest inspirations: RemNote,
   xTiles, Notion and Obsidian.
 - It has **two sides that respect the user**: it supports her student life AND her personal
