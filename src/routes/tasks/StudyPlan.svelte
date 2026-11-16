@@ -4,7 +4,8 @@
   import Icon from "../../lib/components/Icon.svelte";
   import { addDays, fmtTime, fromKey, minutes as toMin, todayKey } from "../../lib/calendar";
   import { currentBlock, fmtClock, fmtDuration, hhmm, move, planMinutes, schedule, studiedMinutes, type Block } from "../../lib/plan";
-  import { occ, tagOf, editTask } from "../../lib/stores/calendar.svelte";
+  import { occ, tagOf, tagIcon, editTask } from "../../lib/stores/calendar.svelte";
+  import { getTask } from "../../lib/stores/tasks.svelte";
   import { labHref, labsIn, labs } from "../../lib/stores/labs.svelte";
   import {
     addBlock, bringOver, clock, completeBlock, getPlan, isRunning, pauseBlock, removeBlock, reopenBlock, setBlocks, setStart, spent, startBlock, updateBlock,
@@ -73,6 +74,19 @@
   );
 
   const dayLabel = $derived(date === today ? "Today" : date === addDays(today, 1) ? "Tomorrow" : date === addDays(today, -1) ? "Yesterday" : fromKey(date).toLocaleDateString("en-US", { weekday: "long" }));
+  /** Colour and icon for a block on the timeline. */
+  function look(b: Block): { color: string; icon: string } {
+    if (b.kind === "break") return { color: "#F7E3B0", icon: "coffee" };
+    if (b.labRel) return { color: "#F6CFA8", icon: "labs" };
+    const t = b.taskId ? getTask(b.taskId) : undefined;
+    if (t) return { color: tagOf(t.tag ?? "task").color, icon: tagIcon(t.tag ?? "task") };
+    return { color: "#A9CDC3", icon: "book" };
+  }
+  const left = (b: Block) => {
+    const ms = b.minutes * 60000 - spent(date, b);
+    const m = Math.round(Math.abs(ms) / 60000);
+    return ms >= 0 ? `${m} min remaining` : `${m} min over`;
+  };
   const range = (id: string) => {
     const t = times.get(id);
     return t ? `${fmtTime(t.from)} – ${fmtTime(t.to)}` : "";
@@ -150,33 +164,46 @@
             <h2 class="h2">Blocks</h2>
             <label class="startat">Starts at <input class="input" type="time" value={start} onchange={(e) => setStart(date, e.currentTarget.value || undefined)} /></label>
           </div>
-          <ol>
+          <ol class="tl">
             {#each blocks as b, i (b.id)}
-              <li class:done={b.done} class:brk={b.kind === "break"} class:cur={cur?.id === b.id}>
-                <div class="order">
-                  <button type="button" aria-label="Move {b.title} up" disabled={i === 0} onclick={() => setBlocks(date, move(blocks, i, i - 1))}>▲</button>
-                  <button type="button" aria-label="Move {b.title} down" disabled={i === blocks.length - 1} onclick={() => setBlocks(date, move(blocks, i, i + 1))}>▼</button>
+              {@const lk = look(b)}
+              {@const isCur = cur?.id === b.id}
+              {@const pct = Math.min(100, (spent(date, b) / (b.minutes * 60000)) * 100)}
+              <li class:done={b.done} class:cur={isCur} class:brk={b.kind === "break"} style="--c: {lk.color}">
+                <span class="time">{fmtTime(times.get(b.id)?.from).replace(" ", "\u00a0")}</span>
+                <span class="node" aria-hidden="true">
+                  {#if isCur}<span class="fill" style="height: {pct}%"></span>{/if}
+                  <Icon name={lk.icon} size={isCur ? 22 : 18} />
+                </span>
+                <div class="body">
+                  <span class="range">
+                    {#if isCur && spent(date, b) > 0}{left(b)}{:else}{range(b.id)} ({fmtDuration(b.minutes)}){/if}
+                  </span>
+                  <b>{b.title}</b>
+                  {#if b.course || spent(date, b) > 0}
+                    <span class="meta muted">{[b.course, spent(date, b) > 0 ? `${fmtClock(spent(date, b))} on the clock` : ""].filter(Boolean).join(" · ")}</span>
+                  {/if}
+                  <div class="ctrl">
+                    <span class="order">
+                      <button type="button" aria-label="Move {b.title} up" disabled={i === 0} onclick={() => setBlocks(date, move(blocks, i, i - 1))}>▲</button>
+                      <button type="button" aria-label="Move {b.title} down" disabled={i === blocks.length - 1} onclick={() => setBlocks(date, move(blocks, i, i + 1))}>▼</button>
+                    </span>
+                    <select class="input dur" value={b.minutes} aria-label="Minutes for {b.title}" onchange={(e) => updateBlock(date, b.id, { minutes: Number(e.currentTarget.value) })}>
+                      {#each [...new Set([5, 10, 15, 20, 25, 30, 45, 60, 75, 90, 120, 150, 180, b.minutes])].sort((x, y) => x - y) as m}<option value={m}>{fmtDuration(m)}</option>{/each}
+                    </select>
+                    {#if !b.done}
+                      {#if isRunning(date, b.id)}
+                        <button type="button" class="ib" aria-label="Pause {b.title}" onclick={pauseBlock}><Icon name="pause" size={15} /></button>
+                      {:else}
+                        <button type="button" class="ib" aria-label="Start {b.title}" onclick={() => startBlock(date, b.id)}><Icon name="play" size={15} /></button>
+                      {/if}
+                    {/if}
+                    <button type="button" class="ib rm" aria-label="Remove {b.title}" onclick={() => removeBlock(date, b.id)}>×</button>
+                  </div>
                 </div>
                 <button type="button" class="tick" aria-pressed={b.done} aria-label="{b.done ? 'Not done' : 'Done'}: {b.title}" onclick={() => (b.done ? reopenBlock(date, b.id) : completeBlock(date, b.id))}>
-                  {#if b.done}<Icon name="check" size={14} />{/if}
+                  <Icon name="check" size={14} />
                 </button>
-                <div class="bt">
-                  <b>{b.title}</b>
-                  <span class="muted">
-                    {range(b.id)}{b.course ? ` · ${b.course}` : ""}{spent(date, b) > 0 ? ` · ${fmtClock(spent(date, b))} on the clock` : ""}
-                  </span>
-                </div>
-                <select class="input dur" value={b.minutes} aria-label="Minutes for {b.title}" onchange={(e) => updateBlock(date, b.id, { minutes: Number(e.currentTarget.value) })}>
-                  {#each [...new Set([5, 10, 15, 20, 25, 30, 45, 60, 75, 90, 120, 150, 180, b.minutes])].sort((x, y) => x - y) as m}<option value={m}>{fmtDuration(m)}</option>{/each}
-                </select>
-                {#if !b.done}
-                  {#if isRunning(date, b.id)}
-                    <button type="button" class="ib" aria-label="Pause {b.title}" onclick={pauseBlock}><Icon name="pause" size={16} /></button>
-                  {:else}
-                    <button type="button" class="ib" aria-label="Start {b.title}" onclick={() => startBlock(date, b.id)}><Icon name="play" size={16} /></button>
-                  {/if}
-                {:else}<span class="ib"></span>{/if}
-                <button type="button" class="ib rm" aria-label="Remove {b.title}" onclick={() => removeBlock(date, b.id)}>×</button>
               </li>
             {/each}
           </ol>
@@ -405,117 +432,178 @@
     min-height: 38px;
     padding: 4px 10px;
   }
-  ol {
+  .tl {
+    position: relative;
     list-style: none;
     margin: 0;
     padding: 0;
     display: grid;
-    gap: 6px;
+    gap: 14px;
   }
-  li {
-    display: grid;
-    grid-template-columns: auto auto minmax(0, 1fr) auto auto auto;
-    align-items: center;
-    gap: 8px;
-    padding: 6px 8px;
-    border-radius: 14px;
+  /* the line through the circles */
+  .tl::before {
+    content: "";
+    position: absolute;
+    left: calc(64px + 12px + 23px);
+    top: 20px;
+    bottom: 20px;
+    width: 3px;
+    border-radius: 3px;
     background: var(--panel);
   }
-  li.cur {
-    background: color-mix(in srgb, var(--sage) 30%, var(--white));
-    box-shadow: inset 0 0 0 2px var(--sage-deep);
-  }
-  li.brk {
-    background: transparent;
-    border: 1.5px dashed var(--hairline);
-  }
-  li.done .bt b {
-    text-decoration: line-through;
-    color: var(--text-muted);
-  }
-  .order {
+  .tl li {
+    position: relative;
     display: grid;
+    grid-template-columns: 64px 46px minmax(0, 1fr) auto;
+    gap: 12px;
+    align-items: center;
   }
-  .order button {
-    width: 28px;
-    height: 20px;
-    border: 0;
-    border-radius: 6px;
-    background: none;
-    font-size: 10px;
+  .time {
+    font-size: 12.5px;
+    font-weight: 600;
     color: var(--text-muted);
-    padding: 0;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
   }
-  .order button:hover:not(:disabled) {
-    background: var(--surface);
-    color: var(--text);
-  }
-  .order button:disabled {
-    opacity: 0.25;
-  }
-  .tick {
+  .node {
+    position: relative;
+    z-index: 1;
     display: grid;
     place-items: center;
-    width: 28px;
-    height: 28px;
-    padding: 0;
-    border: 1.5px solid color-mix(in srgb, var(--charcoal) 50%, transparent);
-    border-radius: 50%;
-    background: var(--white);
+    width: 46px;
+    height: 46px;
+    border-radius: 23px;
+    background: var(--c);
+    color: var(--charcoal);
+    overflow: hidden;
+    box-shadow: 0 0 0 5px var(--surface);
   }
-  .done .tick {
-    background: var(--sage);
-    border-color: var(--sage-deep);
+  .cur .node {
+    height: 112px;
+    background: color-mix(in srgb, var(--c) 45%, var(--white));
   }
-  .bt {
+  .fill {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: var(--c);
+    transition: height 0.9s linear;
+  }
+  .node :global(svg) {
+    position: relative;
+  }
+  .brk .node {
+    background: color-mix(in srgb, var(--c) 55%, var(--white));
+  }
+  .done .node {
+    opacity: 0.55;
+  }
+  .body {
     display: grid;
+    gap: 2px;
     min-width: 0;
   }
-  .bt b {
+  .range {
+    font-size: 12.5px;
+    color: var(--text-muted);
+  }
+  .cur .range {
+    color: var(--text);
+    font-weight: 600;
+  }
+  .body b {
+    font-size: 16px;
     font-weight: 600;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
   }
-  .bt span {
+  .done .body b {
+    text-decoration: line-through;
+    color: var(--text-muted);
+  }
+  .meta {
     font-size: 12.5px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+  }
+  .ctrl {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 4px;
+    flex-wrap: wrap;
+  }
+  .order {
+    display: inline-flex;
+    gap: 2px;
+  }
+  .order button {
+    width: 30px;
+    height: 30px;
+    border: 0;
+    border-radius: 8px;
+    background: var(--panel);
+    font-size: 10px;
+    color: var(--text-muted);
+    padding: 0;
+  }
+  .order button:hover:not(:disabled) {
+    color: var(--text);
+  }
+  .order button:disabled {
+    opacity: 0.3;
   }
   .dur {
     width: auto;
-    min-height: 38px;
-    padding: 4px 10px;
-    background: var(--surface);
-    font-size: 13.5px;
+    min-height: 30px;
+    padding: 2px 10px;
+    background: var(--panel);
+    font-size: 12.5px;
   }
   .ib {
     display: grid;
     place-items: center;
-    width: 38px;
-    height: 38px;
+    width: 30px;
+    height: 30px;
     border: 0;
     border-radius: 50%;
-    background: var(--surface);
-  }
-  span.ib {
-    background: none;
+    background: var(--panel);
   }
   .ib.rm {
     background: none;
-    font-size: 20px;
+    font-size: 18px;
     color: var(--text-muted);
   }
   .ib.rm:hover {
     background: var(--rose-soft);
   }
+  .tick {
+    display: grid;
+    place-items: center;
+    width: 34px;
+    height: 34px;
+    padding: 0;
+    border: 2.5px solid var(--c);
+    border-radius: 50%;
+    background: var(--surface);
+    color: transparent;
+  }
+  .tick:hover {
+    color: var(--text-muted);
+  }
+  .done .tick {
+    background: var(--c);
+    color: var(--charcoal);
+  }
   @container (max-width: 560px) {
-    li {
-      grid-template-columns: auto auto minmax(0, 1fr) auto;
+    .tl li {
+      grid-template-columns: 46px minmax(0, 1fr) auto;
     }
-    .dur {
-      grid-column: 3;
+    .time {
+      display: none;
+    }
+    .tl::before {
+      left: 23px;
     }
   }
 

@@ -6,6 +6,7 @@
   import Board from "./tasks/Board.svelte";
   import StudyPlan from "./tasks/StudyPlan.svelte";
   import TaskList from "./tasks/TaskList.svelte";
+  import TaskProgress from "./tasks/TaskProgress.svelte";
 
   const TABS = [
     { id: "", label: "List", icon: "tasks" },
@@ -35,6 +36,8 @@
       <a href={t.id ? `#/tasks/${t.id}` : "#/tasks"} class:on={tab === t.id} aria-current={tab === t.id ? "page" : undefined}><Icon name={t.icon} size={16} /> {t.label}</a>
     {/each}
   </nav>
+
+  {#if tab !== "plan"}<TaskProgress />{/if}
 
   {#if tab === "board"}
     <Board />

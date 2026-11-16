@@ -76,3 +76,6 @@ export function patchTasks(patches: [string, Partial<Task>][]) {
     if (t) put("tasks", id, { ...t, ...p });
   }
 }
+
+/** Tasks page filter: a day picked in the week strip (null = all). Shared by List and Board. */
+export const taskView = $state({ day: null as string | null, week: null as string | null });

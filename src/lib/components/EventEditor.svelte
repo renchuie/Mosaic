@@ -300,7 +300,7 @@
       {#if type === "task"}
         <span class="row"><span>Priority</span></span>
         <div class="seg" role="radiogroup" aria-label="Priority">
-          {#each ["high", "normal", "low"] as const as p}
+          {#each ["low", "normal", "high"] as const as p}
             <button type="button" role="radio" aria-checked={tk.priority === p} class:on={tk.priority === p} class="p-{p}" onclick={() => (tk.priority = p)}>{PRIORITY_LABEL[p]}</button>
           {/each}
         </div>
@@ -496,7 +496,19 @@
     box-shadow: var(--shadow);
   }
   .seg button.p-high.on {
-    background: var(--rose);
+    background: var(--rose-soft);
+    color: #a8434f;
+    box-shadow: inset 0 0 0 1.5px var(--rose-deep);
+  }
+  .seg button.p-normal.on {
+    background: var(--peach-soft);
+    color: #9a5b23;
+    box-shadow: inset 0 0 0 1.5px var(--peach);
+  }
+  .seg button.p-low.on {
+    background: var(--sage-soft);
+    color: #3f7366;
+    box-shadow: inset 0 0 0 1.5px var(--sage-deep);
   }
   .rows {
     display: grid;

@@ -5,7 +5,11 @@
 /** Built-in tag ids. Tags themselves (name, colour, exam flag) live in the "tags" collection. */
 export type EventKind = string;
 
-export type Tag = { name: string; color: string; exam?: boolean; order: number };
+export type Tag = { name: string; color: string; exam?: boolean; order: number; icon?: string };
+
+/** Icons a tag can wear (names from Icon.svelte); shown on task cards and in the list. */
+export const TAG_ICONS = ["book", "labs", "pill", "flag", "pen", "users", "bulb", "star", "heart", "coffee", "chat", "check"];
+export const DEFAULT_TAG_ICON: Record<string, string> = { class: "book", exam: "flag", study: "bulb", other: "star", task: "check" };
 
 export const DEFAULT_TAGS: Record<string, Tag> = {
   class: { name: "Class", color: "#F7E3B0", order: 0 },
@@ -247,7 +251,7 @@ export type Task = {
 
 export type TaskOcc = { id: string; task: Task; date: string; done: boolean };
 
-export const PRIORITY_LABEL: Record<Priority, string> = { high: "High", normal: "Normal", low: "Low" };
+export const PRIORITY_LABEL: Record<Priority, string> = { high: "High", normal: "Medium", low: "Low" };
 export const STATUS_LABEL: Record<string, string> = { todo: "To do", doing: "In progress", done: "Done" };
 const PRIORITY_RANK: Record<Priority, number> = { high: 0, normal: 1, low: 2 };
 
@@ -291,4 +295,18 @@ export function dueLabel(date: string, today: string): string {
   if (n === -1) return "1 day overdue";
   if (n < 0) return `${-n} days overdue`;
   return `Due ${fromKey(date).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })}`;
+}
+
+/** For a repeating task: how many of its most recent days in a row were ticked off.
+ *  Today doesn't break the streak until it's over. */
+export function taskStreak(id: string, t: Task, today: string): number {
+  if (!t.repeat || !t.due) return 0;
+  const occ = taskOccurrences([[id, t]], addDays(today, -400), today).reverse();
+  let n = 0;
+  for (const o of occ) {
+    if (o.done) n++;
+    else if (o.date === today) continue;
+    else break;
+  }
+  return n;
 }

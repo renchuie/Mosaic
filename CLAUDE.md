@@ -188,6 +188,23 @@ Do not go back to thin coloured blocks on a plain grid.
 - Tested: drags in all three groupings, custom columns, the timer across pages, and the timer across
   a real app restart (`STUDYDESK_ROUTE=selftest-timer`, run twice).
 
+## Tasks look (after her "more pizazz" feedback, from four mobile task-app references)
+
+- Tasks page top: dark "Today's progress" card (ring % of today's tasks done, overdue, To do / In
+  progress / Done this week) and a week strip with coloured dots per due task; picking a day
+  filters List and Board (`taskView.day` in the tasks store). Files: `src/routes/tasks/`.
+- Board cards: white, tag-coloured accent bar, coloured priority pill (Low = sage, Medium = peach,
+  High = rose; the stored value is still `normal` for Medium), round open arrow, pastel tag icon
+  tile, checklist progress bar, dashed footer with due (rose when late), estimate, repeat streak
+  and the tick. Columns are tinted by status / course / tag colour with a count-bubble pill header.
+- Tags have an icon (`Tag.icon`, picker in the tag manager, defaults in `DEFAULT_TAG_ICON`).
+- List view is a routine-style timeline (`TaskRow.svelte`): tick circles on a dotted line, icon
+  tile, "Streak N weeks" for repeating tasks (`taskStreak`), estimate / due on the right behind a
+  divider, expandable checklist. Group headings have icons.
+- Study plan blocks are a timeline: coloured circle icons on a line (study sage, break butter,
+  lab peach, task = its tag colour); the current block is a tall pill that fills as time passes
+  and says "N min remaining"; tick rings in the block colour.
+
 ## Other decisions
 
 - Streak: a day counts if she opened a lab or checked off a study block. Activity heatmap feeds it.

@@ -1,7 +1,7 @@
 // Local calendar and its tags, stored in the synced store (collections
 // "events" and "tags") so they follow you between machines.
 import {
-  BUILTIN_TAGS, DEFAULT_TAGS, addDays, daysBetween, inkOn, isExam, occurrences, todayKey, type CalEvent, type Tag, type Task,
+  BUILTIN_TAGS, DEFAULT_TAGS, DEFAULT_TAG_ICON, addDays, daysBetween, inkOn, isExam, occurrences, todayKey, type CalEvent, type Tag, type Task,
 } from "../calendar";
 import { folderExams } from "./labs.svelte";
 import { settings } from "./settings.svelte";
@@ -22,6 +22,9 @@ export const tags = () =>
 export function tagOf(id: string): Tag {
   return get<Tag>("tags", id) ?? get<Tag>("tags", "other") ?? DEFAULT_TAGS.other;
 }
+
+/** The icon a tag wears on cards (its own, or a default). */
+export const tagIcon = (id: string) => tagOf(id).icon ?? DEFAULT_TAG_ICON[id] ?? "star";
 
 /** CSS custom properties for anything coloured by a tag. */
 export function tagStyle(id: string): string {

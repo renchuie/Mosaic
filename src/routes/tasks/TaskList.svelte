@@ -1,11 +1,11 @@
 <script lang="ts">
   // Tasks page, List tab: quick add, filters, and tasks grouped by when they're due.
   import Icon from "../../lib/components/Icon.svelte";
-  import { addDays, todayKey, type TaskOcc } from "../../lib/calendar";
+  import { addDays, fromKey, todayKey, type TaskOcc } from "../../lib/calendar";
   import { COURSES } from "../../lib/courses";
   import { tagStyle, tags } from "../../lib/stores/calendar.svelte";
-  import { overdue, saveTask, blankTask, tasks, tasksOn } from "../../lib/stores/tasks.svelte";
-  import TaskCard from "../calendar/TaskCard.svelte";
+  import { overdue, saveTask, blankTask, taskView, tasks, tasksOn } from "../../lib/stores/tasks.svelte";
+  import TaskRow from "./TaskRow.svelte";
 
   const today = todayKey();
   let course = $state("");
@@ -18,6 +18,11 @@
   const horizon = addDays(today, 60);
 
   const groups = $derived.by(() => {
+    if (taskView.day) {
+      const d = taskView.day;
+      const items = tasksOn(d, d).filter(keep);
+      return [{ key: "day", title: d === today ? "Today" : `Due ${fromKey(d).toLocaleDateString("en-US", { weekday: "long", month: "short", day: "numeric" })}`, items, tone: "", icon: "calendar" }];
+    }
     const late = overdue().filter(keep);
     const upcoming = tasksOn(today, horizon).filter(keep);
     const open = upcoming.filter((o) => !o.done);
@@ -36,13 +41,13 @@
       .sort((a, b) => b.at - a.at)
       .slice(0, 30);
     return [
-      { key: "late", title: "Overdue", items: late, tone: "alert" },
-      { key: "today", title: "Today", items: open.filter((o) => o.date === today), tone: "" },
-      { key: "tomorrow", title: "Tomorrow", items: open.filter((o) => o.date === addDays(today, 1)), tone: "" },
-      { key: "week", title: "This week", items: open.filter((o) => o.date > addDays(today, 1) && o.date <= weekEnd), tone: "" },
-      { key: "later", title: "Later", items: later, tone: "" },
-      { key: "undated", title: "No due date", items: undated, tone: "" },
-      ...(showDone ? [{ key: "done", title: "Done", items: done, tone: "" }] : []),
+      { key: "late", title: "Overdue", items: late, tone: "alert", icon: "flag" },
+      { key: "today", title: "Today", items: open.filter((o) => o.date === today), tone: "", icon: "sun" },
+      { key: "tomorrow", title: "Tomorrow", items: open.filter((o) => o.date === addDays(today, 1)), tone: "", icon: "moon" },
+      { key: "week", title: "This week", items: open.filter((o) => o.date > addDays(today, 1) && o.date <= weekEnd), tone: "", icon: "calendar" },
+      { key: "later", title: "Later", items: later, tone: "", icon: "arrow" },
+      { key: "undated", title: "No due date", items: undated, tone: "", icon: "bulb" },
+      ...(showDone ? [{ key: "done", title: "Done", items: done, tone: "", icon: "check" }] : []),
     ];
   });
 
@@ -83,12 +88,12 @@
 
   {#each groups.filter((g) => g.items.length) as g (g.key)}
     <section class="group" class:late={g.tone === "alert"}>
-      <h2 class="h2">{g.title} <span class="tag" class:alert={g.tone === "alert"}>{g.items.length}</span></h2>
-      <div class="cards">
+      <h2 class="h2"><span class="gi"><Icon name={g.icon} size={17} /></span>{g.title} <span class="tag" class:alert={g.tone === "alert"}>{g.items.length}</span></h2>
+      <ol class="timeline">
         {#each g.items as o (o.id + (o.date ?? ""))}
-          <TaskCard {o} showDue />
+          <TaskRow {o} />
         {/each}
-      </div>
+      </ol>
     </section>
   {:else}
     <section class="card empty">
@@ -208,8 +213,11 @@
   }
   .group.late {
     padding: 16px;
-    border-radius: var(--radius);
-    background: var(--rose-soft);
+    border-radius: 28px;
+    background: linear-gradient(140deg, var(--rose-soft), color-mix(in srgb, var(--rose-soft) 40%, var(--panel)));
+  }
+  .group.late :global(.tick) {
+    background: var(--white);
   }
   .group .h2 {
     display: flex;
@@ -217,11 +225,34 @@
     gap: 8px;
     padding: 0 4px;
   }
-  .cards {
+  .gi {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    place-items: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: var(--surface);
+    box-shadow: var(--shadow);
+  }
+  .late .gi {
+    color: #a8434f;
+  }
+  .timeline {
+    position: relative;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
     gap: 12px;
-    align-items: start;
+  }
+  /* the dotted line that joins the tick circles */
+  .timeline::before {
+    content: "";
+    position: absolute;
+    left: 14px;
+    top: 30px;
+    bottom: 30px;
+    border-left: 2px dotted color-mix(in srgb, var(--charcoal) 25%, transparent);
   }
   .empty {
     display: grid;

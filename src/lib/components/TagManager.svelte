@@ -1,6 +1,7 @@
 <script lang="ts">
-  import { BUILTIN_TAGS, PALETTE } from "../calendar";
-  import { deleteTag, events, saveTag, tagManager, tagStyle, tags } from "../stores/calendar.svelte";
+  import Icon from "./Icon.svelte";
+  import { BUILTIN_TAGS, PALETTE, TAG_ICONS } from "../calendar";
+  import { deleteTag, events, saveTag, tagIcon, tagManager, tagStyle, tags } from "../stores/calendar.svelte";
 
   let dialog = $state<HTMLDialogElement>();
   let picking = $state<string | null>(null);
@@ -40,7 +41,7 @@
       {#each tags() as [id, t] (id)}
         <li>
           <div class="line">
-            <button type="button" class="swatch" style={tagStyle(id)} aria-label="Change colour of {t.name}" aria-expanded={picking === id} onclick={() => (picking = picking === id ? null : id)}></button>
+            <button type="button" class="swatch" style={tagStyle(id)} aria-label="Change colour and icon of {t.name}" aria-expanded={picking === id} onclick={() => (picking = picking === id ? null : id)}><Icon name={tagIcon(id)} size={18} /></button>
             <input class="input" value={t.name} aria-label="Tag name" onchange={(e) => e.currentTarget.value.trim() && saveTag(id, { ...t, name: e.currentTarget.value.trim() })} />
             <label class="check"><input type="checkbox" checked={!!t.exam} onchange={(e) => saveTag(id, { ...t, exam: e.currentTarget.checked })} /> Exam</label>
             {#if !BUILTIN_TAGS.includes(id)}
@@ -59,6 +60,11 @@
                 <button type="button" class="dot" class:on={t.color.toLowerCase() === c.toLowerCase()} style="background: {c}" aria-label="Colour {c}" onclick={() => saveTag(id, { ...t, color: c })}></button>
               {/each}
               <label class="custom">Any colour <input type="color" value={t.color} onchange={(e) => saveTag(id, { ...t, color: e.currentTarget.value })} /></label>
+              <div class="icons" role="radiogroup" aria-label="Icon for {t.name}">
+                {#each TAG_ICONS as ic}
+                  <button type="button" role="radio" aria-checked={tagIcon(id) === ic} aria-label={ic} class="ico" class:on={tagIcon(id) === ic} onclick={() => saveTag(id, { ...t, icon: ic })}><Icon name={ic} size={17} /></button>
+                {/each}
+              </div>
             </div>
           {/if}
         </li>
@@ -123,12 +129,37 @@
     align-items: center;
   }
   .swatch {
+    display: grid;
+    place-items: center;
     width: var(--hit);
     height: var(--hit);
     border: 0;
     border-radius: 14px;
     background: var(--tag);
+    color: var(--tag-ink);
     box-shadow: inset 0 0 0 1px var(--hairline);
+  }
+  .icons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    width: 100%;
+    padding-top: 8px;
+    border-top: 1px solid var(--hairline);
+  }
+  .ico {
+    display: grid;
+    place-items: center;
+    width: 38px;
+    height: 38px;
+    border: 0;
+    border-radius: 12px;
+    background: var(--surface);
+    color: var(--text-muted);
+  }
+  .ico.on {
+    background: var(--charcoal);
+    color: var(--on-primary);
   }
   .check {
     display: inline-flex;
