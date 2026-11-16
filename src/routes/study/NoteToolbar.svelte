@@ -1,7 +1,7 @@
 <script lang="ts">
   // The note page's formatting toolbar: under the title, and (floating) at the bottom of a long
   // note while she types. Buttons keep the editor's focus and selection.
-  import { HL_COLOURS } from "../../lib/editor/blocks";
+  import { activePalette, hlColor } from "../../lib/stores/blockStyles.svelte";
 
   let { onrun, floating = false }: { onrun: (cmd: string, arg?: string) => void; floating?: boolean } = $props();
 </script>
@@ -15,7 +15,8 @@
     <button type="button" onclick={() => onrun("mark", "italic")} title="Italic (Ctrl+I)"><i>I</i></button>
     <button type="button" onclick={() => onrun("mark", "strike")} title="Strike (Ctrl+Shift+X)"><s>S</s></button>
     <span class="hl">
-      {#each HL_COLOURS as c, i}<button type="button" class="dot" data-color={c} title="Highlight {c} (Ctrl+Shift+{i + 1})" aria-label="Highlight {c}" onclick={() => onrun("hl", c)}></button>{/each}
+      {#each activePalette() as c, i (c)}<button type="button" class="dot" data-color={c} title="{hlColor(c)?.label ?? c} (Ctrl+Shift+{i + 1})" aria-label="Highlight {hlColor(c)?.label ?? c}" onclick={() => onrun("hl", c)}></button>{/each}
+      <button type="button" class="dot none" title="No highlight (Ctrl+Shift+0)" aria-label="Remove highlight" onclick={() => onrun("hl-off")}></button>
     </span>
     <span class="sep"></span>
     <button type="button" onclick={() => onrun("ul")} title="Bullet list">•</button>
@@ -71,6 +72,9 @@
     padding: 0;
     border-radius: 50%;
     box-shadow: inset 0 0 0 1px rgba(59, 48, 51, 0.1);
+  }
+  .toolbar .dot.none {
+    background: linear-gradient(135deg, transparent 44%, #c25a64 45% 55%, transparent 56%), var(--surface) !important;
   }
   .toolbar .dot:hover {
     transform: scale(1.25);

@@ -225,7 +225,15 @@ Markdown" view, the `<>` chip on the note header).
   `data-label`) in the default lavender. Clicking a callout badge opens the type menu ("Edit
   styles…"); the `/` menu lists visible types, plus "Quote with source". A quote's last line
   starting with a dash gets class `b-src` (decoration); ⠿ on a quote → "Add a source line".
-  Opened from Settings → Appearance too.
+  Opened from Settings → Appearance too. The dialog has tabs (`styleManager.tab`: callouts / quotes
+  / highlights) and, being mounted in App, injects the generated `<style>` for the whole app.
+- Highlight colours and palettes (same store and dialog, "Highlights" tab): synced `hlColors`
+  (word → label, hex colour, order; built-ins yellow rose sage peach lavender blue mint coral lilac
+  sky lemon grey, editable; her own deletable, which removes them from palettes) and `hlPalettes`
+  (name + ordered colour words, max 9; built-ins Mosaic, Traffic light, Cool); `blockStyles`
+  record `hlActive`. The active palette fills the toolbar / selection-bar dots and Ctrl+Shift+1…9
+  (`setPaletteSource` in blocks.ts); Ctrl+Shift+0 and the struck dot remove a highlight. In files:
+  yellow = `==…==`, others `<mark class="word">`. Only hex colours reach the CSS.
 - Saving on leave (bug found Nov 16: leaving a note within the 700 ms autosave lost the last
   edit): BlockEditor keeps a `dirty` flag and hands its Markdown to `onleave` in `onDestroy`;
   NotesView's `leaveFor(rel)` rebuilds the file from the saved front matter + title and saves it a

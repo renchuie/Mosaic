@@ -11,8 +11,9 @@
   import { NodeSelection, TextSelection } from "@tiptap/pm/state";
   import { getMarkRange } from "@tiptap/core";
   import type { Node as PMNode } from "@tiptap/pm/model";
-  import { mosaicExtensions, FLOW, HL_COLOURS } from "../editor/blocks";
-  import { blockStylesCss, styleManager, visibleCallouts } from "../stores/blockStyles.svelte";
+  import { mosaicExtensions, setPaletteSource, FLOW } from "../editor/blocks";
+  import { activePalette, hlColor, styleManager, visibleCallouts } from "../stores/blockStyles.svelte";
+  setPaletteSource(activePalette);
   import { docToMd, mdToDoc, type PMNode as JNode } from "../editor/mdDoc";
   import { htmlToMd, richHtml } from "../editor/htmlToMd";
   import "../editor/editor.css";
@@ -460,7 +461,6 @@
       }
     }
   }
-  const stylesCss = $derived(blockStylesCss());
 
   // ---- table toolbar ---------------------------------------------------------------------------
   const tableBar = $derived.by(() => {
@@ -657,6 +657,7 @@
     const c = editor.chain().focus();
     if (cmd === "mark") c.toggleMark(arg!).run();
     else if (cmd === "hl") (arg === "yellow" ? c.toggleMark("highlight", { color: null }) : c.toggleMark("highlight", { color: arg })).run();
+    else if (cmd === "hl-off") c.unsetMark("highlight").run();
     else if (cmd === "block") {
       const [t, l] = (arg ?? "paragraph").split(":");
       turnInto(t, t === "heading" ? { level: Number(l) } : {});
@@ -669,10 +670,6 @@
     editor?.commands.focus();
   }
 </script>
-
-<svelte:head>
-  {@html `<style data-mosaic="block-styles">${stylesCss}</style>`}
-</svelte:head>
 
 <svelte:window onmouseup={() => { if (mouseDown) { mouseDown = false; setTimeout(placeBubble, 0); } }} />
 
@@ -714,7 +711,7 @@
       {/if}
       {#if blockMenu.type === "blockquote" || blockMenu.type === "callout"}
         <button type="button" class="mi" onclick={() => blockAction("unwrap")}><span class="ic">¶</span>Back to plain text</button>
-        <button type="button" class="mi" onclick={() => { blockMenu = null; styleManager.open = true; }}><span class="ic">🎨</span>Edit callout and quote styles…</button>
+        <button type="button" class="mi" onclick={() => { blockMenu = null; styleManager.tab = "callouts"; styleManager.open = true; }}><span class="ic">🎨</span>Edit callout and quote styles…</button>
       {/if}
       <button type="button" class="mi" onclick={() => blockAction("up")}><span class="ic">↑</span>Move up</button>
       <button type="button" class="mi" onclick={() => blockAction("down")}><span class="ic">↓</span>Move down</button>
@@ -735,9 +732,11 @@
         <button type="button" class:on={active("strike")} title="Strike (Ctrl+Shift+X)" onclick={() => run("mark", "strike")}><s>S</s></button>
         <button type="button" class:on={active("code")} title="Code (Ctrl+E)" onclick={() => run("mark", "code")}>{"</>"}</button>
         <span class="sw">
-          {#each HL_COLOURS as c}
-            <button type="button" class="dot" data-color={c} title="Highlight {c} (Ctrl+Shift+{HL_COLOURS.indexOf(c) + 1})" aria-label="Highlight {c}" onclick={() => run("hl", c)}></button>
+          {#each activePalette() as c, i (c)}
+            <button type="button" class="dot" data-color={c} title="{hlColor(c)?.label ?? c} (Ctrl+Shift+{i + 1})" aria-label="Highlight {hlColor(c)?.label ?? c}" onclick={() => run("hl", c)}></button>
           {/each}
+          <button type="button" class="dot none" title="No highlight (Ctrl+Shift+0)" aria-label="Remove highlight" onclick={() => run("hl-off")}></button>
+          <button type="button" class="pal" title="Highlight colours and palettes" aria-label="Highlight colours and palettes" onclick={() => { styleManager.tab = "highlights"; styleManager.open = true; }}>🎨</button>
         </span>
         <span class="sep"></span>
         <button type="button" class="study" class:on={active("cloze")} title="Hide this part (cloze card)" onclick={() => run("mark", "cloze")}>Cloze</button>
@@ -758,7 +757,7 @@
           <span class="ic" style="background: color-mix(in srgb, {t.color} 60%, white)">{t.icon}</span>{t.label}
         </button>
       {/each}
-      <button type="button" class="mi edit" onclick={() => { calloutMenu = null; styleManager.open = true; }}><span class="ic">🎨</span>Edit styles…</button>
+      <button type="button" class="mi edit" onclick={() => { calloutMenu = null; styleManager.tab = "callouts"; styleManager.open = true; }}><span class="ic">🎨</span>Edit styles…</button>
     </div>
   {/if}
 
@@ -1090,6 +1089,14 @@
     padding: 0;
     border-radius: 50%;
     box-shadow: inset 0 0 0 1px rgba(59, 48, 51, 0.12);
+  }
+  .bubble .pal {
+    min-width: 26px;
+    padding: 0 4px;
+    font-size: 13px;
+  }
+  .bubble .dot.none {
+    background: linear-gradient(135deg, transparent 44%, #c25a64 45% 55%, transparent 56%), var(--surface) !important;
   }
   .bubble .dot:hover {
     transform: scale(1.25);

@@ -161,28 +161,11 @@
   color: inherit;
   padding: 0 2px;
   border-radius: 4px;
-  background: var(--hl, color-mix(in srgb, var(--butter, #f7e3b0) 90%, #ffd66e));
+  background: var(--hl, #f9de8c);
 }
-[data-color="yellow"] {
-  --hl: color-mix(in srgb, var(--butter, #f7e3b0) 90%, #ffd66e);
-}
-[data-color="rose"] {
-  --hl: color-mix(in srgb, var(--rose, #f2b8b5) 70%, transparent);
-}
-[data-color="sage"] {
-  --hl: color-mix(in srgb, var(--sage, #a9cdc3) 70%, transparent);
-}
-[data-color="peach"] {
-  --hl: color-mix(in srgb, var(--peach, #f6cfa8) 80%, transparent);
-}
-[data-color="lavender"] {
-  --hl: color-mix(in srgb, var(--lavender, #c9b8f0) 70%, transparent);
-}
-[data-color="blue"] {
-  --hl: #c4dbf2;
-}
+/* colours per highlight word come from the style store (generated CSS: [data-color="word"] { --hl }) */
 button.dot[data-color] {
-  background: var(--hl) !important;
+  background: var(--hl, #f9de8c) !important;
 }
 .mosaic-doc .b-link {
   display: inline;

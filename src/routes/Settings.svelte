@@ -124,10 +124,14 @@
         {/each}
       </div>
     </div>
-    <h3 class="sub">Callouts and quotes</h3>
+    <h3 class="sub">Callouts, quotes and highlights</h3>
     <div class="field">
-      <span class="hint muted">Colours, icons and names of your callout types (add your own), and how quotes look.</span>
-      <button type="button" class="btn quiet" style="justify-self: start" onclick={() => (styleManager.open = true)}>Edit callout and quote styles…</button>
+      <span class="hint muted">Your callout types (colours, icons, your own), how quotes look, and your highlight colours and palettes.</span>
+      <div class="row-btns">
+        <button type="button" class="btn quiet" onclick={() => { styleManager.tab = "callouts"; styleManager.open = true; }}>Callouts…</button>
+        <button type="button" class="btn quiet" onclick={() => { styleManager.tab = "quotes"; styleManager.open = true; }}>Quotes…</button>
+        <button type="button" class="btn quiet" onclick={() => { styleManager.tab = "highlights"; styleManager.open = true; }}>Highlights…</button>
+      </div>
     </div>
   </section>
 
@@ -306,6 +310,11 @@
   .swatch i:nth-child(1) { left: 6%; }
   .swatch i:nth-child(2) { left: 38%; }
   .swatch i:nth-child(3) { left: 70%; }
+  .row-btns {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
   .sub {
     margin: 18px 0 4px;
     font-size: 15px;

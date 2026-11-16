@@ -219,8 +219,7 @@ Add things here as they come up (date, page, what happened). Each one is either 
   floating toolbar at the bottom while typing in a long note. Wishes started now: card look
   settings (card background on/off, arrow and cloze colours), "hide clozes together" per line,
   image resize, images under bullets, table rows above / columns left, highlight shortcuts.
-  **Later (own feature):** custom highlight colours and palettes, table column widths, lists
-  inside table cells, cell colours. (The block style manager for callouts + quotes was built
-  Nov 16.)
+  **Later (own feature):** table column widths, lists inside table cells, cell colours. (Built
+  Nov 16: the block style manager for callouts + quotes, and highlight colours + palettes.)
 - Nov 16 · Renamed to **Mosaic** ("your student life in full view") and gave it the **glass
   tiles** app icon (option C). Done now, since both were small.

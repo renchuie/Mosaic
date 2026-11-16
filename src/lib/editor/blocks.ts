@@ -402,20 +402,27 @@ const Code = Mark.create({
   },
 });
 export const HL_COLOURS = ["yellow", "rose", "sage", "peach", "lavender", "blue"];
+/** The highlight palette in use (her palettes live in the block style store; set by the editor). */
+let paletteSource: () => string[] = () => HL_COLOURS;
+export const setPaletteSource = (f: () => string[]) => (paletteSource = f);
 const Highlight = Mark.create({
   name: "highlight",
   addAttributes: () => ({ color: { default: null, parseHTML: (el) => (el as HTMLElement).dataset.color || null, renderHTML: (a) => (a.color ? { "data-color": a.color } : {}) } }),
   parseHTML: () => [{ tag: "mark" }],
   renderHTML: ({ HTMLAttributes }) => ["mark", mergeAttributes({ class: "b-hl" }, HTMLAttributes), 0],
   addKeyboardShortcuts() {
-    // Ctrl+Shift+1…6: yellow, rose, sage, peach, lavender, blue · Ctrl+Shift+0: no highlight
+    // Ctrl+Shift+1…9: the colours of her palette in order · Ctrl+Shift+0: no highlight
     const keys: Record<string, () => boolean> = {
       "Mod-Shift-h": () => this.editor.commands.toggleMark(this.name, { color: null }),
       "Mod-Shift-0": () => this.editor.commands.unsetMark(this.name),
     };
-    HL_COLOURS.forEach((c, i) => {
-      keys[`Mod-Shift-${i + 1}`] = () => this.editor.chain().unsetMark(this.name).setMark(this.name, { color: c === "yellow" ? null : c }).run();
-    });
+    for (let i = 0; i < 9; i++) {
+      keys[`Mod-Shift-${i + 1}`] = () => {
+        const c = paletteSource()[i];
+        if (!c) return false;
+        return this.editor.chain().unsetMark(this.name).setMark(this.name, { color: c === "yellow" ? null : c }).run();
+      };
+    }
     return keys;
   },
   addInputRules() {
