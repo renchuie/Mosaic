@@ -113,4 +113,10 @@ Done when: she uses v1.0 on the first day of spring classes without thinking abo
 Add things here as they come up (date, page, what happened). Each one is either fixed now
 (blocks daily use) or tagged with the week it belongs to.
 
--
+- Nov 16 · Study tab look: rework planned from mockups (design canvas "Study tab redesign"):
+  card-dashboard Study Home, Exam prep hub, extra widgets to pick from. **Week 6** (or the
+  Exam prep hub in week 3).
+- Nov 16 · Sidebar: she picked option A, the **floating rail** (white pill rail, dark rounded
+  square for the active page, + for Quick add, overdue dot on Tasks, streak as a flame badge,
+  settings and avatar at the bottom; page names on hover). Replaces the labelled sidebar and
+  the streak panel. **Week 6.**
