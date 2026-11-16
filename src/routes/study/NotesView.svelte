@@ -1,38 +1,62 @@
 <script lang="ts">
+  // The note page (N1b). Panels are tucked into slim icon strips on both edges; an icon slides
+  // its panel OVER the note as a sheet, 📌 pins it beside the note, and focus mode hides the strips
+  // too (glowing edges, icons float out on hover). Pins and focus are remembered per machine.
   import Icon from "../../lib/components/Icon.svelte";
+  import BlockEditor from "../../lib/components/BlockEditor.svelte";
   import NoteEditor from "../../lib/components/NoteEditor.svelte";
-  import { fromKey } from "../../lib/calendar";
-  import { joinNote, splitNote, type Meta } from "../../lib/notes";
-  import { assignIds, cardId } from "../../lib/cards";
-  import { courseByName, courseNames } from "../../lib/stores/courses.svelte";
+  import { joinNote, linkKey, plainText, splitNote, type Meta } from "../../lib/notes";
+  import { assignIds, cardId, extractCards, ID_RE } from "../../lib/cards";
+  import { statusOf, type SrsRec } from "../../lib/stores/srs.svelte";
+  import { get } from "../../lib/stores/synced.svelte";
   import {
-    allNotes, allTags, backlinks, createNote, dirOf, getNote, imageUrl, linkName, moveNote, noteHref, notes, recentNotes,
+    allNotes, allTags, backlinks, createNote, dirOf, getNote, imageUrl, linkName, moveNote, noteHref, notes,
     reloadNote, renameNote, resolveLink, saveNote, savePastedImage, trashNote,
   } from "../../lib/stores/notes.svelte";
+  import { pdfHref, resolvePdfLink } from "../../lib/stores/pdfs.svelte";
   import NewNoteDialog from "./NewNoteDialog.svelte";
   import NoteTree from "./NoteTree.svelte";
   import NotesHome from "./NotesHome.svelte";
-  import { pdfHref, pdfName, resolvePdfLink } from "../../lib/stores/pdfs.svelte";
+  import NoteHead from "./NoteHead.svelte";
+  import NoteSide, { PANELS, type Panel } from "./NoteSide.svelte";
 
   let { rel }: { rel: string | null } = $props();
 
   const note = $derived(rel ? getNote(rel) : undefined);
   let meta = $state<Meta>({});
-  let body = $state("");
+  let body = $state(""); // the editor's text (title line taken off), or the whole body in source mode
+  let titleText = $state<string | null>(null); // the "# Title" line, when the note has one
+  let titleLines = $state(0); // lines the title took at the top of the body
   let loadedMtime = $state(0);
   let loadedRel = $state<string | null>(null);
-  let version = $state(0); // bump to rebuild the editor with new text
+  let version = $state(0);
   let status = $state<"saved" | "saving" | "conflict" | "error">("saved");
   let errorText = $state("");
-  let editor = $state<NoteEditor>();
   let title = $state("");
+  let source = $state(false);
+  let blocks = $state<BlockEditor>();
+  let cm = $state<NoteEditor>();
 
-  // load the note when the route changes (or after a reload)
+  /** Take a leading "# Title" (matching the file name) off the body: the page shows the title once. */
+  function stripTitle(text: string, name: string) {
+    const lines = text.split("\n");
+    let i = 0;
+    while (i < lines.length && !lines[i].trim()) i++;
+    const m = /^#\s+(.+?)\s*$/.exec((lines[i] ?? "").replace(ID_RE, ""));
+    if (!m || linkKey(m[1]) !== linkKey(name)) return { rest: text, title: null as string | null, n: 0 };
+    let j = i + 1;
+    while (j < lines.length && !lines[j].trim()) j++;
+    return { rest: lines.slice(j).join("\n"), title: m[1], n: j };
+  }
+
   $effect(() => {
     if (rel && note && loadedRel !== rel) {
       const s = splitNote(note.text);
       meta = s.meta;
-      body = s.body;
+      const t = stripTitle(s.body, linkName(note));
+      body = source ? s.body : t.rest;
+      titleText = t.title;
+      titleLines = t.n;
       loadedMtime = note.mtime;
       loadedRel = rel;
       notes.editing = rel;
@@ -47,23 +71,45 @@
   });
 
   let timer = 0;
-  function changed(text: string) {
-    body = text;
+  let quiet = false;
+  function changed() {
+    if (quiet) return;
     status = "saving";
     window.clearTimeout(timer);
     timer = window.setTimeout(() => void flush(), 700);
   }
+  function cmChanged(text: string) {
+    body = text;
+    changed();
+  }
+  /** The whole note body as it goes into the file. */
+  function fullBody(): string {
+    if (source) return body;
+    let md = blocks?.markdown() ?? body;
+    const ids = assignIds(md, cardId);
+    if (ids.inserted.length && blocks) {
+      quiet = true;
+      blocks.setIds(ids.inserted);
+      quiet = false;
+      md = ids.body;
+    }
+    body = md;
+    return titleText !== null ? `# ${titleText}\n\n${md}` : md;
+  }
   async function flush(force = false) {
     if (!loadedRel) return;
     const r = loadedRel;
-    // give new card lines their hidden id; the editor change triggers another save
-    const ids = assignIds(body, cardId);
-    if (ids.inserted.length && editor) {
-      editor.appendToLines(ids.inserted);
-      return;
+    window.clearTimeout(timer);
+    let text = fullBody();
+    if (source) {
+      const ids = assignIds(text, cardId);
+      if (ids.inserted.length && cm) {
+        cm.appendToLines(ids.inserted);
+        return;
+      }
     }
     try {
-      await saveNote(r, joinNote($state.snapshot(meta) as Meta, body), force ? undefined : loadedMtime);
+      await saveNote(r, joinNote($state.snapshot(meta) as Meta, text), force ? undefined : loadedMtime);
       if (loadedRel === r) {
         loadedMtime = getNote(r)?.mtime ?? loadedMtime;
         status = "saved";
@@ -83,7 +129,22 @@
   async function takeTheirs() {
     if (!loadedRel) return;
     await reloadNote(loadedRel);
-    loadedRel = null; // reload into the editor
+    loadedRel = null;
+  }
+  async function toggleSource() {
+    if (!note) return;
+    await flush();
+    if (!source) {
+      body = titleText !== null ? `# ${titleText}\n\n${body}` : body;
+      source = true;
+    } else {
+      const t = stripTitle(body, linkName(note));
+      body = t.rest;
+      titleText = t.title;
+      titleLines = t.n;
+      source = false;
+    }
+    version++;
   }
 
   async function openLink(name: string) {
@@ -92,20 +153,21 @@
       location.hash = pdfHref(p.rel, p.page);
       return;
     }
-    const target = resolveLink(name);
+    const target = resolveLink(name.split("#")[0]);
     if (target) location.hash = noteHref(target.rel);
     else {
-      const r = await createNote(rel ? dirOf(rel) : "", name, "blank", meta.course ? { course: meta.course } : {});
+      await flush();
+      const r = await createNote(rel ? dirOf(rel) : "", name.split("#")[0], "blank", meta.course ? { course: meta.course } : {});
       location.hash = noteHref(r);
     }
   }
 
   async function doRename() {
     if (!rel || !note || title.trim() === linkName(note) || !title.trim()) return;
-    window.clearTimeout(timer);
     await flush();
     try {
       const to = await renameNote(rel, title.trim());
+      if (titleText !== null) titleText = title.trim();
       loadedRel = to;
       location.hash = noteHref(to);
     } catch (e) {
@@ -121,13 +183,20 @@
     loadedRel = to;
     location.hash = noteHref(to);
   }
-  let confirmDel = $state(false);
   async function doDelete() {
     if (!rel) return;
     window.clearTimeout(timer);
     await trashNote(rel);
-    confirmDel = false;
     location.hash = "#/study/notes";
+  }
+  function coverFile(f: File) {
+    if (!rel) return;
+    const r = new FileReader();
+    r.onload = async () => {
+      const path = await savePastedImage(rel!, String(r.result), f.type.split("/")[1]?.replace("jpeg", "jpg") || "png");
+      setMeta({ cover: path });
+    };
+    r.readAsDataURL(f);
   }
 
   let newOpen = $state(false);
@@ -136,162 +205,279 @@
 
   $effect(() => () => {
     if (notes.editing === loadedRel) notes.editing = null;
+    window.clearTimeout(timer);
   });
   // "Edit in note" from a flashcard: jump to the card's line once the editor is ready
   $effect(() => {
     const j = notes.jump;
-    if (j && editor && j.rel === loadedRel) {
+    if (j && j.rel === loadedRel && (blocks || cm)) {
       const line = j.line;
       notes.jump = null;
-      setTimeout(() => editor?.gotoLine(line), 50);
+      setTimeout(() => (source ? cm?.gotoLine(line) : blocks?.gotoLine(line - titleLines)), 80);
     }
   });
+  function gotoLine(line: number) {
+    sheetR = null;
+    if (source) cm?.gotoLine(line);
+    else blocks?.gotoLine(line - titleLines);
+  }
+  function gotoHeading(text: string, nth: number) {
+    sheetR = null;
+    if (source) {
+      const h = note?.p.headings.filter((x) => x.text === text)[nth];
+      if (h) cm?.gotoLine(h.line);
+    } else blocks?.gotoHeading(text, nth);
+  }
 
+  // ---- panels ----------------------------------------------------------------------------------
+  type Saved = { pinL: boolean; pinR: Panel | null; focus: boolean };
+  const loadPanels = (): Saved => {
+    try {
+      return { pinL: false, pinR: null, focus: false, ...JSON.parse(localStorage.getItem("mosaic.notePanels") ?? "{}") };
+    } catch {
+      return { pinL: false, pinR: null, focus: false };
+    }
+  };
+  let panels = $state<Saved>(loadPanels());
+  $effect(() => {
+    const v = JSON.stringify(panels);
+    try {
+      localStorage.setItem("mosaic.notePanels", v);
+    } catch {}
+  });
+  let sheetL = $state(false);
+  let sheetR = $state<Panel | null>(null);
+  let floatL = $state(false);
+  let floatR = $state(false);
+  let width = $state(1200);
+  const roomL = $derived(width > 1000);
+  const roomR = $derived(width > (panels.pinL ? 1240 : 960));
+  const pinL = $derived(panels.pinL && roomL && !panels.focus);
+  const pinR = $derived(panels.pinR && roomR && !panels.focus ? panels.pinR : null);
+  let treeHost = $state<HTMLElement>();
+
+  function openLeft(search = false) {
+    if (pinL) {
+      if (!search) panels.pinL = false;
+    } else sheetL = !sheetL || search;
+    sheetR = null;
+    if (search) setTimeout(() => treeHost?.querySelector<HTMLInputElement>("input.search")?.focus(), 60);
+  }
+  function openRight(p: Panel) {
+    sheetL = false;
+    if (pinR) {
+      if (pinR === p) panels.pinR = null;
+      else panels.pinR = p;
+      return;
+    }
+    sheetR = sheetR === p ? null : p;
+  }
+  function pinLeft() {
+    panels.pinL = true;
+    panels.focus = false;
+    sheetL = false;
+  }
+  function pinRight(p: Panel) {
+    panels.pinR = p;
+    panels.focus = false;
+    sheetR = null;
+  }
+  function toggleFocus() {
+    panels.focus = !panels.focus;
+    sheetL = false;
+    sheetR = null;
+  }
   const back = $derived(rel ? backlinks(rel) : []);
-  const outline = $derived(note ? note.p.headings : []);
-  const outLinks = $derived(note ? note.p.links.map((l) => ({ name: l, to: resolveLink(l) })) : []);
-  const course = $derived(meta.course ? courseByName(String(meta.course)) : undefined);
+  // badge on the cards icon: cards in this note due now
+  const dueHere = $derived.by(() => {
+    if (!note) return 0;
+    const now = Date.now();
+    return extractCards(splitNote(note.text).body).filter((c) => {
+      if (!c.lineId) return false;
+      const st = statusOf(get<SrsRec>("srs", c.key), now);
+      return st === "review" || st === "learning";
+    }).length;
+  });
+
+  // ---- linked references -------------------------------------------------------------------------
+  let showMentions = $state(false);
+  const mentions = $derived.by(() => {
+    if (!showMentions || !note) return [];
+    const name = linkName(note);
+    const esc = name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const re = new RegExp(`(^|[^\\p{L}\\p{N}\\[])${esc}(?![\\p{L}\\p{N}\\]])`, "iu");
+    return Object.values(notes.files)
+      .filter((e) => e.rel !== note.rel && !e.p.links.some((l) => linkKey(l) === linkKey(name)) && re.test(splitNote(e.text).body))
+      .slice(0, 20)
+      .map((e) => {
+        const b = plainText(splitNote(e.text).body);
+        const m = re.exec(b)!;
+        const i = m.index;
+        return { e, snip: (i > 40 ? "…" : "") + b.slice(Math.max(0, i - 40), i + name.length + 60).replace(/\s+/g, " ") + "…" };
+      });
+  });
+
   const dirs = $derived(["", ...notes.dirs.filter((d) => !d.startsWith("attachments"))]);
-  const tagsText = $derived(((meta.tags as string[]) ?? []).join(", "));
+  const label = (p: Panel) => PANELS.find((x) => x.id === p)!.label;
 </script>
 
-<div class="nwrap">
-<div class="notes" class:homeview={!(rel && note)}>
-  <aside class="left">
-    <NoteTree current={rel} onnew={(f) => { newMode = "note"; newFolder = f; newOpen = true; }} onnewfolder={() => { newMode = "folder"; newFolder = rel ? dirOf(rel) : ""; newOpen = true; }} />
-  </aside>
+<svelte:window
+  onkeydown={(e) => {
+    if (e.key === "Escape" && (sheetL || sheetR)) {
+      sheetL = false;
+      sheetR = null;
+    }
+    if ((e.ctrlKey || e.metaKey) && e.key === "\\" && rel && note) {
+      e.preventDefault();
+      toggleFocus();
+    }
+  }}
+/>
 
-  <section class="center" class:bare={!(rel && note)}>
-    {#if rel && note}
-      <header class="nh">
-        <div class="crumbs">
-          <span class="muted">{dirOf(rel) || "Notes"}</span>
-          <span class="st" class:bad={status === "conflict" || status === "error"}>
-            {status === "saved" ? "Saved" : status === "saving" ? "Saving…" : status === "conflict" ? "Changed elsewhere" : "Couldn't save"}
-          </span>
-        </div>
-        <input class="title display" bind:value={title} aria-label="Note title (file name)" onblur={doRename} onkeydown={(e) => e.key === "Enter" && e.currentTarget.blur()} />
-        <div class="props">
-          <label class="prop" style={course ? `--c: ${course[1].color}` : ""}>
-            <Icon name="book" size={14} />
-            <select value={meta.course ?? ""} aria-label="Course" onchange={(e) => setMeta({ course: e.currentTarget.value || undefined })}>
-              <option value="">No course</option>{#each courseNames() as c}<option value={c}>{c}</option>{/each}
-            </select>
-          </label>
-          <label class="prop"><Icon name="calendar" size={14} /><input type="date" class:empty={!meta.date} value={meta.date ?? ""} aria-label="Date" onchange={(e) => setMeta({ date: e.currentTarget.value || undefined })} /></label>
-          <label class="prop grow"><span class="hash">#</span><input value={tagsText} placeholder="tags, comma separated" aria-label="Tags"
-            onchange={(e) => setMeta({ tags: e.currentTarget.value.split(",").map((x) => x.trim().replace(/^#/, "")).filter(Boolean) })} /></label>
-          <details class="menu">
-            <summary aria-label="More"><Icon name="dots" size={18} /></summary>
-            <div class="pop">
-              <label>Move to
-                <select value={dirOf(rel)} onchange={(e) => doMove(e.currentTarget.value)}>{#each dirs as d}<option value={d}>{d || "Notes (top level)"}</option>{/each}</select>
-              </label>
-              {#if confirmDel}
-                <button type="button" class="del" onclick={doDelete}>Move to trash (.trash in the Notes folder)</button>
-              {:else}
-                <button type="button" class="del soft" onclick={() => (confirmDel = true)}>Delete…</button>
-              {/if}
-            </div>
-          </details>
-        </div>
-        {#if status === "conflict"}
-          <div class="conflict" role="alert">
-            <span>This note was changed on another computer since you opened it.</span>
-            <button type="button" class="btn quiet sm" onclick={takeTheirs}>Load that version</button>
-            <button type="button" class="btn primary sm" onclick={() => flush(true)}>Keep mine</button>
-          </div>
-        {:else if status === "error"}
-          <div class="conflict" role="alert"><span>{errorText}</span></div>
-        {/if}
-        <div class="toolbar" role="toolbar" aria-label="Formatting">
-          <button type="button" onclick={() => editor?.linePrefix("# ")} title="Heading 1">H1</button>
-          <button type="button" onclick={() => editor?.linePrefix("## ")} title="Heading 2">H2</button>
-          <button type="button" onclick={() => editor?.linePrefix("### ")} title="Heading 3">H3</button>
-          <span class="sep"></span>
-          <button type="button" onclick={() => editor?.wrap("**")} title="Bold (Ctrl+B)"><b>B</b></button>
-          <button type="button" onclick={() => editor?.wrap("*")} title="Italic (Ctrl+I)"><i>I</i></button>
-          <button type="button" onclick={() => editor?.wrap("~~")} title="Strike-through (Ctrl+Shift+X)"><s>S</s></button>
-          <span class="hlpick" role="group" aria-label="Highlight colour">
-            {#each [["yellow", "var(--butter)"], ["rose", "var(--rose)"], ["sage", "var(--sage)"], ["peach", "var(--peach)"], ["lavender", "var(--lavender)"], ["blue", "#b9d4ee"]] as [n, c]}
-              <button type="button" class="sw" style="--c: {c}" title="Highlight {n}" aria-label="Highlight {n}" onclick={() => editor?.colour(n)}></button>
-            {/each}
-          </span>
-          <span class="sep"></span>
-          <button type="button" onclick={() => editor?.linePrefix("- ")} title="Bullet list">•</button>
-          <button type="button" onclick={() => editor?.linePrefix("1. ")} title="Numbered list">1.</button>
-          <button type="button" onclick={() => editor?.linePrefix("- [ ] ")} title="Checklist">☐</button>
-          <button type="button" onclick={() => editor?.block("| Drug | Class | Key point |\n| --- | --- | --- |\n|  |  |  |\n")} title="Table">▦</button>
-          <button type="button" onclick={() => editor?.block("> [!note] Note\n> ")} title="Callout">❝</button>
-          <button type="button" onclick={() => editor?.block("---\n")} title="Divider">―</button>
-          <span class="sep"></span>
-          <button type="button" onclick={() => editor?.wrap("[[", "]]", "Note name")} title="Link to a note (Ctrl+K)">[[ ]]</button>
-          <button type="button" class="card" onclick={() => editor?.insert(" :: ")} title="Flashcard: Question :: Answer">Q :: A</button>
-          <button type="button" class="card" onclick={() => editor?.wrap("{{", "}}", "hidden part")} title="Cloze flashcard">{"{{ }}"}</button>
-          <span class="hint">Type <kbd>/</kbd> for more</span>
-        </div>
-      </header>
-      <div class="edwrap">
-        {#key `${loadedRel}#${version}`}
-          <NoteEditor
-            bind:this={editor}
-            value={body}
-            onchange={changed}
-            onopenlink={openLink}
-            linkNames={() => allNotes().map(linkName)}
-            tagNames={allTags}
-            imageUrl={(src) => imageUrl(rel!, src)}
-            onpasteimage={(d, ext) => savePastedImage(rel!, d, ext)}
-          />
-        {/key}
-      </div>
-    {:else if rel && notes.loaded}
-      <div class="empty card"><p>This note isn't in the notes folder any more.</p><a class="btn quiet" href="#/study/notes">Back to notes</a></div>
-    {:else}
-      <NotesHome onnew={(f) => { newMode = "note"; newFolder = f; newOpen = true; }} />
-    {/if}
-  </section>
-
+<div class="nwrap" bind:clientWidth={width}>
   {#if rel && note}
-    <aside class="right">
-      {#if course || meta.event || meta.date || meta.pdf}
-        <section>
-          <h3 class="label">Linked to</h3>
-          {#if course}<a class="lk" href="#/courses/{course[0]}" style="--c: {course[1].color}"><span class="cd"></span>{course[1].name}</a>{/if}
-          {#if meta.date}<a class="lk" href="#/calendar/day" ><Icon name="calendar" size={14} /> {fromKey(String(meta.date)).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })}{meta.event ? " · class" : ""}</a>{/if}
-          {#if typeof meta.pdf === "string"}<a class="lk" href={pdfHref(meta.pdf)}><Icon name="file" size={14} /> {pdfName(meta.pdf)}</a>{/if}
-        </section>
+    <div class="npage" class:focus={panels.focus}>
+      {#if panels.focus}
+        <!-- svelte-ignore a11y_no_static_element_interactions -->
+        <div class="edge l" onmouseenter={() => (floatL = true)} onmouseleave={() => (floatL = false)}>
+          {#if floatL}
+            <div class="float">
+              <button type="button" class="ico" title="Notes" onclick={() => openLeft()}><Icon name="note" size={18} /></button>
+              <button type="button" class="ico" title="Search notes" onclick={() => openLeft(true)}><Icon name="search" size={18} /></button>
+            </div>
+          {/if}
+        </div>
+      {:else}
+        <nav class="strip" aria-label="Notes panels">
+          <button type="button" class="ico" class:on={sheetL || pinL} title="Notes" aria-label="Notes" onclick={() => openLeft()}><Icon name="note" size={18} /></button>
+          <button type="button" class="ico" title="Search notes" aria-label="Search notes" onclick={() => openLeft(true)}><Icon name="search" size={18} /></button>
+          <span class="sp"></span>
+          <button type="button" class="ico" title="New note" aria-label="New note" onclick={() => { newMode = "note"; newFolder = dirOf(rel!); newOpen = true; }}>+</button>
+        </nav>
       {/if}
-      {#if outline.length > 1}
-        <section>
-          <h3 class="label">Outline</h3>
-          <ul class="outline">
-            {#each outline as h}<li style="--l: {h.level - 1}"><button type="button" onclick={() => editor?.gotoLine(h.line)}>{h.text}</button></li>{/each}
-          </ul>
-        </section>
+
+      {#if pinL}
+        <aside class="pinned left" bind:this={treeHost}>
+          <div class="ph"><b>Notes</b><button type="button" class="x" title="Unpin" aria-label="Unpin notes" onclick={() => (panels.pinL = false)}>📌</button></div>
+          <NoteTree current={rel} onnew={(f) => { newMode = "note"; newFolder = f; newOpen = true; }} onnewfolder={() => { newMode = "folder"; newFolder = dirOf(rel!); newOpen = true; }} />
+        </aside>
       {/if}
-      <section>
-        <h3 class="label">Backlinks <span class="n">{back.length}</span></h3>
-        {#if back.length}
-          <ul class="bl">
-            {#each back as b (b.e.rel)}<li><a href={noteHref(b.e.rel)}><b>{b.e.p.title}</b>{#if b.context}<span>{b.context}</span>{/if}</a></li>{/each}
-          </ul>
+
+      <section class="center">
+        <div class="scroll">
+          <NoteHead {rel} {meta} bind:title {status} {errorText} {source} {dirs}
+            coverUrl={(s) => imageUrl(rel!, s)}
+            onmeta={setMeta} onrename={doRename} onmove={doMove} ondelete={doDelete} ontoggleSource={toggleSource}
+            onrun={(c, a) => blocks?.run(c, a)} oncoverfile={coverFile} ontheirs={takeTheirs} onmine={() => flush(true)} />
+          <div class="edwrap" class:src={source}>
+            {#key `${loadedRel}#${version}`}
+              {#if source}
+                <NoteEditor bind:this={cm} value={body} onchange={cmChanged} onopenlink={openLink}
+                  linkNames={() => allNotes().map(linkName)} tagNames={allTags}
+                  imageUrl={(src) => imageUrl(rel!, src)} onpasteimage={(d, ext) => savePastedImage(rel!, d, ext)} />
+              {:else}
+                <BlockEditor bind:this={blocks} value={body} onchange={changed} onopenlink={openLink}
+                  linkNames={() => allNotes().map(linkName)} tagNames={allTags}
+                  imageUrl={(src) => imageUrl(rel!, src)} onpasteimage={(d, ext) => savePastedImage(rel!, d, ext)} />
+              {/if}
+            {/key}
+          </div>
+          {#if !source}
+            <footer class="refs">
+              <h3>Linked references <span class="n">{back.length}</span></h3>
+              {#if back.length}
+                <div class="rgrid">
+                  {#each back as b (b.e.rel)}<a href={noteHref(b.e.rel)}><b>{b.e.p.title}</b>{#if b.context}<span>{plainText(b.context)}</span>{/if}</a>{/each}
+                </div>
+              {:else}
+                <p class="muted">No notes link here yet. Type <kbd>[[</kbd> in another note and pick “{title}”.</p>
+              {/if}
+              <button type="button" class="more" onclick={() => (showMentions = !showMentions)}>{showMentions ? "▾" : "▸"} Unlinked mentions</button>
+              {#if showMentions}
+                {#if mentions.length}
+                  <div class="rgrid">
+                    {#each mentions as m (m.e.rel)}<a href={noteHref(m.e.rel)}><b>{m.e.p.title}</b><span>{m.snip}</span></a>{/each}
+                  </div>
+                {:else}
+                  <p class="muted">No other note mentions “{title}” without linking it.</p>
+                {/if}
+              {/if}
+            </footer>
+          {/if}
+        </div>
+      </section>
+
+      {#if pinR}
+        <aside class="pinned right">
+          <div class="ph"><b>{label(pinR)}</b><button type="button" class="x" title="Unpin" aria-label="Unpin panel" onclick={() => (panels.pinR = null)}>📌</button></div>
+          <div class="pbody"><NoteSide which={pinR} {note} {meta} {titleLines} ongotoline={gotoLine} ongotoheading={gotoHeading} onopenlink={openLink} /></div>
+        </aside>
+      {/if}
+
+      {#if panels.focus}
+        <!-- svelte-ignore a11y_no_static_element_interactions -->
+        <div class="edge r" onmouseenter={() => (floatR = true)} onmouseleave={() => (floatR = false)}>
+          {#if floatR}
+            <div class="float">
+              {#each PANELS as p}
+                <button type="button" class="ico" title={p.label} onclick={() => openRight(p.id)}><Icon name={p.icon} size={18} />{#if p.id === "cards" && dueHere}<i class="badge">{dueHere}</i>{/if}</button>
+              {/each}
+              <button type="button" class="ico" title="Leave focus (Ctrl+\)" onclick={toggleFocus}><Icon name="focus" size={18} /></button>
+            </div>
+          {/if}
+        </div>
+      {:else}
+        <nav class="strip" aria-label="Note panels">
+          {#each PANELS as p}
+            <button type="button" class="ico" class:on={sheetR === p.id || pinR === p.id} title={p.label} aria-label={p.label} onclick={() => openRight(p.id)}>
+              <Icon name={p.icon} size={18} />
+              {#if p.id === "cards" && dueHere}<i class="badge">{dueHere}</i>{/if}
+              {#if p.id === "backlinks" && back.length}<i class="badge soft">{back.length}</i>{/if}
+            </button>
+          {/each}
+          <span class="sp"></span>
+          <button type="button" class="ico" title="Focus: hide the strips too (Ctrl+\)" aria-label="Focus" onclick={toggleFocus}><Icon name="focus" size={18} /></button>
+        </nav>
+      {/if}
+
+      {#if sheetL || sheetR}
+        <button type="button" class="scrim" aria-label="Close panel" onclick={() => { sheetL = false; sheetR = null; }}></button>
+      {/if}
+      {#if sheetL}
+        <aside class="sheet left" bind:this={treeHost}>
+          <div class="ph">
+            <b>Notes</b>
+            {#if roomL}<button type="button" class="x" title="Pin beside the note" aria-label="Pin" onclick={pinLeft}>📌</button>{/if}
+            <button type="button" class="x" aria-label="Close" onclick={() => (sheetL = false)}>×</button>
+          </div>
+          <NoteTree current={rel} onnew={(f) => { newMode = "note"; newFolder = f; newOpen = true; sheetL = false; }} onnewfolder={() => { newMode = "folder"; newFolder = dirOf(rel!); newOpen = true; sheetL = false; }} />
+        </aside>
+      {/if}
+      {#if sheetR}
+        <aside class="sheet right">
+          <div class="ph">
+            <b>{label(sheetR)}</b>
+            {#if roomR}<button type="button" class="x" title="Pin beside the note" aria-label="Pin" onclick={() => pinRight(sheetR!)}>📌</button>{/if}
+            <button type="button" class="x" aria-label="Close" onclick={() => (sheetR = null)}>×</button>
+          </div>
+          <div class="pbody"><NoteSide which={sheetR} {note} {meta} {titleLines} ongotoline={gotoLine} ongotoheading={gotoHeading} onopenlink={openLink} /></div>
+        </aside>
+      {/if}
+    </div>
+  {:else}
+    <div class="notes homeview">
+      <aside class="left">
+        <NoteTree current={rel} onnew={(f) => { newMode = "note"; newFolder = f; newOpen = true; }} onnewfolder={() => { newMode = "folder"; newFolder = ""; newOpen = true; }} />
+      </aside>
+      <section class="center bare">
+        {#if rel && notes.loaded}
+          <div class="empty card"><p>This note isn't in the notes folder any more.</p><a class="btn quiet" href="#/study/notes">Back to notes</a></div>
         {:else}
-          <p class="muted small">No notes link here yet. Type <code>[[{title}]]</code> in another note.</p>
+          <NotesHome onnew={(f) => { newMode = "note"; newFolder = f; newOpen = true; }} />
         {/if}
       </section>
-      {#if outLinks.length || note?.p.pdfs?.length}
-        <section>
-          <h3 class="label">Links</h3>
-          <ul class="ol">
-            {#each outLinks as l}<li><button type="button" class:missing={!l.to} onclick={() => openLink(l.name)}>{l.name}{#if !l.to}<small> · create</small>{/if}</button></li>{/each}
-            {#each note?.p.pdfs ?? [] as p}<li><button type="button" onclick={() => openLink(p)}><Icon name="file" size={13} /> {pdfName(p)}</button></li>{/each}
-          </ul>
-        </section>
-      {/if}
-    </aside>
+    </div>
   {/if}
-</div>
 </div>
 
 <NewNoteDialog bind:open={newOpen} folder={newFolder} mode={newMode} />
@@ -301,273 +487,346 @@
     container-type: inline-size;
     min-width: 0;
   }
-  .notes {
-    display: grid;
-    grid-template-columns: 250px minmax(0, 1fr) 250px;
-    gap: 14px;
+  .npage {
+    position: relative;
+    display: flex;
+    gap: 10px;
     height: calc(100vh - 190px);
     min-height: 480px;
   }
-  .left,
-  .right {
-    min-height: 0;
-  }
-  .right {
-    display: grid;
-    align-content: start;
-    gap: 18px;
-    overflow-y: auto;
-    padding: 4px;
-  }
-  .center {
+  .strip {
+    flex: none;
+    width: 52px;
     display: flex;
     flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 0;
+    border-radius: 20px;
+    background: var(--surface);
+    border: var(--edge, 0);
+    box-shadow: var(--shadow);
+    animation: stripin 0.35s var(--spring, ease) backwards;
+  }
+  @keyframes stripin {
+    from {
+      opacity: 0;
+      transform: scaleY(0.92);
+    }
+  }
+  .sp {
+    flex: 1;
+  }
+  .ico {
+    position: relative;
+    display: grid;
+    place-items: center;
+    width: 38px;
+    height: 38px;
+    border: 0;
+    border-radius: 12px;
+    background: none;
+    color: var(--text-muted);
+    font-size: 18px;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s, transform 0.25s var(--spring, ease);
+  }
+  .ico:hover {
+    background: var(--panel);
+    color: var(--text);
+    transform: scale(1.06);
+  }
+  .ico.on {
+    background: var(--primary, var(--text));
+    color: var(--on-primary, #fff);
+  }
+  .badge {
+    position: absolute;
+    top: -3px;
+    right: -3px;
+    min-width: 17px;
+    height: 17px;
+    padding: 0 4px;
+    border-radius: 999px;
+    background: var(--rose-deep, #e3949b);
+    color: #fff;
+    font-size: 10px;
+    font-style: normal;
+    font-weight: 700;
+    display: grid;
+    place-items: center;
+    box-sizing: border-box;
+  }
+  .badge.soft {
+    background: var(--lavender, #c9b8f0);
+    color: var(--text);
+  }
+  .center {
+    flex: 1;
     min-width: 0;
-    min-height: 0;
+    display: flex;
+    flex-direction: column;
     border-radius: var(--radius);
     background: var(--surface);
     box-shadow: var(--shadow);
     overflow: hidden;
   }
-  .notes.homeview {
-    grid-template-columns: 250px minmax(0, 1fr);
+  .scroll {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    container-type: inline-size;
   }
-  .center.bare {
-    background: none;
-    box-shadow: none;
-    overflow: auto;
-    padding: 2px 4px 24px;
+  .edwrap {
+    min-height: 50%;
   }
-  @container (max-width: 1100px) {
-    .notes {
-      grid-template-columns: 220px minmax(0, 1fr);
-    }
-    .right {
-      display: none;
-    }
+  .edwrap.src {
+    height: calc(100% - 200px);
+    min-height: 420px;
   }
-  @container (max-width: 680px) {
-    .notes {
-      grid-template-columns: minmax(0, 1fr);
-      height: auto;
-    }
-    .left {
-      max-height: 260px;
-    }
-    .center {
-      min-height: 70vh;
-    }
-  }
-  .nh {
-    display: grid;
-    gap: 8px;
-    padding: 16px 22px 10px;
-    border-bottom: 1px solid var(--hairline);
-  }
-  .crumbs {
+  .pinned {
+    flex: none;
     display: flex;
-    justify-content: space-between;
-    font-size: 12.5px;
+    flex-direction: column;
+    min-height: 0;
+    border-radius: 22px;
+    background: var(--surface);
+    border: var(--edge, 0);
+    box-shadow: var(--shadow);
+    padding: 12px;
+    animation: pinin 0.3s var(--spring, ease) backwards;
   }
-  .st {
-    color: var(--text-muted);
+  .pinned.left {
+    width: 250px;
   }
-  .st.bad {
-    color: #a8434f;
-    font-weight: 600;
+  .pinned.right {
+    width: 280px;
   }
-  .title {
-    width: 100%;
+  @keyframes pinin {
+    from {
+      opacity: 0;
+      transform: translateY(8px);
+    }
+  }
+  .pinned :global(.tree),
+  .sheet :global(.tree) {
+    flex: 1;
+    min-height: 0;
+  }
+  .ph {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin-bottom: 10px;
+  }
+  .ph b {
+    flex: 1;
+    font-size: 15px;
+  }
+  .x {
+    width: 28px;
+    height: 28px;
     border: 0;
-    background: none;
-    font-size: 28px;
-    font-weight: 600;
-    color: var(--text);
-    padding: 0;
-  }
-  .title:focus {
-    outline: none;
-    box-shadow: 0 2px 0 var(--peach);
-  }
-  .props {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 6px;
-    align-items: center;
-  }
-  .prop {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    min-height: 34px;
-    padding: 0 4px 0 10px;
-    border-radius: var(--radius-pill);
+    border-radius: 50%;
     background: var(--panel);
     color: var(--text-muted);
     font-size: 13px;
+    cursor: pointer;
   }
-  .prop[style] {
-    background: color-mix(in srgb, var(--c) 35%, var(--white));
+  .x:hover {
     color: var(--text);
   }
-  .prop select,
-  .prop input {
-    border: 0;
-    background-color: transparent;
-    font: inherit;
-    font-size: 13px;
-    color: var(--text);
-    min-height: 32px;
-    padding: 0 30px 0 2px;
-  }
-  .prop input {
-    padding-right: 8px;
-  }
-  .prop.grow {
+  .pbody {
     flex: 1;
-    min-width: 180px;
+    min-height: 0;
+    overflow-y: auto;
   }
-  .prop.grow input {
-    width: 100%;
+  .scrim {
+    position: absolute;
+    inset: 0;
+    z-index: 8;
+    border: 0;
+    background: none;
+    cursor: default;
   }
-  .hash {
+  .sheet {
+    position: absolute;
+    z-index: 9;
+    top: 0;
+    bottom: 0;
+    display: flex;
+    flex-direction: column;
+    padding: 14px;
+    border-radius: 22px;
+    background: var(--surface-float, var(--surface));
+    border: var(--edge, 0);
+    box-shadow: 0 24px 50px -20px rgba(40, 44, 80, 0.45);
+    -webkit-backdrop-filter: var(--blur, none);
+    backdrop-filter: var(--blur, none);
+    box-sizing: border-box;
+  }
+  .sheet.left {
+    left: 62px;
+    width: 270px;
+    animation: slideL 0.32s var(--spring, ease) backwards;
+  }
+  .sheet.right {
+    right: 62px;
+    width: 310px;
+    animation: slideR 0.32s var(--spring, ease) backwards;
+  }
+  .focus .sheet.left {
+    left: 22px;
+  }
+  .focus .sheet.right {
+    right: 22px;
+  }
+  @keyframes slideL {
+    from {
+      opacity: 0;
+      transform: translateX(-24px);
+    }
+  }
+  @keyframes slideR {
+    from {
+      opacity: 0;
+      transform: translateX(24px);
+    }
+  }
+  .edge {
+    position: relative;
+    flex: none;
+    width: 12px;
+    border-radius: 999px;
+    background: linear-gradient(180deg, transparent, color-mix(in srgb, var(--lavender, #c9b8f0) 70%, transparent), transparent);
+    opacity: 0.7;
+    transition: opacity 0.2s;
+    z-index: 7;
+  }
+  .edge.r {
+    background: linear-gradient(180deg, transparent, color-mix(in srgb, #8b9be8 60%, transparent), transparent);
+  }
+  .edge:hover {
+    opacity: 1;
+  }
+  .float {
+    position: absolute;
+    top: 50%;
+    display: grid;
+    gap: 6px;
+    padding: 8px;
+    border-radius: 20px;
+    background: var(--surface-float, var(--surface));
+    border: var(--edge, 0);
+    box-shadow: 0 18px 40px -18px rgba(40, 44, 80, 0.45);
+    transform: translateY(-50%);
+    animation: pop 0.2s var(--spring, ease) backwards;
+  }
+  .edge.l .float {
+    left: 0;
+  }
+  .edge.r .float {
+    right: 0;
+  }
+  @keyframes pop {
+    from {
+      opacity: 0;
+      scale: 0.9;
+    }
+  }
+  .refs {
+    max-width: 780px;
+    margin: 0 auto;
+    padding: 18px 40px 60px;
+    border-top: 1px solid var(--hairline);
+  }
+  .refs h3 {
+    margin: 0 0 10px;
+    font-size: 15px;
     font-weight: 700;
   }
-  .menu {
-    position: relative;
-  }
-  .menu summary {
-    display: grid;
+  .refs .n {
+    display: inline-grid;
     place-items: center;
-    width: 34px;
-    height: 34px;
-    border-radius: 50%;
+    min-width: 22px;
+    height: 22px;
+    margin-left: 4px;
+    border-radius: 11px;
     background: var(--panel);
-    cursor: pointer;
-    list-style: none;
-  }
-  .menu summary::-webkit-details-marker {
-    display: none;
-  }
-  .pop {
-    position: absolute;
-    right: 0;
-    top: 40px;
-    z-index: 10;
-    display: grid;
-    gap: 8px;
-    width: 280px;
-    padding: 12px;
-    border-radius: 16px;
-    background: var(--surface);
-    box-shadow: var(--shadow-lift);
-  }
-  .pop label {
-    display: grid;
-    gap: 4px;
-    font-size: 13px;
-    color: var(--text-muted);
-  }
-  .pop select {
-    min-height: 36px;
-    background-color: var(--panel);
-    padding-left: 10px;
-    font: inherit;
-  }
-  .del {
-    min-height: 36px;
-    border: 0;
-    border-radius: 10px;
-    background: var(--rose-soft);
-    color: #8f3b45;
-    font-weight: 600;
-  }
-  .del.soft {
-    background: var(--panel);
-    color: var(--text-muted);
-  }
-  .conflict {
-    display: flex;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: 8px;
-    padding: 8px 12px;
-    border-radius: 12px;
-    background: var(--rose-soft);
-    font-size: 13.5px;
-  }
-  .conflict span {
-    flex: 1;
-  }
-  .sm {
-    min-height: 34px;
-    padding: 0 12px;
-    font-size: 13px;
-  }
-  .toolbar {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 2px;
-    align-items: center;
-  }
-  .toolbar button {
-    min-width: 34px;
-    min-height: 32px;
-    padding: 0 8px;
-    border: 0;
-    border-radius: 9px;
-    background: none;
-    font-size: 13.5px;
-    color: var(--text-muted);
-  }
-  .toolbar button:hover {
-    background: var(--panel);
-    color: var(--text);
-  }
-  .toolbar .card {
-    color: #a8434f;
-    font-weight: 600;
-  }
-  .hlpick {
-    display: inline-flex;
-    gap: 3px;
-    padding: 0 4px;
-  }
-  .toolbar .sw {
-    min-width: 0;
-    width: 18px;
-    height: 18px;
-    min-height: 0;
-    padding: 0;
-    border-radius: 50%;
-    background: var(--c);
-    box-shadow: inset 0 0 0 1px rgba(59, 48, 51, 0.1);
-  }
-  .toolbar .sw:hover {
-    transform: scale(1.25);
-    background: var(--c);
-  }
-  .hint {
-    margin-left: auto;
     font-size: 12px;
-    color: var(--text-muted);
   }
-  .hint kbd {
+  .rgrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 8px;
+    margin-bottom: 10px;
+  }
+  .rgrid a {
+    display: grid;
+    gap: 3px;
+    padding: 10px 12px;
+    border-radius: 14px;
+    background: var(--panel);
+    text-decoration: none;
+    color: var(--text);
+    transition: transform 0.2s var(--spring, ease);
+  }
+  .rgrid a:hover {
+    transform: translateY(-2px);
+  }
+  .rgrid b {
+    font-size: 13.5px;
+  }
+  .rgrid span {
+    font-size: 12.5px;
+    color: var(--text-muted);
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .refs .muted {
+    margin: 0 0 8px;
+    font-size: 13px;
+  }
+  .refs kbd {
     font: inherit;
     font-weight: 700;
     padding: 0 5px;
     border-radius: 5px;
     background: var(--chip);
   }
-  .sep {
-    width: 1px;
-    height: 18px;
-    margin: 0 4px;
-    background: var(--hairline);
+  .more {
+    border: 0;
+    background: none;
+    padding: 4px 0;
+    font: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-muted);
+    cursor: pointer;
   }
-  .edwrap {
-    flex: 1;
+  .more:hover {
+    color: var(--text);
+  }
+
+  /* notes home (no note open) */
+  .notes {
+    display: grid;
+    grid-template-columns: 250px minmax(0, 1fr);
+    gap: 14px;
+    height: calc(100vh - 190px);
+    min-height: 480px;
+  }
+  .left {
     min-height: 0;
+  }
+  .center.bare {
+    background: none;
+    box-shadow: none;
+    overflow: auto;
+    padding: 2px 4px 24px;
   }
   .empty {
     display: grid;
@@ -578,99 +837,22 @@
     padding: 30px;
     text-align: center;
   }
-  .small code {
-    font-size: 12.5px;
-    background: var(--chip);
-    padding: 1px 6px;
-    border-radius: 6px;
-  }
-  .right section {
-    display: grid;
-    gap: 8px;
-  }
-  .label .n {
-    display: inline-grid;
-    place-items: center;
-    min-width: 20px;
-    height: 20px;
-    margin-left: 4px;
-    border-radius: 10px;
-    background: var(--surface);
-    font-size: 11px;
-  }
-  .lk {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    min-height: 36px;
-    padding: 0 12px;
-    border-radius: 12px;
-    background: var(--surface);
-    text-decoration: none;
-    font-size: 13.5px;
-    font-weight: 500;
-  }
-  .cd {
-    width: 10px;
-    height: 10px;
-    border-radius: 50%;
-    background: var(--c);
-  }
-  .outline,
-  .bl,
-  .ol {
-    list-style: none;
-    margin: 0;
-    padding: 0;
-    display: grid;
-    gap: 2px;
-  }
-  .outline button,
-  .ol button {
-    width: 100%;
-    min-height: 30px;
-    padding: 0 8px 0 calc(8px + var(--l, 0) * 12px);
-    border: 0;
-    border-radius: 8px;
-    background: none;
-    font: inherit;
-    font-size: 13.5px;
-    text-align: left;
-    color: var(--text);
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-  .outline button:hover,
-  .ol button:hover {
-    background: var(--surface);
-  }
-  .ol .missing {
-    color: var(--text-muted);
-    font-style: italic;
-  }
-  .bl a {
-    display: grid;
-    gap: 2px;
-    padding: 8px 10px;
-    border-radius: 12px;
-    background: var(--surface);
-    text-decoration: none;
-  }
-  .bl b {
-    font-size: 13.5px;
-    font-weight: 600;
-  }
-  .bl span {
-    font-size: 12.5px;
-    color: var(--text-muted);
-    overflow: hidden;
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    line-clamp: 2;
-    -webkit-box-orient: vertical;
-  }
-  .small {
-    font-size: 13px;
+  @container (max-width: 680px) {
+    .notes {
+      grid-template-columns: minmax(0, 1fr);
+      height: auto;
+    }
+    .notes .left {
+      max-height: 260px;
+    }
+    .strip {
+      width: 44px;
+    }
+    .sheet.left,
+    .sheet.right {
+      left: 8px;
+      right: 8px;
+      width: auto;
+    }
   }
 </style>

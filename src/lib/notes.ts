@@ -81,6 +81,20 @@ export function parseNote(text: string, fileName: string): Parsed {
 /** Name used to match [[links]]: case-insensitive, extension-free, last path part. */
 export const linkKey = (s: string) => s.trim().replace(/\.md$/i, "").split("/").pop()!.toLowerCase();
 
+/** Note text as plain words for previews: links, card ids and inline marks removed. */
+export function plainText(s: string): string {
+  return s
+    .replace(/<!--sd:\w+-->/g, "")
+    .replace(/!\[[^\]]*\]\([^)]*\)/g, "")
+    .replace(/\[\[([^\]|#]+)(?:#[^\]|]*)?(?:\|([^\]]+))?\]\]/g, (_m, a, b) => (b ?? a).replace(/\.md$/i, ""))
+    .replace(/\[([^\]]+)\]\([^)]*\)/g, "$1")
+    .replace(/\{\{(?:c\d+::)?([^{}]*?)(?:::[^{}]*)?\}\}/g, "$1")
+    .replace(/<\/?mark[^>]*>/g, "")
+    .replace(/\*\*|==|~~|`/g, "")
+    .replace(/\s+:{2,3}(\s+|$)/g, " → ")
+    .replace(/^\s*(?:[-*+]\s+(?:\[[ xX]\]\s+)?|\d+[.)]\s+|#{1,6}\s+|>\s*)/gm, "");
+}
+
 /** A safe file name from a title. */
 export function fileNameFor(title: string): string {
   const s = title.replace(/[\\/:*?"<>|#^[\]]+/g, " ").replace(/\s+/g, " ").trim().slice(0, 120);

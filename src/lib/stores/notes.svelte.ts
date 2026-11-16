@@ -38,6 +38,8 @@ function saveCache() {
 export async function initNotes() {
   if (!inTauri) {
     loadSample();
+    // browser preview only: lets the UI tests read what a note would save
+    (window as unknown as { __notes: typeof notes }).__notes = notes;
     return;
   }
   const c = await loadDoc<{ root: string; dirs: string[]; files: Record<string, { mtime: number; size: number; text: string }> }>("notes-cache");
