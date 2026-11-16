@@ -19,7 +19,7 @@ laptop (NVIDIA GPU) through `./install.sh`.
   app id / Hyprland class and the webview data dir are both `studydesk`.
 - App data: JSON files in `~/.local/share/studydesk/`, written atomically from Rust. Separate per
   machine; export/import JSON moves it between PC and laptop.
-- Fonts bundled through `@fontsource/*` (Outfit, DM Sans). The app must work offline.
+- Font bundled through `@fontsource/atkinson-hyperlegible-next`. The app must work offline.
 - Bundling is off (`bundle.active: false`); `install.sh` builds with `tauri build --no-bundle` and
   installs the binary, icon and `.desktop` file into `~/.local`.
 - NVIDIA: `install.sh` detects the driver and puts `WEBKIT_DISABLE_DMABUF_RENDERER=1` in the launcher.
@@ -27,7 +27,7 @@ laptop (NVIDIA GPU) through `./install.sh`.
 ## Design (decided: soft, fluid pastel)
 
 She dropped neo-brutalism entirely (first softened it, then switched). Do not bring back ink
-borders, hard shadows, window-dot header strips, hatched fills, Unbounded or Space Mono.
+borders, hard shadows, window-dot header strips, hatched fills, Unbounded or Space Mono. (Outfit + DM Sans were tried and replaced too.)
 Everything lives in `src/styles/tokens.css`:
 
 - No outlines. Soft blurred warm shadows, 26px card radius, pill buttons, gentle gradients and
@@ -37,7 +37,8 @@ Everything lives in `src/styles/tokens.css`:
   white #FFFDFB cards, charcoal #3B3033 text and primary buttons, mauve #6F6164 muted text.
 - Meaning: rose = exams/alerts/overdue, sage = done/study/go, peach and butter = neutral accents.
 - Card tones cycle through `TONES` (rose, sage, peach, butter) using the `--g-*` gradients.
-- Fonts: Outfit 400–600 for headings and big numbers (sentence case), DM Sans for body and labels.
+- Font: Atkinson Hyperlegible Next everywhere (she asked for something clean and easy on the
+  eyes): 600 for headings and big numbers in sentence case, 400–500 for body and labels.
 - Layout: backdrop is a soft rose-to-sage gradient; the sidebar sits directly on it and the active
   nav item is a tab that flows into the big rounded ivory main panel. Sidebar has the streak panel
   at the bottom. Main card grid plus right column (countdown, current block, mini month, today,
