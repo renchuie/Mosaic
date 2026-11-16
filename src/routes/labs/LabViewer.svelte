@@ -2,15 +2,18 @@
   import { onDestroy, onMount } from "svelte";
   import Icon from "../../lib/components/Icon.svelte";
   import { labUrl } from "../../lib/labStorage";
-  import { folderHref, parentRel, progressOf, recordOpen, refreshProgress, type Item } from "../../lib/stores/labs.svelte";
+  import { folderHref, parentRel, progressOf, recordOpen, setOpenLab, type Item } from "../../lib/stores/labs.svelte";
   import { inTauri } from "../../lib/tauri";
 
   let { item }: { item: Item } = $props();
   let frame = $state<HTMLIFrameElement>();
   const p = $derived(progressOf(item.lab));
 
-  onMount(() => void recordOpen(item.rel));
-  onDestroy(() => refreshProgress());
+  onMount(() => {
+    setOpenLab(item.lab);
+    recordOpen(item.rel);
+  });
+  onDestroy(() => setOpenLab(null));
 
   function reload() {
     if (frame) frame.src = labUrl(item.rel);

@@ -1,7 +1,9 @@
-// Study Desk: Tauri shell. Modules: store (JSON app data), labs (scanner + /__labs/ files).
+// Study Desk: Tauri shell. Modules: store (local JSON app data), labs (scanner + /__labs/ files),
+// sync (per-machine files in a Google Drive folder).
 
 mod labs;
 mod store;
+mod sync;
 
 /// Lets a test run start on a given page (STUDYDESK_ROUTE=labs) and print checks to stdout.
 #[tauri::command]
@@ -38,6 +40,9 @@ fn main() {
             store::save_doc,
             labs::scan_labs,
             labs::open_in_system,
+            sync::machine_name,
+            sync::sync_write,
+            sync::sync_read,
             debug_route,
             debug_log,
             debug_quit,

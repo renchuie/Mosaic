@@ -8,17 +8,20 @@ laptop (NVIDIA GPU) through `./install.sh`.
 
 - Build in small phases she can run and look at. After each phase give the exact commands to run
   and a checklist of what to check.
-- Before installing any system package or creating any Google Cloud resource, say exactly what and why.
+- Before installing any system package, say exactly what and why.
 - Never edit her Hyprland config. Offer snippets (`packaging/hyprland-rules.conf`) she pastes herself.
-- Tokens, OAuth client IDs and personal data never go in the repo.
+- Personal data never goes in the repo.
 
 ## Stack (decided)
 
 - Tauri v2 (Rust) + Svelte 5 (runes) + Vite + TypeScript. Plain CSS with variables, no UI framework.
 - App name `studydesk`, shown as "Study Desk". Tauri identifier is `studydesk`, so the Wayland
   app id / Hyprland class and the webview data dir are both `studydesk`.
-- App data: JSON files in `~/.local/share/studydesk/`, written atomically from Rust. Separate per
-  machine; export/import JSON moves it between PC and laptop.
+- App data: JSON files in `~/.local/share/studydesk/`, written atomically from Rust. Anything that
+  should follow her between PC and laptop goes in the synced store (see "Sync" below), not in its
+  own JSON file. Machine-only data (settings, scan cache, labs tree) stays local.
+- No Google APIs at all. She decided against Google Calendar: the calendar is local and syncs
+  through the Drive folder like everything else. Drive is only ever touched as a mounted folder.
 - Font bundled through `@fontsource/atkinson-hyperlegible-next`. The app must work offline.
 - Bundling is off (`bundle.active: false`); `install.sh` builds with `tauri build --no-bundle` and
   installs the binary, icon and `.desktop` file into `~/.local`.
@@ -80,17 +83,48 @@ Everything lives in `src/styles/tokens.css`:
 ## Testing without a screen
 
 `STUDYDESK_ROUTE=labs/<path>` opens a page at start; `STUDYDESK_ROUTE=selftest` prints the storage
-probe, scanned labs and stored progress to stdout, then exits. With Xvfb:
+probe, scanned labs, stored progress and sync results to stdout, then exits. Two "machines": run a
+second copy with `HOME=/tmp/homeB` (symlink `/tmp/homeB/GoogleDrive` to the real one). Pure
+modules (`labMerge.ts`, `calendar.ts`) import nothing, so they can be tested with plain `node`. With Xvfb:
 `DISPLAY=:99 STUDYDESK_ROUTE=selftest ./src-tauri/target/release/studydesk`.
+
+## Sync between PC and laptop (Phase 3, built and tested)
+
+- Sync folder (Settings, default on): `~/GoogleDrive/Pharmacy School/Study Lab/Study Desk Sync/`.
+  Each machine writes ONLY its own file `<hostname>-<4 hex>.json` (id kept in local `machine.json`)
+  and reads the others, so rclone never sees two writers on one file. Writes are temp + rename.
+- `src-tauri/src/sync.rs` refuses to create the sync folder when its parent is missing (Drive not
+  mounted), so nothing is ever written under an empty mount point. The app keeps working locally.
+- `src/lib/stores/synced.svelte.ts`: named collections of records `{u: changed ms, m: machine,
+  x?: deleted, v}`; merge keeps the newer record (tie: machine id). Deletes are tombstones.
+  Local copy in `synced.json`. Sync on start, window focus, every 2 min, and 4 s after a change.
+  `seed()` writes starter records stamped u=1 so any real edit on any machine wins.
+- Collections: `events` (calendar), `folders` (lab folder links), `labOpens`, `days` (streak),
+  `lab` (one record per `recallLab.*` localStorage key). Phase 2's `labs-folders.json` and
+  `labs-activity.json` are migrated once into the store (old files left in place, unused).
+- Lab progress merge (`src/lib/labMerge.ts`, pure): `best` = max per section, `known` = union,
+  `sims` = union by `d`, `missed` and all other keys from the newer side. Local changes are caught
+  from `storage` events and at each sync; the lab open in the viewer is never overwritten while open.
+- Tested with two app instances (separate HOME, shared folder): migration, first pull on a new
+  machine, and lab progress studied on one machine appearing on the other.
+
+## Calendar (Phase 3, built)
+
+- Local events (`src/lib/calendar.ts`, pure; store in `src/lib/stores/calendar.svelte.ts`):
+  title, type (class / exam / study / other), course, day, all-day or start–end, place, notes,
+  weekly repeat (weekdays + last day) with per-day skips. Dates are local "YYYY-MM-DD" strings.
+- Page (`src/routes/Calendar.svelte`): Week grid (click empty space to add, overlaps share lanes,
+  now line), Next 14 days agenda, Exams. One shared editor dialog (`EventEditor.svelte`) opened
+  from the calendar or the dashboard. Editing a repeating event changes the whole series; delete
+  offers "only this day" or "every repeat".
+- Exams = type Exam, or type Other with an exam keyword in the title (Settings, default "Exam"),
+  plus Recall Lab folders with an exam date (skipped when a calendar exam is on the same day).
+  Study blocks and classes never count, so "Exam 4 sim run" is not an exam.
+- Ther IV Exam 4 (2026-11-17) and Exam 5 (2026-12-04) are seeded as exam events.
+- Dashboard: countdown, mini month, next-exam tile and the Today timeline all read the calendar.
 
 ## Other decisions
 
-- Google Calendar: OAuth installed-app loopback flow with PKCE in Rust. Tokens in the system keyring
-  (Secret Service), falling back to a `0600` file in the data dir. Client ID kept in the data dir.
-  She does the Cloud console clicks herself from a step-by-step walkthrough.
-- Calendar page: week grid with coloured blocks and a create popover (study blocks written to a
-  calendar she chooses), 14-day agenda, exams tab. Exams = events whose title matches the exam
-  keywords (default "Exam") plus manually added ones.
 - Tasks: BOARD view, switchable between columns by status and columns by course, and she can add her
   own categories/columns. Fields: course, due date, priority, done. Daily study plan with ordered
   blocks, durations, start/pause timer that survives page changes, check-off.
@@ -99,15 +133,15 @@ probe, scanned labs and stored progress to stdout, then exits. With Xvfb:
   needed on remaining items to hit a target. Fall 2026 courses: Therapeutics IV, Pharmacy Law,
   Clinical Pharmacogenetics, Advanced Pharmacy Practice (group innovation project), Clinical
   Applications. Also track Top 200/300 drug quizzes.
-- Settings: name, labs folder and scan depth exist (Phase 2); calendars shown, exam keywords and
-  JSON export/import come in Phase 6.
+- Settings: name, labs folder, scan depth, exam keywords, sync folder and status exist; JSON
+  export/import comes in Phase 6 (sync covers moving data between machines).
 
 ## Phases
 
 1. Shell, design system, dashboard on sample data, launcher entry, install script. DONE
    (restyled once to the soft pastel look)
 2. Recall Labs: folder dashboards, scanner + cache, in-app viewer, real progress on the dashboard. DONE
-3. Google Calendar: walkthrough, connect, agenda, week grid, exams, countdowns, study blocks.
+3. Local calendar (week, agenda, exams) and sync through the Drive folder. DONE
 4. Tasks board and daily study plan with timer; activity heatmap.
 5. Courses and grades; Top 200/300 tracker.
 6. Settings, JSON backup, polish.

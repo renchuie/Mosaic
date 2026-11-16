@@ -4,10 +4,11 @@
   import Dashboard from "./routes/Dashboard.svelte";
   import Labs from "./routes/Labs.svelte";
   import Settings from "./routes/Settings.svelte";
+  import Calendar from "./routes/Calendar.svelte";
+  import EventEditor from "./lib/components/EventEditor.svelte";
   import ComingSoon from "./routes/ComingSoon.svelte";
 
   const soon = {
-    calendar: { title: "Calendar", phase: 3, text: "Week view, 14-day agenda, exams, and study blocks written to Google Calendar." },
     tasks: { title: "Tasks", phase: 4, text: "Boards by status or course, your own categories, and the daily study plan with a timer." },
     courses: { title: "Courses", phase: 5, text: "Assessments, current grade, what you need on what's left, and Top 200/300 quizzes." },
   } as const;
@@ -22,6 +23,8 @@
       <Dashboard />
     {:else if route.page === "labs"}
       <Labs />
+    {:else if route.page === "calendar"}
+      <Calendar />
     {:else if route.page === "settings"}
       <Settings />
     {:else}
@@ -29,6 +32,7 @@
     {/if}
   </main>
 </div>
+<EventEditor />
 
 <style>
   .shell {

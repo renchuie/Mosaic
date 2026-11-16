@@ -3,16 +3,29 @@
   import { labs, refreshProgress, rescan } from "../lib/stores/labs.svelte";
   import { DEFAULT_SETTINGS, saveSettings, settings } from "../lib/stores/settings.svelte";
   import { inTauri } from "../lib/tauri";
+  import { sync, syncNow } from "../lib/stores/synced.svelte";
 
   let name = $state(settings.name);
   let root = $state(settings.labsRoot);
   let depth = $state(settings.scanDepth);
+  let keywords = $state(settings.examKeywords);
+  let syncOn = $state(settings.syncEnabled);
+  let syncDir = $state(settings.syncDir);
   let saved = $state(false);
 
   async function save(e: SubmitEvent) {
     e.preventDefault();
     const rootChanged = root.trim() !== settings.labsRoot || depth !== settings.scanDepth;
-    await saveSettings({ name: name.trim() || DEFAULT_SETTINGS.name, labsRoot: root.trim() || DEFAULT_SETTINGS.labsRoot, scanDepth: depth });
+    const syncChanged = syncOn !== settings.syncEnabled || syncDir.trim() !== settings.syncDir;
+    await saveSettings({
+      name: name.trim() || DEFAULT_SETTINGS.name,
+      labsRoot: root.trim() || DEFAULT_SETTINGS.labsRoot,
+      scanDepth: depth,
+      examKeywords: keywords.trim() || DEFAULT_SETTINGS.examKeywords,
+      syncEnabled: syncOn,
+      syncDir: syncDir.trim() || DEFAULT_SETTINGS.syncDir,
+    });
+    if (syncChanged) void syncNow();
     saved = true;
     setTimeout(() => (saved = false), 2000);
     if (rootChanged) await rescan();
@@ -70,11 +83,55 @@
       <input type="number" min="1" max="8" bind:value={depth} />
       <span class="hint muted">Lower is faster on the Drive mount.</span>
     </label>
+    <label class="field">
+      <span class="label">Words that mark an exam</span>
+      <input bind:value={keywords} spellcheck="false" />
+      <span class="hint muted">Separate with commas, e.g. “Exam, Quiz, Final”. Events of type Other with these words count as exams.</span>
+    </label>
+
+    <h2 class="h2">Sync between your computers</h2>
+    <label class="check"><input type="checkbox" bind:checked={syncOn} /> Sync through Google Drive</label>
+    <label class="field">
+      <span class="label">Sync folder</span>
+      <input bind:value={syncDir} spellcheck="false" disabled={!syncOn} />
+      <span class="hint muted">Use the same folder on your PC and laptop. Each computer writes its own file here and reads the others.</span>
+    </label>
     <div class="row">
       <button class="btn primary" type="submit">Save</button>
       {#if saved}<span class="muted">Saved</span>{/if}
     </div>
   </form>
+
+  <section class="card">
+    <h2 class="h2">Sync status</h2>
+    {#if !settings.syncEnabled}
+      <p class="muted">Sync is off. Everything stays on this computer.</p>
+    {:else}
+      <p class:bad={sync.status === "error"}>
+        {#if sync.status === "error"}
+          Couldn’t sync: {sync.error}
+        {:else if sync.status === "syncing"}
+          Syncing…
+        {:else if sync.lastSync}
+          Last synced {new Date(sync.lastSync).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}.
+        {:else}
+          Not synced yet.
+        {/if}
+      </p>
+      <p class="muted">
+        This computer: <b>{sync.host || "—"}</b>.
+        {#if sync.others.length}
+          Also syncing: {sync.others.map((o) => `${o.host} (last saved ${new Date(o.savedAt).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })})`).join(", ")}.
+        {:else}
+          No other computer has synced yet.
+        {/if}
+      </p>
+      <p class="muted hint">Syncs your calendar, Recall Lab progress, folder links and study days. Changes made on the other computer can take a minute or two to appear, depending on rclone.</p>
+      <div class="row">
+        <button class="btn" type="button" onclick={() => syncNow()} disabled={!inTauri || sync.status === "syncing"}>Sync now</button>
+      </div>
+    {/if}
+  </section>
 
   <section class="card">
     <h2 class="h2">Lab storage</h2>
@@ -157,6 +214,28 @@
     white-space: pre-wrap;
     word-break: break-all;
     font-size: 13px;
+  }
+  .check {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    min-height: var(--hit);
+    cursor: pointer;
+  }
+  .check input {
+    width: 20px;
+    height: 20px;
+    min-height: 0;
+    accent-color: var(--sage-deep);
+  }
+  input:disabled {
+    opacity: 0.6;
+  }
+  .bad {
+    background: var(--rose-soft);
+    color: #8f3b45;
+    border-radius: var(--radius-sm);
+    padding: 10px 14px;
   }
   .result {
     background: var(--sage-soft);

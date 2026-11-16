@@ -5,14 +5,14 @@
   import { TONES, type Tone } from "../../lib/sample/data";
   import { settings } from "../../lib/stores/settings.svelte";
   import {
-    folderHref, folderStats, inherited, labHref, labs, labsIn, rescan, setFolderMeta, type Folder,
+    folderHref, folderMeta, folderStats, inherited, labHref, labs, labsIn, rescan, setFolderMeta, type Folder,
   } from "../../lib/stores/labs.svelte";
   import { invoke, inTauri } from "../../lib/tauri";
 
   let { folder }: { folder: Folder } = $props();
 
   const isRoot = $derived(folder.rel === "");
-  const meta = $derived(labs.folders[folder.rel] ?? {});
+  const meta = $derived(folderMeta(folder.rel));
   const course = $derived(meta.course ?? inherited(folder.rel, "course"));
   const tone = $derived<Tone>(meta.tone ?? inherited(folder.rel, "tone") ?? "rose");
   const stats = $derived(folderStats(folder));
@@ -50,7 +50,7 @@
     const d = Math.round(h / 24);
     return d === 1 ? "Opened yesterday" : `Opened ${d} days ago`;
   };
-  const subTone = (f: Folder, i: number): Tone => labs.folders[f.rel]?.tone ?? TONES[i % TONES.length];
+  const subTone = (f: Folder, i: number): Tone => folderMeta(f.rel).tone ?? TONES[i % TONES.length];
 </script>
 
 <div class="folder">

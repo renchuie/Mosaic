@@ -1,11 +1,13 @@
-// Recall Labs: the scanned folder tree, each lab's progress (read through the
-// same-origin localStorage), when each lab was last opened, and the per-folder settings
-// (course, exam date, colour) that turn a folder into a dashboard.
+// Recall Labs: the scanned folder tree (local to this machine) and each lab's
+// progress (same-origin localStorage). When each lab was last opened, study
+// days, and the per-folder settings (course, exam date, colour) that turn a
+// folder into a dashboard live in the synced store, so they follow you.
 import { readAll } from "../labStorage";
 import { EMPTY, combine, parseProgress, type Progress } from "../progress";
 import type { Tone } from "../sample/data";
 import { sampleProgress, sampleTree } from "../sample/labs";
 import { inTauri, invoke, loadDoc, saveDoc } from "../tauri";
+import { captureLabs, db, entries, get, onMerged, put, sync } from "./synced.svelte";
 import { settings } from "./settings.svelte";
 
 export type LabMeta = { title: string; version: string; slug: string; slug_guessed: boolean };
@@ -15,7 +17,7 @@ type ScanResult = { root: string; tree: Folder | null; error: string | null; sca
 
 export type FolderMeta = { course?: string; examDate?: string; tone?: Tone };
 export type LabRef = { item: Item; lab: LabMeta; folder: Folder; progress: Progress; lastOpened: number };
-type Activity = { labs: Record<string, { last: number; opens: number }>; days: string[] };
+type LabOpen = { last: number; opens: number };
 
 const state = $state({
   tree: null as Folder | null,
@@ -26,8 +28,6 @@ const state = $state({
   /** raw localStorage values by key */
   storage: {} as Record<string, string>,
   storageError: null as string | null,
-  activity: { labs: {}, days: [] } as Activity,
-  folders: {} as Record<string, FolderMeta>,
 });
 export const labs = state;
 
@@ -39,22 +39,24 @@ export async function initLabs() {
     state.tree = sampleTree;
     state.root = settings.labsRoot;
     state.storage = sampleProgress;
-    state.activity = { labs: { "Ther IV/Exam 5/Ther IV Exam 5 Recall Lab.html": { last: Date.now() - 3.6e6, opens: 9 } }, days: lastNDays([0, 1, 2, 4, 5, 6]) };
-    state.folders = { "Ther IV": { course: "Therapeutics IV", tone: "rose" }, "Ther IV/Exam 5": { course: "Therapeutics IV", examDate: "2026-12-04", tone: "sage" }, "Ther IV/Exam 4": { course: "Therapeutics IV", examDate: "2026-11-17", tone: "peach" } };
+    const rec = (v: unknown) => ({ u: 1, m: "preview", v });
+    Object.assign(db.colls, {
+      labOpens: { "Ther IV/Exam 5/Ther IV Exam 5 Recall Lab.html": rec({ last: Date.now() - 3.6e6, opens: 9 }) },
+      days: Object.fromEntries(lastNDays([0, 1, 2, 4, 5, 6]).map((d) => [d, rec(1)])),
+      folders: {
+        "Ther IV": rec({ course: "Therapeutics IV", tone: "rose" }),
+        "Ther IV/Exam 5": rec({ examDate: "2026-12-04", tone: "sage" }),
+        "Ther IV/Exam 4": rec({ examDate: "2026-11-17", tone: "peach" }),
+      },
+    });
     return;
   }
-  const [cached, activity, folders] = await Promise.all([
-    loadDoc<ScanResult>("labs-tree"),
-    loadDoc<Activity>("labs-activity"),
-    loadDoc<Record<string, FolderMeta>>("labs-folders"),
-  ]);
+  const cached = await loadDoc<ScanResult>("labs-tree");
   if (cached?.tree) {
     state.tree = cached.tree;
     state.root = cached.root;
     state.scannedAt = cached.scanned_at;
   }
-  if (activity) state.activity = { labs: activity.labs ?? {}, days: activity.days ?? [] };
-  if (folders) state.folders = folders;
   refreshProgress();
   void rescan();
   // A lab saving progress in the viewer fires this in the dashboard document.
@@ -62,6 +64,18 @@ export async function initLabs() {
     if (e.key === null || e.key.startsWith("recallLab.")) refreshProgress();
   });
   window.addEventListener("focus", () => refreshProgress());
+  onMerged(() => refreshProgress());
+}
+
+/** One-time move of Phase 2 files (labs-folders.json, labs-activity.json) into the synced store. */
+export async function migrateLabDocs(add: (coll: string, id: string, v: unknown) => void) {
+  const [folders, activity] = await Promise.all([
+    loadDoc<Record<string, FolderMeta>>("labs-folders"),
+    loadDoc<{ labs?: Record<string, LabOpen>; days?: string[] }>("labs-activity"),
+  ]);
+  for (const [rel, m] of Object.entries(folders ?? {})) add("folders", rel, m);
+  for (const [rel, o] of Object.entries(activity?.labs ?? {})) add("labOpens", rel, o);
+  for (const d of activity?.days ?? []) add("days", d, 1);
 }
 
 function lastNDays(offsets: number[]) {
@@ -112,17 +126,33 @@ export function progressOf(lab: LabMeta | null): Progress {
   return parseProgress(state.storage[`recallLab.${lab.slug}.v3`]);
 }
 
-export async function recordOpen(rel: string) {
-  const prev = state.activity.labs[rel];
-  state.activity.labs[rel] = { last: Date.now(), opens: (prev?.opens ?? 0) + 1 };
-  const today = dayKey();
-  if (!state.activity.days.includes(today)) state.activity.days = [...state.activity.days, today].slice(-400);
-  await saveDoc("labs-activity", $state.snapshot(state.activity));
+export function recordOpen(rel: string) {
+  const prev = get<LabOpen>("labOpens", rel);
+  put("labOpens", rel, { last: Date.now(), opens: (prev?.opens ?? 0) + 1 });
+  markStudyDay();
 }
 
-export async function setFolderMeta(rel: string, patch: Partial<FolderMeta>) {
-  state.folders[rel] = { ...state.folders[rel], ...patch };
-  await saveDoc("labs-folders", $state.snapshot(state.folders));
+/** A day counts toward the streak (opened a lab; Phase 4 adds study-block check-offs). */
+export function markStudyDay() {
+  const today = dayKey();
+  if (!get("days", today)) put("days", today, 1);
+}
+
+/** While a lab is open its progress is not overwritten by sync; on leaving, capture and push it. */
+export function setOpenLab(lab: LabMeta | null) {
+  sync.openLabKey = lab ? `recallLab.${lab.slug}.v3` : null;
+  if (!lab) {
+    captureLabs();
+    refreshProgress();
+  }
+}
+
+export const folderMeta = (rel: string): FolderMeta => get<FolderMeta>("folders", rel) ?? {};
+
+export function setFolderMeta(rel: string, patch: Partial<FolderMeta>) {
+  const next: FolderMeta = { ...folderMeta(rel), ...patch };
+  for (const k of Object.keys(next) as (keyof FolderMeta)[]) if (next[k] === undefined) delete next[k];
+  put("folders", rel, next);
 }
 
 // ---- tree helpers ---------------------------------------------------------
@@ -148,7 +178,7 @@ export function labsIn(folder: Folder | null): LabRef[] {
   const walk = (f: Folder) => {
     for (const item of f.items) {
       if (item.kind === "lab" && item.lab) {
-        out.push({ item, lab: item.lab, folder: f, progress: progressOf(item.lab), lastOpened: state.activity.labs[item.rel]?.last ?? 0 });
+        out.push({ item, lab: item.lab, folder: f, progress: progressOf(item.lab), lastOpened: get<LabOpen>("labOpens", item.rel)?.last ?? 0 });
       }
     }
     f.folders.forEach(walk);
@@ -166,7 +196,7 @@ export function folderStats(folder: Folder | null) {
 export function inherited<K extends keyof FolderMeta>(rel: string, key: K): FolderMeta[K] | undefined {
   let r: string | null = rel;
   while (r !== null) {
-    const v = state.folders[r]?.[key];
+    const v = folderMeta(r)[key];
     if (v) return v;
     r = r === "" ? null : parentRel(r);
   }
@@ -175,14 +205,14 @@ export function inherited<K extends keyof FolderMeta>(rel: string, key: K): Fold
 
 /** Folders that have an exam date, for the countdowns. */
 export function folderExams() {
-  return Object.entries(state.folders)
+  return entries<FolderMeta>("folders")
     .filter(([, m]) => m.examDate)
     // "Ther IV/Exam 5" → "Ther IV Exam 5": the folder name alone is often just "Exam 5".
     .map(([rel, m]) => ({ rel, title: rel.split("/").slice(-2).join(" ") || "Exam", course: m.course ?? inherited(rel, "course") ?? "", date: `${m.examDate}T09:00` }));
 }
 
 export function streakInfo() {
-  const days = new Set(state.activity.days);
+  const days = new Set(entries("days").map(([d]) => d));
   let n = 0;
   const d = new Date();
   if (!days.has(dayKey(d))) d.setDate(d.getDate() - 1);

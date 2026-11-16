@@ -4,12 +4,19 @@ export type Settings = {
   name: string;
   labsRoot: string;
   scanDepth: number;
+  /** comma-separated words that mark a calendar event as an exam */
+  examKeywords: string;
+  syncEnabled: boolean;
+  syncDir: string;
 };
 
 export const DEFAULT_SETTINGS: Settings = {
   name: "Jazmine",
   labsRoot: "~/GoogleDrive/Pharmacy School/Study Lab/Recall Labs",
   scanDepth: 4,
+  examKeywords: "Exam",
+  syncEnabled: true,
+  syncDir: "~/GoogleDrive/Pharmacy School/Study Lab/Study Desk Sync",
 };
 
 export const settings = $state<Settings>({ ...DEFAULT_SETTINGS });

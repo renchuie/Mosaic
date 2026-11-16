@@ -123,3 +123,31 @@ a {
     transition: none !important;
   }
 }
+
+/* calendar event kinds */
+.k-class { background: var(--g-butter); }
+.k-exam { background: var(--g-rose); }
+.k-study { background: var(--g-sage); }
+.k-other { background: var(--g-peach); }
+
+/* form fields */
+.field {
+  display: grid;
+  gap: 6px;
+}
+.input {
+  width: 100%;
+  min-width: 0;
+  min-height: var(--hit);
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: var(--panel);
+  padding: 10px 14px;
+  font: inherit;
+  color: inherit;
+}
+.btn:disabled {
+  opacity: 0.6;
+  cursor: default;
+  transform: none;
+}

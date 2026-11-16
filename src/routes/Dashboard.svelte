@@ -3,31 +3,20 @@
   import LabCard from "../lib/components/LabCard.svelte";
   import Wave from "../lib/components/Wave.svelte";
   import MiniMonth from "../lib/components/MiniMonth.svelte";
-  import { TONES, exams as seedExams, focusBlock, today } from "../lib/sample/data";
+  import { TONES, focusBlock, today } from "../lib/sample/data";
+  import { fmtTime, fromKey, todayKey } from "../lib/calendar";
+  import { editEvent, exams, newEvent, occ } from "../lib/stores/calendar.svelte";
   import { settings } from "../lib/stores/settings.svelte";
-  import { folderExams, inherited, labHref, labs, labsIn, streakInfo } from "../lib/stores/labs.svelte";
+  import { inherited, labHref, labs, labsIn, streakInfo } from "../lib/stores/labs.svelte";
 
   const now = new Date();
-  const DAY = 86_400_000;
-  const startOfDay = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
-  const daysUntil = (iso: string) => Math.round((startOfDay(new Date(iso)) - startOfDay(now)) / DAY);
   const when = (n: number) => (n === 0 ? "Today" : n === 1 ? "Tomorrow" : `${n} days`);
 
-  // Your two known exams plus any folder you gave an exam date (same title wins once).
-  const exams = $derived.by(() => {
-    const seen = new Set<string>();
-    return [...folderExams(), ...seedExams].filter((e) => {
-      const key = e.date.slice(0, 10);
-      if (seen.has(key)) return false;
-      seen.add(key);
-      return true;
-    });
-  });
-  const upcoming = $derived(exams
-    .map((e) => ({ ...e, days: daysUntil(e.date) }))
-    .filter((e) => e.days >= 0)
-    .sort((a, b) => a.days - b.days));
+  const allExams = $derived(exams());
+  const upcoming = $derived(allExams.filter((e) => e.days >= 0));
   const next = $derived(upcoming[0]);
+  const todayK = todayKey();
+  const todays = $derived(occ(todayK, todayK));
 
   let tasks = $state(today.tasks.map((t) => ({ ...t })));
   const dueLeft = $derived(tasks.filter((t) => !t.done).length);
@@ -45,7 +34,7 @@
   const toneFor = (rel: string, i: number) => inherited(rel, "tone") ?? TONES[i % TONES.length];
 
   const hhmm = `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
-  const nowIndex = today.events.findIndex((e) => e.end > hhmm);
+  const nowIndex = $derived(todays.findIndex((o) => !o.ev.allDay && (o.ev.end ?? "") > hhmm));
   const fmt = (t: string) => {
     const [h, m] = t.split(":").map(Number);
     return `${((h + 11) % 12) + 1}:${String(m).padStart(2, "0")}`;
@@ -163,12 +152,12 @@
         <h2 class="h2">Countdown</h2>
       </div>
       <ul class="countdowns">
-        {#each upcoming as e, i}
+        {#each upcoming.slice(0, 4) as e, i (e.key)}
           <li class:first={i === 0}>
             <span class="c-days display">{e.days}<small>{e.days === 1 ? "day" : "days"}</small></span>
             <span class="c-info">
               <b>{e.title}</b>
-              <span class="muted">{new Date(e.date).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })}</span>
+              <span class="muted">{fromKey(e.date).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })}</span>
             </span>
           </li>
         {/each}
@@ -186,28 +175,33 @@
     </section>
 
     <section class="card">
-      <MiniMonth marked={exams.map((e) => e.date.slice(0, 10))} />
+      <MiniMonth marked={allExams.map((e) => e.date)} />
     </section>
 
     <section class="card">
       <div class="sec-head">
         <h2 class="h2">Today</h2>
-        <span class="tag">{today.events.length} events</span>
+        <a class="link" href="#/calendar">Calendar <Icon name="arrow" size={14} /></a>
       </div>
-      <ol class="timeline">
-        {#each today.events as e, i}
-          {#if i === nowIndex}
-            <li class="now" aria-label="Now"><span>{fmt(hhmm)}</span></li>
-          {/if}
-          <li class="ev" class:past={nowIndex === -1 || i < nowIndex}>
-            <span class="time">{fmt(e.start)}</span>
-            <span class="ev-card {e.kind === 'study' ? 'study' : ''}">
-              <b>{e.title}</b>
-              <span class="muted">{fmt(e.start)} – {fmt(e.end)}</span>
-            </span>
-          </li>
-        {/each}
-      </ol>
+      {#if todays.length}
+        <ol class="timeline">
+          {#each todays as o, i (o.id)}
+            {#if i === nowIndex}
+              <li class="now" aria-label="Now"><span>{fmt(hhmm)}</span></li>
+            {/if}
+            <li class="ev" class:past={!o.ev.allDay && (nowIndex === -1 || i < nowIndex)}>
+              <span class="time">{o.ev.allDay ? "All day" : fmt(o.ev.start ?? "00:00")}</span>
+              <button type="button" class="ev-card k-{o.ev.kind}" onclick={() => editEvent(o.id, o.date)}>
+                <b>{o.ev.title}</b>
+                <span class="muted">{o.ev.allDay ? o.ev.course ?? "" : `${fmtTime(o.ev.start)} – ${fmtTime(o.ev.end)}`}</span>
+              </button>
+            </li>
+          {/each}
+        </ol>
+      {:else}
+        <p class="muted">Nothing on your calendar today.</p>
+      {/if}
+      <button type="button" class="btn quiet add" onclick={() => newEvent()}>+ Add event</button>
     </section>
 
     <section class="card">
@@ -512,13 +506,17 @@
   }
   .ev-card {
     display: grid;
+    width: 100%;
+    border: 0;
+    text-align: left;
+    cursor: pointer;
     padding: 9px 14px;
     border-radius: var(--radius-sm);
-    background: var(--butter-soft);
     font-size: 14.5px;
   }
-  .ev-card.study {
-    background: var(--sage-soft);
+  .add {
+    margin-top: 12px;
+    width: 100%;
   }
   .ev-card b {
     font-weight: 500;
