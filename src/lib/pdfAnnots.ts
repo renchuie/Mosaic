@@ -1,4 +1,4 @@
-// Annotations Study Desk saves INTO the PDF, as standard PDF annotations (Highlight,
+// Annotations Mosaic saves INTO the PDF, as standard PDF annotations (Highlight,
 // Underline, StrikeOut, Square, Ink, Text) with appearance streams, so any PDF reader
 // shows them too. Ours are marked with /NM "sd-…" and carry our own data in /SDData
 // (JSON), so they can be read back exactly and replaced on every save; anything else in
@@ -187,7 +187,7 @@ const SUBTYPE: Record<AnnotKind, string> = { highlight: "Highlight", underline: 
 /** The PDF with exactly `annots` as our annotations (old ones replaced). */
 export async function writeAnnots(bytes: Uint8Array, annots: PdfAnnot[]): Promise<Uint8Array> {
   const doc = await load(bytes);
-  if (doc.isEncrypted) throw new Error("This PDF is encrypted, so Study Desk can't save into it.");
+  if (doc.isEncrypted) throw new Error("This PDF is encrypted, so Mosaic can't save into it.");
   strip(doc);
   const ctx = doc.context;
   const pages = doc.getPages();
@@ -207,7 +207,7 @@ export async function writeAnnots(bytes: Uint8Array, annots: PdfAnnot[]): Promis
       C: rgb(a.color),
       F: 4, // print
       NM: PDFString.of(a.id),
-      T: PDFHexString.fromText("Study Desk"),
+      T: PDFHexString.fromText("Mosaic"),
       M: PDFString.fromDate(new Date(a.updated ?? a.created ?? now)),
       CreationDate: PDFString.fromDate(new Date(a.created ?? now)),
       Contents: PDFHexString.fromText(a.comment || (a.kind === "note" ? "" : (a.text ?? ""))),

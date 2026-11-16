@@ -1,4 +1,4 @@
-// Study Desk: Tauri shell. Modules: store (local JSON app data), labs (scanner + /__labs/ files),
+// Mosaic (internal id studydesk): Tauri shell. Modules: store (local JSON app data), labs (scanner + /__labs/ files),
 // sync (per-machine files in a Google Drive folder), notes, pdfs.
 
 mod labs;
@@ -64,5 +64,5 @@ fn main() {
             debug_quit,
         ])
         .run(tauri::generate_context!())
-        .expect("error while running Study Desk");
+        .expect("error while running Mosaic");
 }

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Study Desk installer for Arch Linux. Same script on the PC and the laptop.
+# Mosaic installer for Arch Linux. Same script on the PC and the laptop.
 # Installs only into your home directory, except for the pacman step,
 # which lists the packages and asks before doing anything.
 set -euo pipefail
@@ -65,4 +65,4 @@ command -v update-desktop-database >/dev/null && update-desktop-database "$APPS"
 command -v gtk-update-icon-cache >/dev/null && gtk-update-icon-cache -qtf "$ICONS" || true
 
 echo
-echo "Installed. Open 'Study Desk' from your launcher, or run: $BIN"
+echo "Installed. Open 'Mosaic' from your launcher, or run: $BIN"

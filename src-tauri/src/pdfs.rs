@@ -171,7 +171,7 @@ pub async fn pdfs_write(state: State<'_, PdfsState>, request: Request<'_>) -> Re
     .map_err(|e| e.to_string())?
 }
 
-/// Put the backed-up original back (annotations made in Study Desk are gone after this).
+/// Put the backed-up original back (annotations made in Mosaic are gone after this).
 #[tauri::command]
 pub fn pdfs_restore(state: State<'_, PdfsState>, rel: String) -> Result<u64, String> {
     let root = root_of(&state)?;

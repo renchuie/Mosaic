@@ -18,7 +18,7 @@
 <aside class="sidebar">
   <div class="brand">
     <span class="mark" aria-hidden="true">✦</span>
-    <span class="display name">Study Desk</span>
+    <span class="display name">Mosaic</span>
   </div>
 
   <nav aria-label="Main">

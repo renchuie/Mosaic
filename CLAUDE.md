@@ -1,6 +1,7 @@
-# Study Desk
+# Mosaic (formerly Study Desk)
 
-Personal student dashboard for Jazmine (pharmacy student). Desktop app for Arch Linux + Hyprland
+**Mosaic: your student life in full view.** Personal app for Jazmine (pharmacy student), for her
+own use only. Desktop app for Arch Linux + Hyprland
 (Wayland, end-4 illogical-impulse dotfiles). Must install identically on her PC (AMD GPU) and
 laptop (NVIDIA GPU) through `./install.sh`.
 
@@ -33,8 +34,11 @@ The full vision, principles and what she likes or dislikes in each inspiration a
 ## Stack (decided)
 
 - Tauri v2 (Rust) + Svelte 5 (runes) + Vite + TypeScript. Plain CSS with variables, no UI framework.
-- App name `studydesk`, shown as "Study Desk". Tauri identifier is `studydesk`, so the Wayland
-  app id / Hyprland class and the webview data dir are both `studydesk`.
+- Shown as **"Mosaic"** (renamed Nov 16; tagline "your student life in full view"). The internal
+  name stays `studydesk` on purpose: Tauri identifier, binary, `.desktop` file, Wayland app id /
+  Hyprland class, `~/.local/share/studydesk/` and the webview data dir (where lab progress lives
+  in localStorage). Changing the identifier would move all of that; don't, unless migrating on
+  purpose. The sync folder default also keeps its old name ("Study Desk Sync").
 - App data: JSON files in `~/.local/share/studydesk/`, written atomically from Rust. Anything that
   should follow her between PC and laptop goes in the synced store (see "Sync" below), not in its
   own JSON file. Machine-only data (settings, scan cache, labs tree) stays local.

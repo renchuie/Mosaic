@@ -1,7 +1,7 @@
 [Desktop Entry]
 Type=Application
-Name=Study Desk
-Comment=Personal student dashboard
+Name=Mosaic
+Comment=Your student life in full view
 Exec=@EXEC@
 Icon=studydesk
 Terminal=false

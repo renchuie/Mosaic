@@ -1,4 +1,8 @@
-# Study Desk roadmap: to a usable v1.0 by December 31, 2026
+# Mosaic roadmap: to a usable v1.0 by December 31, 2026
+
+Mosaic is just for her; v1.0 = usable every day before spring semester starts. The bigger
+vision in `VISION.md` (custom homepage, databases, notes editor without Markdown symbols,
+personal side) is planned after v1.0 unless a piece fits a week below.
 
 One focus per week. Bugs found during a week go into the "Found this week" list. If they block
 daily use they get fixed straight away; otherwise they wait for the week they belong to. Nothing new gets

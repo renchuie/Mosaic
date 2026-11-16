@@ -1,11 +1,13 @@
-# Study Desk: vision
+# Mosaic: vision
+
+**Mosaic: your student life in full view.** (Renamed from Study Desk on Nov 16.)
 
 Written from Jazmine's own answers (Nov 16, 2026). This is the "why" behind every plan; when a
 design or feature choice is unclear, check it against this file.
 
 ## In one line
 
-A pretty, fast, local app that is **already set up** to run a health science student's life,
+A pretty, fast, local app that is **already set up** to run her life as a health science student,
 with a homepage and pages she can design herself, and a personal side for the rest of life.
 
 ## What "this app gets me" means
@@ -63,9 +65,15 @@ cases, recall labs, exam-heavy courses.
 She wants notes that feel like Google Docs / Notion (simple, pretty, tables, no visible syntax)
 but connect like Obsidian (links, backlinks, tags, properties, mind map), stored as local files.
 
-## Where her dates come from
+## Decisions (Nov 16)
 
-Syllabus PDFs and Canvas. Getting them into the planner should take minutes, not an evening.
+- **Just for her.** Mosaic is for her own use, not a product for other students. Goal: usable
+  every day before spring semester starts (v1.0 on Dec 31, as in `ROADMAP.md`).
+- **No notes import.** She won't bring her Google Docs in as notes; she puts PDFs into folders
+  and builds her knowledge base from there.
+- **Dates entered by hand.** Exams and assignments come from syllabi and Canvas, and she prefers
+  to enter them herself: no Canvas feed, no syllabus parsing. Make manual entry fast instead.
+- **Homepage layout:** free placement (xTiles style) **and** an optional neat grid to snap to.
 
 ## Why she dropped every other app
 

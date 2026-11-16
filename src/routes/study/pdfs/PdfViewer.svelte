@@ -177,7 +177,7 @@
       } catch {
         annots = [];
         readOnly = true;
-        readOnlyWhy = "Study Desk can read this PDF but not save into it (the file is unusual or damaged).";
+        readOnlyWhy = "Mosaic can read this PDF but not save into it (the file is unusual or damaged).";
       }
       onDisk = new Set(annots.map((a) => a.id));
       await openDoc(clean);
@@ -581,7 +581,7 @@
       await restorePdf(rel);
       deletedHere.clear();
       await load();
-      toast = { text: "Original restored. The marks made in Study Desk are gone." };
+      toast = { text: "Original restored. The marks made in Mosaic are gone." };
     } catch (e) {
       toast = { text: String((e as Error)?.message ?? e) };
     }
@@ -890,7 +890,7 @@
   {/if}
   {#if confirmRestore}
     <div class="toast confirm" role="alertdialog" aria-label="Restore the original">
-      Put back the original PDF? Every mark made in Study Desk on it is removed.
+      Put back the original PDF? Every mark made in Mosaic on it is removed.
       <button class="btn quiet sm" onclick={() => (confirmRestore = false)}>Cancel</button>
       <button class="btn sm danger" onclick={restore}>Restore</button>
     </div>

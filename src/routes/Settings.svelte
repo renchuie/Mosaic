@@ -76,6 +76,7 @@
 
 <div class="settings">
   <h1 class="display">Settings</h1>
+  <p class="muted about">Mosaic · your student life in full view</p>
 
   <form class="card" onsubmit={save}>
     <h2 class="h2">You and your labs</h2>
@@ -189,6 +190,9 @@
 </div>
 
 <style>
+  .about {
+    margin: -8px 0 4px;
+  }
   .settings {
     display: grid;
     gap: var(--gap);
