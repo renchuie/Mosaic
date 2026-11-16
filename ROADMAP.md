@@ -126,4 +126,7 @@ Add things here as they come up (date, page, what happened). Each one is either 
 - Nov 16 · Notes as **folder tiles** (tab on top, frosted body; the open/last-used folder takes
   its course colour and recent notes peek out as paper sheets). Notes home gets a folder grid
   (one per course, plus PDF notes and Inbox); Study Home's Recent notes card becomes 4 folders.
-  **Week 6.** Both are tweaks on the canvas next to the current pastel look; decide before week 6.
+  **Week 6.** Same folder style for the PDFs page.
+- Nov 16 · Structure (likely): Courses merge into Study (one school space); Tasks + Calendar
+  merge into a Planner tab. The app will later get a personal-life side next to the student side.
+  Decide the structure before week 5 (courses) and week 4 (planner). Both are tweaks on the canvas next to the current pastel look; decide before week 6.

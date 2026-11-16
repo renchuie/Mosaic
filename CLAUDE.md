@@ -14,6 +14,19 @@ laptop (NVIDIA GPU) through `./install.sh`.
 - Work follows `ROADMAP.md`: one focus per week until v1.0 on Dec 31, 2026. Stay inside the current
   week's focus; log anything else under "Found this week" in that file.
 
+## Product direction (her words, Nov 16)
+
+- The app has a lot of personality and room for customisation. Biggest inspirations: RemNote,
+  xTiles, Notion and Obsidian.
+- It has **two sides that respect the user**: it supports her student life AND her personal
+  life. For now only the student side is being built; keep room for a personal side later
+  (don't hard-wire everything to courses).
+- Planned structure (not built yet, likely): **Courses merge into Study** as one cohesive space
+  for everything school-related; **Tasks and Calendar merge into one Planner tab**.
+- Look being explored on the design canvas "Study tab redesign" (mockups only): floating icon rail
+  (chosen), frosted glass theme, roomier spacing, folder tiles for notes and PDFs. See the
+  "Found this week" list in `ROADMAP.md`; the look is week 6 work.
+
 ## Stack (decided)
 
 - Tauri v2 (Rust) + Svelte 5 (runes) + Vite + TypeScript. Plain CSS with variables, no UI framework.
