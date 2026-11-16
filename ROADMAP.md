@@ -106,7 +106,32 @@ Done when: she uses v1.0 on the first day of spring classes without thinking abo
 
 ---
 
-## Later (after v1.0, not before)
+## Materials track (lab integrator + quiz engine), no deadline
+
+Built in phases, each one usable on its own. Where they sit in the weeks above is still to be
+decided with her (proposal: M1 in week 3, M2 in week 5, the rest in January).
+
+- **M1 · Materials home + lab integrator.** Study → Materials replaces Recall Labs. Materials
+  folder setting (default `Study Lab/Materials`); one-time "move my labs into Materials" that
+  keeps progress and folder links (links are keyed by path, so they must be moved with the files).
+  Upload / drop HTML labs → checked, copied into `Materials/<course>/<exam>/`, replace keeps
+  progress. Browse by course, exam and type.
+- **M2 · Mosaic format v1 + quiz engine core.** Written spec of the format (header `mosaic: quiz`,
+  versioned). Parser, node-tested. Import by drop or paste with a check ("12 questions found",
+  errors point to the line). Types: multiple choice, SATA (all-or-nothing), true/false, fill in
+  the blank, drop-downs, calculation. Practice mode. Answers stored in the synced store by file +
+  question fingerprint; the file itself is never changed.
+- **M3 · The rest of the quiz engine.** Sorting, matching, categorise, grid. Exam mode (timer,
+  flags, review screen), missed only, weak topics, shuffle. Results by topic; missed question →
+  flashcard; quiz + lab results feed Weak spots and exam readiness.
+- **M4 · Cases and other materials.** Patient cases (full chart and SOAP layouts, write-up
+  questions with model answer + checklist), summaries, mind maps (viewer + mind map area),
+  slide decks.
+- **M5 · Prompt kit.** Copy-ready prompts for Claude / NotebookLM per material type and per case
+  topic (planned later, at her request).
+- **Later:** hot spot and highlight questions.
+
+
 
 - PDF page editing, if it didn't fit in week 6.
 - More course modules from the week 5 list.

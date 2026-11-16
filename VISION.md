@@ -89,6 +89,14 @@ but connect like Obsidian (links, backlinks, tags, properties, mind map), stored
   the synced store, keyed by the file and a fingerprint of each question.
 - **Patient cases come in two layouts: SOAP and a full patient chart.** The questions after a case
   depend on its topic, so the prompts carry standard question sets per topic.
+- **Materials folder is the home for everything she generates**, existing recall labs included
+  (they move into it). Labs can be uploaded (copied into Materials, sorted by course/exam;
+  same progress key = "Replace, keep my progress").
+- **Quiz engine question types**, first version: multiple choice, SATA (**all-or-nothing**
+  scoring), true/false, fill in the blank (alternatives + spelling tolerance), drop-downs in a
+  sentence, sorting, matching, categorise, grid, calculation (units + tolerance), cases. **Hot spot
+  and highlight wait.** Modes: practice, exam (timer, flags, review), missed only, weak topics.
+- **No rush on Materials**: build it properly, however long it takes.
 - Mosaic itself still has **no AI features**: it doesn't call any AI. It is built to take in
   what she makes with AI elsewhere.
 
