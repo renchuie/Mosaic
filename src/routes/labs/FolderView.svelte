@@ -9,11 +9,17 @@
   } from "../../lib/stores/labs.svelte";
   import { invoke, inTauri } from "../../lib/tauri";
   import UploadDialog from "./UploadDialog.svelte";
+  import PasteQuiz from "./PasteQuiz.svelte";
+  import { materialsIn } from "../../lib/stores/labs.svelte";
+  import { quizSummary } from "../../lib/stores/quizzes.svelte";
 
   let { folder }: { folder: Folder } = $props();
   let upFiles = $state<File[]>([]);
   let upOpen = $state(false);
   let added = $state<string | null>(null);
+  let pasteOpen = $state(false);
+  const ownQuizzes = $derived(materialsIn({ ...folder, folders: [] }, "quiz"));
+  const allQuizzes = $derived(materialsIn(folder, "quiz"));
 
   const isRoot = $derived(folder.rel === "");
   // Materials home: browse every lab of one course, across its exam folders
@@ -87,8 +93,9 @@
       <div class="actions">
         <label class="btn primary upload">
           <Icon name="arrow" size={16} /> Upload
-          <input type="file" accept=".html,.htm,text/html" multiple onchange={(e) => { const fs = [...(e.currentTarget.files ?? [])]; e.currentTarget.value = ""; if (fs.length) { upFiles = fs; upOpen = true; } }} />
+          <input type="file" accept=".html,.htm,.md,text/html,text/markdown" multiple onchange={(e) => { const fs = [...(e.currentTarget.files ?? [])]; e.currentTarget.value = ""; if (fs.length) { upFiles = fs; upOpen = true; } }} />
         </label>
+        <button class="btn" type="button" onclick={() => (pasteOpen = true)}><Icon name="note" size={16} /> Paste quiz</button>
         <button class="btn" type="button" onclick={() => rescan()} disabled={labs.scanning || !inTauri}>
           <Icon name="refresh" size={16} /> {labs.scanning ? "Scanning…" : "Rescan"}
         </button>
@@ -115,11 +122,11 @@
     <p class="notice ok" role="status">{added}</p>
   {/if}
 
-  {#if isRoot && allLabs.length}
+  {#if isRoot && (allLabs.length || allQuizzes.length)}
     <div class="browse" role="group" aria-label="Browse materials">
       <button type="button" class:on={!byCourse} onclick={() => (byCourse = "")}><Icon name="folder" size={15} /> Folders</button>
       {#each courseChips as c}<button type="button" class:on={byCourse === c} onclick={() => (byCourse = byCourse === c ? "" : c)}>{c}</button>{/each}
-      <span class="types muted"><Icon name="labs" size={14} /> {allLabs.length} recall {allLabs.length === 1 ? "lab" : "labs"} · quizzes and more coming</span>
+      <span class="types muted"><Icon name="labs" size={14} /> {allLabs.length} recall {allLabs.length === 1 ? "lab" : "labs"} · {allQuizzes.length} {allQuizzes.length === 1 ? "quiz" : "quizzes"}</span>
     </div>
   {/if}
 
@@ -184,10 +191,27 @@
             {/each}
           </div>
         </section>
-      {:else if !folder.folders.length}
+      {:else if !folder.folders.length && !ownQuizzes.length}
         <section class="card empty">
           <h2 class="h2">No recall labs here yet</h2>
           <p class="muted">Drop a recall lab's .html file anywhere on this page, or use Upload. Labs are .html files with a <code>recall-lab-version</code> meta tag.</p>
+        </section>
+      {/if}
+
+      {#if ownQuizzes.length}
+        <section>
+          <h2 class="h2 sec">Quizzes</h2>
+          <div class="quizgrid">
+            {#each ownQuizzes as m (m.item.rel)}
+              {@const s = quizSummary(m.mat.id)}
+              <a class="card quiz" href={labHref(m.item.rel)}>
+                <span class="qhead"><span class="qic"><Icon name="check" size={18} /></span><b class="display">{m.mat.title}</b></span>
+                <span class="muted qsub">{m.mat.count} {m.mat.count === 1 ? "question" : "questions"}{s.attempts ? ` · ${s.attempts} ${s.attempts === 1 ? "attempt" : "attempts"}` : " · not tried yet"}</span>
+                <span class="bar big"><span style="width: {s.best ?? 0}%"></span></span>
+                <span class="qfoot"><span>{s.best === null ? "No score yet" : `Best ${s.best}%`}{s.last !== null && s.last !== s.best ? ` · last ${s.last}%` : ""}</span>{#if s.missed}<span class="tag alert">{s.missed} to redo</span>{/if}</span>
+              </a>
+            {/each}
+          </div>
         </section>
       {/if}
 
@@ -257,6 +281,7 @@
   {/if}
 </div>
 
+<PasteQuiz bind:open={pasteOpen} onfile={(f) => { upFiles = [f]; upOpen = true; }} />
 <UploadDialog bind:open={upOpen} files={upFiles} dir={folder.rel} onsaved={(rels) => { added = `Added ${rels.length} ${rels.length === 1 ? "file" : "files"} to Materials.`; setTimeout(() => (added = null), 5000); const d = rels[0]?.split("/").slice(0, -1).join("/"); if (d !== undefined && d !== folder.rel) location.hash = folderHref(d); }} />
 
 <style>
@@ -324,6 +349,50 @@
   .cl-n {
     font-size: 13px;
     white-space: nowrap;
+  }
+  .quizgrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: var(--gap);
+  }
+  .quiz {
+    display: grid;
+    gap: 10px;
+    text-decoration: none;
+    color: var(--text);
+  }
+  .quiz:hover {
+    transform: translateY(-3px);
+    box-shadow: var(--shadow-lift);
+  }
+  .qhead {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .qhead b {
+    font-size: 18px;
+    line-height: 1.25;
+  }
+  .qic {
+    display: grid;
+    place-items: center;
+    width: 36px;
+    height: 36px;
+    flex: none;
+    border-radius: 12px;
+    background: color-mix(in srgb, var(--lavender) 40%, white);
+  }
+  .qsub {
+    font-size: 13px;
+  }
+  .qfoot {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    font-size: 14px;
+    font-weight: 500;
   }
   .notice.ok {
     background: var(--sage-soft);

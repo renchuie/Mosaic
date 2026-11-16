@@ -114,7 +114,7 @@ the next starts. Placement in the weeks above is a proposal (see "Proposed place
 | # | Phase | Area |
 |---|---|---|
 | 1 | M1 · Materials home + lab integrator (DONE Nov 16) | Materials |
-| 2 | M2 · Quiz format + quiz engine core | Quiz engine |
+| 2 | M2 · Quiz format + quiz engine core (DONE Nov 16) | Quiz engine |
 | 3 | N1 · Notes editor that feels like Docs / Notion | Notes |
 | 4 | F1 · Flashcards on par with Anki | Flashcards |
 | 5 | P1 · PDF page editing + find | PDFs |

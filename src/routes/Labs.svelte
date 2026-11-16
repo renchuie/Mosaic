@@ -5,6 +5,7 @@
   import LabViewer from "./labs/LabViewer.svelte";
   import StudyNav from "./study/StudyNav.svelte";
   import UploadDialog from "./labs/UploadDialog.svelte";
+  import QuizPlayer from "./labs/QuizPlayer.svelte";
   import { adoptMaterials, folderHref } from "../lib/stores/labs.svelte";
 
   // drop .html files anywhere on Materials to add them (to the folder being viewed)
@@ -15,11 +16,11 @@
   function onDrop(e: DragEvent) {
     e.preventDefault();
     dropping = false;
-    const list = [...(e.dataTransfer?.files ?? [])].filter((f) => /\.html?$/i.test(f.name));
+    const list = [...(e.dataTransfer?.files ?? [])].filter((f) => /\.(html?|md)$/i.test(f.name));
     if (list.length) {
       upFiles = list;
       upOpen = true;
-    } else if (e.dataTransfer?.files.length) toast = "Only .html files (recall labs) can be added here for now.";
+    } else if (e.dataTransfer?.files.length) toast = "Only recall labs (.html) and Mosaic quizzes (.md) can be added here for now.";
   }
   const isFiles = (e: DragEvent) => [...(e.dataTransfer?.types ?? [])].includes("Files");
 
@@ -51,9 +52,9 @@
 </script>
 
 <svelte:window
-  ondragover={(e) => { if (isFiles(e) && !(item && item.kind === "lab")) { e.preventDefault(); dropping = true; } }}
+  ondragover={(e) => { if (isFiles(e) && !item) { e.preventDefault(); dropping = true; } }}
   ondragleave={(e) => { if (!e.relatedTarget) dropping = false; }}
-  ondrop={(e) => { if (isFiles(e) && !(item && item.kind === "lab")) onDrop(e); }}
+  ondrop={(e) => { if (isFiles(e) && !item) onDrop(e); }}
 />
 
 {#if !(item && item.kind === "lab")}<StudyNav />{/if}
@@ -69,6 +70,10 @@
 {#if item && item.kind === "lab"}
   {#key item.rel}
     <LabViewer {item} />
+  {/key}
+{:else if item && item.kind === "material" && item.mat?.kind === "quiz"}
+  {#key item.rel}
+    <QuizPlayer {item} />
   {/key}
 {:else if folder}
   <FolderView {folder} />

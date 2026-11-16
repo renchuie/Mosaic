@@ -1,12 +1,13 @@
 <script lang="ts">
-  // Add materials: recall lab .html files (dropped or picked). Each file is checked, then
+  // Add materials: recall lab .html files and Mosaic quiz .md files (dropped, picked or pasted). Each file is checked, then
   // filed under Materials/<course folder>/<exam or topic>/. A lab that already exists (same
   // progress key) can be replaced in place, which keeps all its progress.
   import Icon from "../../lib/components/Icon.svelte";
   import { inspectHtml, safeName, type Inspected } from "../../lib/materials";
+  import { parseQuiz } from "../../lib/quiz";
   import { courseByName, courseNames } from "../../lib/stores/courses.svelte";
   import {
-    allRels, destRel, findFolder, folderMeta, inherited, labs, labsIn, saveUploads, uniqueRel, type Item,
+    allRels, destRel, findFolder, folderMeta, inherited, labs, labsIn, materialsIn, saveUploads, uniqueRel, type Item, type MaterialMeta,
   } from "../../lib/stores/labs.svelte";
 
   let {
@@ -16,7 +17,11 @@
     onsaved,
   }: { open: boolean; files: File[]; dir?: string; onsaved?: (rels: string[]) => void } = $props();
 
-  type Row = { file: File; text: string; ins: Inspected; course: string; exam: string; existing: Item | null; mode: "replace" | "new"; include: boolean };
+  type Row = {
+    file: File; text: string; ins: Inspected; course: string; exam: string; existing: Item | null; mode: "replace" | "new"; include: boolean;
+    /** set for Mosaic quiz files */
+    quiz?: { meta: MaterialMeta; problems: number };
+  };
   let dialog = $state<HTMLDialogElement>();
   let rows = $state<Row[]>([]);
   let saving = $state(false);
@@ -48,6 +53,16 @@
     const list: Row[] = [];
     for (const file of files) {
       const text = await file.text();
+      if (/\.md$/i.test(file.name)) {
+        const q = parseQuiz(text, file.name.replace(/\.md$/i, ""));
+        const isQuiz = q.meta.mosaic === "quiz";
+        const meta: MaterialMeta = { kind: "quiz", title: q.meta.title, id: q.meta.id, course: q.meta.course ?? null, exam: q.meta.exam ?? null, count: q.questions.length };
+        const existing = isQuiz ? (materialsIn(labs.tree, "quiz").find((m) => m.mat.id === meta.id)?.item ?? null) : null;
+        const course = !dir && q.meta.course && courseNames().includes(q.meta.course) ? q.meta.course : here;
+        const exam = !dir && q.meta.exam ? q.meta.exam : examFromDir;
+        list.push({ file, text, ins: { isLab: false, title: q.meta.title, slug: q.meta.id, slugGuessed: false, version: "" }, course, exam, existing, mode: existing ? "replace" : "new", include: isQuiz && q.questions.length > 0, quiz: isQuiz ? { meta, problems: q.problems.length } : undefined });
+        continue;
+      }
       const ins = inspectHtml(text, file.name);
       const existing = ins.isLab ? (labsIn(labs.tree).find((l) => l.lab.slug === ins.slug)?.item ?? null) : null;
       list.push({ file, text, ins, course: here, exam: examFromDir, existing, mode: existing ? "replace" : "new", include: ins.isLab });
@@ -77,7 +92,7 @@
         rows.flatMap((r, i) => {
           const p = plan[i];
           if (!p) return [];
-          return [{ rel: p.rel, content: r.text, replace: p.replace, course: r.course || undefined, courseDir: r.course ? courseDir(r.course) : undefined, lab: r.ins.isLab ? { title: r.ins.title, version: r.ins.version, slug: r.ins.slug, slug_guessed: r.ins.slugGuessed } : null }];
+          return [{ rel: p.rel, content: r.text, replace: p.replace, course: r.course || undefined, courseDir: r.course ? courseDir(r.course) : undefined, lab: r.ins.isLab ? { title: r.ins.title, version: r.ins.version, slug: r.ins.slug, slug_guessed: r.ins.slugGuessed } : null, mat: r.quiz?.meta ?? null }];
         }),
       );
       onsaved?.(saved);
@@ -103,19 +118,19 @@
       {#each rows as r, i}
         <li class="row" class:off={!r.include}>
           <div class="top">
-            <span class="kind" class:lab={r.ins.isLab}><Icon name={r.ins.isLab ? "labs" : "file"} size={16} /></span>
+            <span class="kind" class:lab={r.ins.isLab} class:quiz={!!r.quiz}><Icon name={r.ins.isLab ? "labs" : r.quiz ? "check" : "file"} size={16} /></span>
             <span class="what">
               <b>{r.ins.title}</b>
-              <span class="muted sm">{r.file.name} · {r.ins.isLab ? `Recall lab v${r.ins.version}` : "Not a recall lab"}{r.ins.isLab && r.ins.slugGuessed ? " · progress key guessed from the file name" : ""}</span>
+              <span class="muted sm">{r.file.name} · {r.quiz ? `Quiz · ${r.quiz.meta.count} ${r.quiz.meta.count === 1 ? "question" : "questions"}${r.quiz.problems ? ` · ${r.quiz.problems} ${r.quiz.problems === 1 ? "part" : "parts"} couldn't be read` : ""}` : r.ins.isLab ? `Recall lab v${r.ins.version}` : /\.md$/i.test(r.file.name) ? "Not a Mosaic quiz (no “mosaic: quiz” header)" : "Not a recall lab"}{r.ins.isLab && r.ins.slugGuessed ? " · progress key guessed from the file name" : ""}</span>
             </span>
-            {#if !r.ins.isLab}
+            {#if !r.ins.isLab && !r.quiz}
               <label class="inc"><input type="checkbox" bind:checked={r.include} /> Add anyway as a file</label>
             {/if}
           </div>
           {#if r.include}
             {#if r.existing}
               <div class="dupe" role="radiogroup" aria-label="Already in Materials">
-                <span class="sm">You already have this lab at <b>{r.existing.rel}</b>.</span>
+                <span class="sm">You already have this {r.quiz ? "quiz" : "lab"} at <b>{r.existing.rel}</b>.</span>
                 <label><input type="radio" bind:group={r.mode} value="replace" /> Replace it, keep my progress</label>
                 <label><input type="radio" bind:group={r.mode} value="new" /> Add a second copy (both share the same progress)</label>
               </div>
@@ -214,6 +229,9 @@
   }
   .kind.lab {
     background: var(--sage-soft);
+  }
+  .kind.quiz {
+    background: color-mix(in srgb, var(--lavender) 40%, white);
   }
   .what {
     display: grid;

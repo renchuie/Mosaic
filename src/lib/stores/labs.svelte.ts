@@ -12,7 +12,9 @@ import { saveSettings, settings } from "./settings.svelte";
 import { destRel, uniqueRel } from "../materials";
 
 export type LabMeta = { title: string; version: string; slug: string; slug_guessed: boolean };
-export type Item = { name: string; rel: string; kind: "lab" | "note" | "file"; ext: string; size: number; mtime: number; lab: LabMeta | null };
+/** A Mosaic material file (.md with `mosaic: <kind>` front matter), e.g. a quiz */
+export type MaterialMeta = { kind: string; title: string; id: string; course?: string | null; exam?: string | null; count: number };
+export type Item = { name: string; rel: string; kind: "lab" | "material" | "note" | "file"; ext: string; size: number; mtime: number; lab: LabMeta | null; mat?: MaterialMeta | null };
 export type Folder = { name: string; rel: string; folders: Folder[]; items: Item[]; truncated: boolean };
 type ScanResult = { root: string; tree: Folder | null; error: string | null; scanned_at: number; files_read: number };
 
@@ -295,7 +297,29 @@ export function allRels(folder: Folder | null = state.tree): Set<string> {
   return out;
 }
 
-export type Upload = { rel: string; content: string; replace: boolean; lab: LabMeta | null; course?: string; courseDir?: string };
+export type Upload = { rel: string; content: string; replace: boolean; lab: LabMeta | null; mat?: MaterialMeta | null; course?: string; courseDir?: string };
+
+/** Materials in a folder tree (quizzes etc.), with the folder each sits in. */
+export function materialsIn(folder: Folder | null, kind?: string): { item: Item; mat: MaterialMeta; folder: Folder }[] {
+  const out: { item: Item; mat: MaterialMeta; folder: Folder }[] = [];
+  const walk = (f: Folder) => {
+    for (const i of f.items) if (i.mat && (!kind || i.mat.kind === kind)) out.push({ item: i, mat: i.mat, folder: f });
+    f.folders.forEach(walk);
+  };
+  if (folder) walk(folder);
+  return out;
+}
+
+/** Plain-browser preview keeps uploaded file contents here (there is no disk). */
+export const previewTexts = new Map<string, string>();
+
+/** The text of a material file (quizzes are read fresh each time they are opened). */
+export async function materialText(rel: string): Promise<string> {
+  if (!inTauri && previewTexts.has(rel)) return previewTexts.get(rel)!;
+  const res = await fetch(`/__labs/${encodeRel(rel)}`, { cache: "no-store" });
+  if (!res.ok) throw new Error(res.status === 404 ? "This file isn't in the Materials folder any more." : `Could not open the file (${res.status}).`);
+  return res.text();
+}
 
 /** Save uploaded materials, link new course folders to their course, then rescan. */
 export async function saveUploads(list: Upload[]): Promise<string[]> {
@@ -327,7 +351,8 @@ function previewAdd(u: Upload) {
     f = next;
   }
   f.items = f.items.filter((i) => i.rel !== u.rel);
-  f.items.push({ name, rel: u.rel, kind: u.lab ? "lab" : "file", ext: name.split(".").pop() ?? "", size: u.content.length, mtime: Math.floor(Date.now() / 1000), lab: u.lab });
+  previewTexts.set(u.rel, u.content);
+  f.items.push({ name, rel: u.rel, kind: u.lab ? "lab" : u.mat ? "material" : "file", ext: name.split(".").pop() ?? "", size: u.content.length, mtime: Math.floor(Date.now() / 1000), lab: u.lab, mat: u.mat ?? null });
 }
 
 export { destRel, uniqueRel };

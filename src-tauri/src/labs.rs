@@ -38,6 +38,20 @@ pub struct LabMeta {
     pub slug_guessed: bool,
 }
 
+/// A Mosaic material file (.md with front matter `mosaic: <kind>`), e.g. a quiz.
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
+pub struct MaterialMeta {
+    /// "quiz" now; "case", "summary", "mindmap", "slides" later
+    pub kind: String,
+    pub title: String,
+    /// stable id for progress (front matter `id:`, else the title)
+    pub id: String,
+    pub course: Option<String>,
+    pub exam: Option<String>,
+    /// number of questions (lines starting with "## ")
+    pub count: u32,
+}
+
 #[derive(Serialize, Clone)]
 pub struct Item {
     pub name: String,
@@ -48,6 +62,7 @@ pub struct Item {
     pub size: u64,
     pub mtime: u64,
     pub lab: Option<LabMeta>,
+    pub mat: Option<MaterialMeta>,
 }
 
 #[derive(Serialize, Clone)]
@@ -74,6 +89,11 @@ struct CacheEntry {
     mtime: u64,
     size: u64,
     lab: Option<LabMeta>,
+    #[serde(default)]
+    mat: Option<MaterialMeta>,
+    /// cache entries written before materials existed never looked at .md files
+    #[serde(default)]
+    v2: bool,
 }
 
 pub fn expand_home(p: &str) -> PathBuf {
@@ -200,28 +220,90 @@ fn walk(
             .unwrap_or(0);
 
         let mut lab = None;
-        if ext == "html" || ext == "htm" {
-            lab = match old.get(&rel) {
-                Some(c) if c.mtime == mtime && c.size == size => c.lab.clone(),
+        let mut mat = None;
+        if ext == "html" || ext == "htm" || ext == "md" {
+            (lab, mat) = match old.get(&rel) {
+                Some(c) if c.mtime == mtime && c.size == size && (c.v2 || ext != "md") => (c.lab.clone(), c.mat.clone()),
                 _ => {
                     *files_read += 1;
-                    inspect_html(&path, size)
+                    if ext == "md" { (None, inspect_md(&path, size)) } else { (inspect_html(&path, size), None) }
                 }
             };
-            cache.insert(rel.clone(), CacheEntry { mtime, size, lab: lab.clone() });
+            cache.insert(rel.clone(), CacheEntry { mtime, size, lab: lab.clone(), mat: mat.clone(), v2: true });
         }
         let kind = if lab.is_some() {
             "lab"
+        } else if mat.is_some() {
+            "material"
         } else if NOTE_EXT.contains(&ext.as_str()) {
             "note"
         } else {
             "file"
         };
-        folder.items.push(Item { name: fname, rel, kind, ext, size, mtime, lab });
+        folder.items.push(Item { name: fname, rel, kind, ext, size, mtime, lab, mat });
     }
     folder.folders.sort_by_key(|f| f.name.to_lowercase());
     folder.items.sort_by_key(|i| i.name.to_lowercase());
     folder
+}
+
+/// Material info if this Markdown file starts with front matter holding `mosaic: <kind>`.
+fn inspect_md(path: &Path, size: u64) -> Option<MaterialMeta> {
+    let mut head = Vec::new();
+    fs::File::open(path).ok()?.take(HEAD_BYTES).read_to_end(&mut head).ok()?;
+    let head = String::from_utf8_lossy(&head);
+    let stem = path.file_stem().map(|s| s.to_string_lossy().into_owned()).unwrap_or_default();
+    let mut m = parse_material(&head, &stem)?;
+    if size <= MAX_LAB_BYTES {
+        if let Ok(full) = fs::read_to_string(path) {
+            m.count = count_questions(&full);
+        }
+    }
+    Some(m)
+}
+
+/// Reads the front matter block at the very top: `mosaic:`, `title:`, `id:`, `course:`, `exam:`.
+pub fn parse_material(text: &str, stem: &str) -> Option<MaterialMeta> {
+    let text = text.trim_start_matches('\u{feff}');
+    let mut lines = text.lines();
+    if lines.next()?.trim() != "---" {
+        return None;
+    }
+    let mut kind = None;
+    let (mut title, mut id, mut course, mut exam) = (None, None, None, None);
+    for line in lines {
+        let l = line.trim();
+        if l == "---" {
+            break;
+        }
+        let Some((k, v)) = l.split_once(':') else { continue };
+        let v = v.split(" #").next().unwrap_or("").trim().trim_matches(|c| c == '"' || c == '\'').trim().to_string();
+        match k.trim().to_lowercase().as_str() {
+            "mosaic" => kind = Some(v.to_lowercase()),
+            "title" if !v.is_empty() => title = Some(v),
+            "id" if !v.is_empty() => id = Some(v),
+            "course" if !v.is_empty() => course = Some(v),
+            "exam" if !v.is_empty() => exam = Some(v),
+            _ => {}
+        }
+    }
+    let kind = kind.filter(|k| !k.is_empty())?;
+    let title = title.unwrap_or_else(|| stem.to_string());
+    let id = id.unwrap_or_else(|| slugify(&title));
+    Some(MaterialMeta { kind, title, id, course, exam, count: count_questions(text) })
+}
+
+fn count_questions(text: &str) -> u32 {
+    let mut in_code = false;
+    let mut n = 0;
+    for l in text.lines() {
+        if l.trim_start().starts_with("```") {
+            in_code = !in_code;
+        } else if !in_code && l.starts_with("## ") {
+            n += 1;
+        }
+    }
+    n
 }
 
 /// Returns lab info if this HTML file carries <meta name="recall-lab-version">.
@@ -428,6 +510,20 @@ pub fn serve(app: &AppHandle, request: &http::Request<Vec<u8>>, response: &mut h
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn material_front_matter() {
+        let q = "---\nmosaic: quiz\ntitle: \"Anticoag practice\"\ncourse: Therapeutics IV  # course name\nexam: Exam 5\n---\n\n## Q1 · single\nx\n## Q2 · tf\n```\n## not a question\n```\n";
+        let m = parse_material(q, "file").unwrap();
+        assert_eq!(m.kind, "quiz");
+        assert_eq!(m.title, "Anticoag practice");
+        assert_eq!(m.id, "anticoag-practice");
+        assert_eq!(m.course.as_deref(), Some("Therapeutics IV"));
+        assert_eq!(m.exam.as_deref(), Some("Exam 5"));
+        assert_eq!(m.count, 2);
+        assert!(parse_material("# Just a note\n", "n").is_none());
+        assert!(parse_material("---\ntitle: x\n---\n", "n").is_none());
+    }
 
     #[test]
     fn meta_any_order() {

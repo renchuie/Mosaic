@@ -133,6 +133,32 @@ Everything lives in `src/styles/tokens.css`:
 - Materials home: chips to browse one course's labs across its exam folders.
 - Self-test: `STUDYDESK_ROUTE=selftest-materials` (move, marker, upload, refuse overwrite).
 
+## Quiz engine core (M2, built)
+
+- Format: `docs/mosaic-format.md` (v1). Markdown with front matter `mosaic: quiz`, questions start
+  `## Q<n> · <type> · <topic>`; types single, sata (all-or-nothing), tf, blank (`{{a|alt}}`),
+  dropdown (`{{*right|wrong}}`), calc (`Answer: 50 mL/min ± 2`, default ± 1%); `>` lines are the
+  explanation. Parser and grading in `src/lib/quiz.ts` (pure, node-tested): problems with line
+  numbers (bad questions are skipped, not fatal), typo tolerance for blanks, question id =
+  fingerprint of type + stem. `QUIZ_GUIDE` there is the copy-ready text for Claude.
+  `src/lib/md.ts` renders material Markdown (tables, lists, images, inline styles).
+- Scanner (`labs.rs`): `.md` files whose front matter has `mosaic: <kind>` become items of kind
+  `material` with `mat {kind, title, id, course, exam, count}`; the scan cache entry has `v2` so
+  old caches re-inspect `.md` files once.
+- Player (`src/routes/labs/QuizPlayer.svelte`, route `#/labs/<rel>` of a quiz file): start screen
+  (topics, best / last / attempts / to redo, shuffle questions + options, Practice all, Redo
+  missed, list of unreadable parts), one question at a time with Check → feedback (right answer,
+  explanation; card turns sage or shakes rose) → Next, keys 1–9 / A–I / T / F / Enter, results
+  ring with by-topic bars and a to-review list. Progress: synced collection `quizzes` keyed by quiz
+  id (`src/lib/stores/quizzes.svelte.ts`): per question seen / right / last / lastRight, last 30
+  attempts. Best counts full practice runs only. Finishing marks a study day.
+- Getting quizzes in: Materials → Paste quiz (`PasteQuiz.svelte`: strips ``` fences, live check,
+  Copy format for Claude) hands a .md file to the upload dialog; uploading or dropping .md works
+  too. The dialog files a quiz under its `course` / `exam` from the header when the course
+  exists, and offers "Replace, keep my progress" when a quiz with the same id is already there.
+- Folder pages show a Quizzes section (best, last, attempts, to redo); Materials home counts
+  quizzes.
+
 ## Recall Labs (Phase 2, built; now inside Materials)
 
 - Labs folder: `~/GoogleDrive/Pharmacy School/Study Lab/Recall Labs` (rclone mount; read from disk,
