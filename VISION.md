@@ -75,6 +75,12 @@ She loves v2. Additions: the notes list and side panel **fold away** for more ro
 flashcards use **arrows** (→ one way, ⇄ both ways); and, like RemNote, a note can be **paired
 with a PDF** (lecture slides) and shown **side by side** (resizable, swappable, page chips that
 jump the PDF, "follow note" scrolling, selection → To note / Card / Cloze).
+**Tucked panels (decided Nov 16, canvas "Tucked panels: A + C combined"):** slim icon strips on
+both edges of the note page (left: notes list, search; right: outline, cards with a due badge,
+backlinks, links). An icon slides its panel **over** the note as a floating sheet, so the note
+never gets squeezed; click away / Esc closes it. **Focus** hides the strips too, leaving glowing
+edges whose icons float out on hover. A 📌 **pins** a panel beside the note (the note makes room);
+pins are remembered per machine.
 
 She wants notes that feel like Google Docs / Notion (simple, pretty, tables, no visible syntax)
 but connect like Obsidian (links, backlinks, tags, properties, mind map), stored as local files.
