@@ -28,15 +28,16 @@ export type Settings = {
   clozeColor: string;
 };
 
-/** Arrow pill colours: [one way, both ways]. "mosaic" is the original pink / periwinkle pair. */
-export const ARROW_COLOURS: Record<string, [string, string]> = {
-  mosaic: ["linear-gradient(135deg, #e3949b, #c58bd6)", "linear-gradient(135deg, #8b9be8, #c58bd6)"],
-  rose: ["#e3949b", "#d07f87"],
-  lavender: ["#a993e0", "#8f78cf"],
-  sage: ["#7fb3a6", "#679d90"],
-  peach: ["#e9a978", "#d8925f"],
-  blue: ["#7fa6d9", "#6a91c6"],
-  charcoal: ["#3b3033", "#5a4d51"],
+/** Arrow pill colours: [one way, both ways, card tint one way, card tint both ways].
+ *  "mosaic" is the original pink / periwinkle pair. Card lines are tinted to match the arrow. */
+export const ARROW_COLOURS: Record<string, [string, string, string, string]> = {
+  mosaic: ["linear-gradient(135deg, #e3949b, #c58bd6)", "linear-gradient(135deg, #8b9be8, #c58bd6)", "#f2b8b5", "#b9c2f0"],
+  rose: ["#e3949b", "#d07f87", "#f2b8b5", "#eaa5ab"],
+  lavender: ["#a993e0", "#8f78cf", "#c9b8f0", "#b9a5e8"],
+  sage: ["#7fb3a6", "#679d90", "#a9cdc3", "#93bfb3"],
+  peach: ["#e9a978", "#d8925f", "#f6cfa8", "#efbd91"],
+  blue: ["#7fa6d9", "#6a91c6", "#b9d4ee", "#a3c3e6"],
+  charcoal: ["#3b3033", "#5a4d51", "#8a8085", "#a39a9e"],
 };
 /** Cloze colours: [fill, underline]. */
 export const CLOZE_COLOURS: Record<string, [string, string]> = {
@@ -84,9 +85,12 @@ export function applyLook() {
   root.dataset.theme = settings.theme;
   root.dataset.density = settings.density;
   root.dataset.cardbg = settings.cardBg === false ? "off" : "on";
-  const [a1, a2] = ARROW_COLOURS[settings.arrowColor] ?? ARROW_COLOURS.mosaic;
+  const [a1, a2, t1, t2] = ARROW_COLOURS[settings.arrowColor] ?? ARROW_COLOURS.mosaic;
   root.style.setProperty("--arrow-bg", a1);
   root.style.setProperty("--arrow2-bg", a2);
+  const tint = (c: string) => `linear-gradient(90deg, color-mix(in srgb, ${c} ${settings.arrowColor === "charcoal" ? 12 : 18}%, transparent), transparent 85%)`;
+  root.style.setProperty("--card-bg", tint(t1));
+  root.style.setProperty("--card-bg2", tint(t2));
   const [c1, c2] = CLOZE_COLOURS[settings.clozeColor] ?? CLOZE_COLOURS.butter;
   root.style.setProperty("--cloze-bg", c1);
   root.style.setProperty("--cloze-line", c2);

@@ -9,6 +9,7 @@
   import { onDestroy, onMount } from "svelte";
   import { Editor } from "@tiptap/core";
   import { NodeSelection, TextSelection } from "@tiptap/pm/state";
+  import { getMarkRange } from "@tiptap/core";
   import type { Node as PMNode } from "@tiptap/pm/model";
   import { mosaicExtensions, CALLOUTS, FLOW, HL_COLOURS } from "../editor/blocks";
   import { docToMd, mdToDoc, type PMNode as JNode } from "../editor/mdDoc";
@@ -246,6 +247,35 @@
     const tr = editor.state.tr;
     for (const r of rs) tr.removeMark(r.from, r.to, type).addMark(r.from, r.to, type.create({ n: together ? null : 1, hint: r.hint }));
     editor.view.dispatch(tr);
+  }
+
+  // ---- pairing clozes: which card each hidden part belongs to -------------------------------------
+  /** The cloze the cursor is in, on a line with two or more clozes. */
+  const clozeBar = $derived.by(() => {
+    void tick;
+    if (!editor || !wrap) return null;
+    const { state, view } = editor;
+    const sel = state.selection;
+    if (!sel.empty || !view.hasFocus()) return null;
+    const rf = sel.$from;
+    if (!rf.parent.isTextblock) return null;
+    const type = state.schema.marks.cloze;
+    const range = getMarkRange(rf, type) ?? (rf.pos > rf.start() ? getMarkRange(state.doc.resolve(rf.pos - 1), type) : undefined);
+    if (!range) return null;
+    const all = clozeRanges(rf.before());
+    if (all.length < 2) return null;
+    const me = all.find((r) => r.from <= range.from && r.to >= range.to);
+    if (!me) return null;
+    const groups = [...new Set(all.map((r) => r.n).filter((n): n is number => n !== null))].sort((a, b) => a - b);
+    const c = view.coordsAtPos(me.from);
+    const w = wrap.getBoundingClientRect();
+    return { me, groups, next: (groups[groups.length - 1] ?? 0) + 1, x: c.left - w.left, y: c.top - w.top };
+  });
+  function setClozeGroup(r: { from: number; to: number; hint: string | null }, n: number | null) {
+    if (!editor) return;
+    const type = editor.schema.marks.cloze;
+    editor.view.dispatch(editor.state.tr.removeMark(r.from, r.to, type).addMark(r.from, r.to, type.create({ n, hint: r.hint })));
+    editor.commands.focus();
   }
 
   // ---- selection toolbar ---------------------------------------------------------------------
@@ -639,6 +669,17 @@
     </div>
   {/if}
 
+  {#if clozeBar && !bubble && !menu}
+    <div class="cbar" style="left: {clozeBar.x}px; top: {clozeBar.y}px" role="toolbar" tabindex="-1" aria-label="Which card hides this part" onmousedown={(e) => e.preventDefault()}>
+      <span class="grp">Hide with</span>
+      <button type="button" class:on={clozeBar.me.n === null} title="Its own card" onclick={() => setClozeGroup(clozeBar.me, null)}>Own card</button>
+      {#each clozeBar.groups as g}
+        <button type="button" class="num" class:on={clozeBar.me.n === g} title="Hidden together with the other parts marked {g}" onclick={() => setClozeGroup(clozeBar.me, g)}>{g}</button>
+      {/each}
+      <button type="button" class="num new" title="Start a new card with this part" onclick={() => setClozeGroup(clozeBar.me, clozeBar.next)}>+</button>
+    </div>
+  {/if}
+
   {#if tableBar}
     <div class="tbar" style="top: {tableBar.y}px; left: {tableBar.x}px" onmousedown={(e) => e.preventDefault()} role="toolbar" tabindex="-1" aria-label="Table">
       <span class="grp">Row</span>
@@ -851,7 +892,8 @@
     background: color-mix(in srgb, var(--lavender, #c9b8f0) 40%, var(--panel));
   }
   .bubble,
-  .tbar {
+  .tbar,
+  .cbar {
     position: absolute;
     z-index: 6;
     display: flex;
@@ -871,6 +913,34 @@
   .tbar {
     transform: translateY(calc(-100% - 6px));
     font-size: 12.5px;
+  }
+  .cbar {
+    transform: translateY(calc(-100% - 8px));
+    animation: pop 0.16s var(--spring, ease) backwards;
+  }
+  .cbar button {
+    min-width: 30px;
+    height: 28px;
+    padding: 0 9px;
+    border: 0;
+    border-radius: 999px;
+    background: none;
+    font: inherit;
+    font-size: 12.5px;
+    font-weight: 600;
+    color: var(--text-muted);
+    cursor: pointer;
+  }
+  .cbar button:hover {
+    background: var(--panel);
+    color: var(--text);
+  }
+  .cbar button.on {
+    background: var(--cloze-line, #d9a93a);
+    color: #fff;
+  }
+  .cbar .num {
+    padding: 0;
   }
   .bubble button,
   .tbar button {

@@ -244,6 +244,28 @@ button.dot[data-color] {
 .mosaic-doc .b-arrow svg {
   display: block;
 }
+.mosaic-doc .b-arrow .l,
+.mosaic-doc .b-arrow.list .a {
+  display: none;
+}
+.mosaic-doc .b-arrow.list .l {
+  display: block;
+}
+/* which card a cloze belongs to, when she pairs clozes */
+.mosaic-doc .b-cloze[data-n]::before {
+  content: attr(data-n);
+  display: inline-grid;
+  place-items: center;
+  min-width: 1.15em;
+  height: 1.15em;
+  margin-right: 3px;
+  border-radius: 999px;
+  background: var(--cloze-line, #d9a93a);
+  color: #fff;
+  font-size: 0.68em;
+  font-weight: 700;
+  vertical-align: 0.15em;
+}
 .mosaic-doc .b-arrow[data-two="true"] {
   background: var(--arrow2-bg, linear-gradient(135deg, #8b9be8, #c58bd6));
 }
@@ -258,6 +280,10 @@ button.dot[data-color] {
   margin-block: 3px;
   border-radius: 10px;
   background: var(--card-bg, linear-gradient(90deg, color-mix(in srgb, var(--rose, #f2b8b5) 16%, transparent), transparent 85%));
+}
+.mosaic-doc .b-p:has(> .b-arrow[data-two="true"]),
+.mosaic-doc .b-li:has(> .b-arrow[data-two="true"]) {
+  background: var(--card-bg2, var(--card-bg));
 }
 :root[data-cardbg="off"] .mosaic-doc .b-p,
 :root[data-cardbg="off"] .mosaic-doc .b-li {
