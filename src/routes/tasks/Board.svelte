@@ -6,7 +6,7 @@
   import {
     PALETTE, PRIORITY_LABEL, addDays, dueLabel, fmtTime, taskOccurrences, taskStreak, todayKey, type Task,
   } from "../../lib/calendar";
-  import { COURSES } from "../../lib/courses";
+  import { courses as allCourses } from "../../lib/stores/courses.svelte";
   import { editTask, saveTag, tagIcon, tagOf, tagStyle, tags } from "../../lib/stores/calendar.svelte";
   import {
     blankTask, customColumns, deleteColumn, patchTasks, saveColumn, saveTask, taskView, tasks, toggleTask,
@@ -54,7 +54,7 @@
   const CYCLE = ["#F6CFA8", "#F2B8B5", "#B9D4EE", "#C5E8D5", "#F5C6D6", "#E6D3BD"];
 
   const columns = $derived.by((): Col[] => {
-    if (mode === "course") return [...COURSES.map((c, i) => ({ id: c, name: c, color: CYCLE[i % CYCLE.length] })), { id: "", name: "No course", color: "#E6D3BD" }];
+    if (mode === "course") return [...allCourses().map(([, c]) => ({ id: c.name, name: c.name, color: c.color })), { id: "", name: "No course", color: "#E6D3BD" }];
     if (mode === "tag") return tags().map(([id, t]) => ({ id, name: t.name, tag: id, color: t.color }));
     return [
       { id: "todo", name: "To do", color: STATUS_COLOR.todo },

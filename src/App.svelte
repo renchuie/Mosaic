@@ -6,14 +6,10 @@
   import Settings from "./routes/Settings.svelte";
   import Calendar from "./routes/Calendar.svelte";
   import Tasks from "./routes/Tasks.svelte";
+  import Courses from "./routes/Courses.svelte";
   import EventEditor from "./lib/components/EventEditor.svelte";
   import TagManager from "./lib/components/TagManager.svelte";
   import TimerPill from "./lib/components/TimerPill.svelte";
-  import ComingSoon from "./routes/ComingSoon.svelte";
-
-  const soon = {
-    courses: { title: "Courses", phase: 5, text: "Assessments, current grade, what you need on what's left, and Top 200/300 quizzes." },
-  } as const;
 
   const viewer = $derived(route.page === "labs" && /\.html?$/i.test(route.rest));
 </script>
@@ -25,14 +21,14 @@
       <Dashboard />
     {:else if route.page === "labs"}
       <Labs />
+    {:else if route.page === "courses"}
+      <Courses />
     {:else if route.page === "tasks"}
       <Tasks />
     {:else if route.page === "calendar"}
       <Calendar />
     {:else if route.page === "settings"}
       <Settings />
-    {:else}
-      <ComingSoon {...soon[route.page]} />
     {/if}
   </main>
 </div>

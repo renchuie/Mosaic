@@ -7,7 +7,7 @@
     PRIORITY_LABEL, STATUS_LABEL, WEEKDAYS, addDays, describeRepeat, fmtTime, fromKey, minutes, normalizeRepeat,
     nthWeekday, todayKey, weekday, type CalEvent, type Freq, type Priority, type Repeat, type Subtask, type Task,
   } from "../calendar";
-  import { COURSES } from "../courses";
+  import { courseNames } from "../stores/courses.svelte";
   import { deleteEvent, editor, saveEvent, skipDay, tagManager, tagStyle, tags } from "../stores/calendar.svelte";
   import { deleteTask, saveTask, skipTaskDay } from "../stores/tasks.svelte";
   import { newId } from "../stores/synced.svelte";
@@ -294,7 +294,7 @@
       <label class="row" for="ev-c"><span>Course</span></label>
       <select id="ev-c" class="input" bind:value={f.course}>
         <option value={undefined}>None</option>
-        {#each COURSES as c}<option value={c}>{c}</option>{/each}
+        {#each courseNames() as c}<option value={c}>{c}</option>{/each}
       </select>
 
       {#if type === "task"}

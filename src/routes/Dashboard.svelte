@@ -5,6 +5,8 @@
   import MiniMonth from "../lib/components/MiniMonth.svelte";
   import { TONES } from "../lib/sample/data";
   import Heatmap from "../lib/components/Heatmap.svelte";
+  import GradeRing from "../lib/components/GradeRing.svelte";
+  import { courses, gradeOf } from "../lib/stores/courses.svelte";
   import { fmtClock, fmtDuration } from "../lib/plan";
   import { completeBlock, getPlan, isRunning, nowBlock, pauseBlock, spent, startBlock } from "../lib/stores/plan.svelte";
   import { studiedMinutes } from "../lib/plan";
@@ -19,6 +21,7 @@
   const nbNext = $derived(nb ? nb.plan.blocks.filter((b) => !b.done && b.id !== nb.block.id)[0] : undefined);
   const todayPlan = $derived(getPlan(todayKey()));
   const nbLeft = $derived(nb ? nb.plan.blocks.filter((b) => !b.done).length : 0);
+  const courseRows = $derived(courses().map(([id, c]) => ({ id, c, g: gradeOf(id) })));
   const cap = (x: string) => x.charAt(0).toUpperCase() + x.slice(1);
   const when = (n: number) => (n === 0 ? "Today" : n === 1 ? "Tomorrow" : `${n} days`);
 
@@ -87,6 +90,25 @@
         <span class="label">Streak</span>
         <span class="num display">{streak.days}</span>
         <span class="sub">days in a row</span>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="sec-head">
+        <h2 class="h2">Courses</h2>
+        <a class="link" href="#/courses">All courses <Icon name="arrow" size={14} /></a>
+      </div>
+      <div class="courses">
+        {#each courseRows as r (r.id)}
+          <a class="crs" href="#/courses/{r.id}" style="--c: {r.c.color}">
+            <GradeRing pct={r.g?.current ?? null} color="color-mix(in srgb, {r.c.color} 65%, #3b3033)" size={58} width={11} label={r.g?.letter ?? "–"} />
+            <span class="ct">
+              <b>{r.c.code ?? r.c.name}</b>
+              <span>{r.g?.current !== null && r.g?.current !== undefined ? `${Math.round(r.g.current * 10) / 10}%` : "No grades yet"}</span>
+              {#if r.g?.needed?.status === "reachable"}<small>Need {Math.round(r.g.needed.pct * 10) / 10}% for {r.c.grading.target}</small>{:else if r.g?.needed?.status === "out-of-reach"}<small class="bad">{r.c.grading.target}% out of reach</small>{:else if r.g?.needed?.status === "secured"}<small class="ok">{r.c.grading.target}% locked in</small>{/if}
+            </span>
+          </a>
+        {/each}
       </div>
     </section>
 
@@ -388,6 +410,50 @@
   section > .sec-head:has(.link) {
     margin-bottom: 2px;
     padding: 0 4px;
+  }
+  .courses {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+    gap: 10px;
+  }
+  .crs {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: 12px;
+    align-items: center;
+    padding: 10px 12px;
+    border-radius: 18px;
+    background: color-mix(in srgb, var(--c) 28%, var(--white));
+    text-decoration: none;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+  }
+  .crs:hover {
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-lift);
+  }
+  .ct {
+    display: grid;
+    min-width: 0;
+    line-height: 1.25;
+  }
+  .ct b {
+    font-weight: 600;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .ct span {
+    font-size: 13.5px;
+  }
+  .ct small {
+    font-size: 12px;
+    color: var(--text-muted);
+  }
+  .ct small.bad {
+    color: #a8434f;
+  }
+  .ct small.ok {
+    color: #3f7366;
   }
   .lectures {
     display: grid;

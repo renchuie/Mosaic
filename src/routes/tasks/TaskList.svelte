@@ -2,7 +2,7 @@
   // Tasks page, List tab: quick add, filters, and tasks grouped by when they're due.
   import Icon from "../../lib/components/Icon.svelte";
   import { addDays, fromKey, todayKey, type TaskOcc } from "../../lib/calendar";
-  import { COURSES } from "../../lib/courses";
+  import { courseNames } from "../../lib/stores/courses.svelte";
   import { tagStyle, tags } from "../../lib/stores/calendar.svelte";
   import { overdue, saveTask, blankTask, taskView, tasks, tasksOn } from "../../lib/stores/tasks.svelte";
   import TaskRow from "./TaskRow.svelte";
@@ -75,7 +75,7 @@
   <div class="filters">
     <select class="input" bind:value={course} aria-label="Course">
       <option value="">All courses</option>
-      {#each COURSES as c}<option value={c}>{c}</option>{/each}
+      {#each courseNames() as c}<option value={c}>{c}</option>{/each}
     </select>
     <div class="tagf" role="group" aria-label="Tag">
       <button type="button" class:on={!tag} onclick={() => (tag = "")}>All tags</button>

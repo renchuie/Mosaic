@@ -1,7 +1,7 @@
 <script lang="ts">
   import Icon from "../../lib/components/Icon.svelte";
   import Wave from "../../lib/components/Wave.svelte";
-  import { COURSES } from "../../lib/courses";
+  import { courseNames } from "../../lib/stores/courses.svelte";
   import { TONES, type Tone } from "../../lib/sample/data";
   import { settings } from "../../lib/stores/settings.svelte";
   import {
@@ -164,7 +164,7 @@
             <span class="label">Course</span>
             <select value={meta.course ?? ""} onchange={(e) => setFolderMeta(folder.rel, { course: e.currentTarget.value || undefined })}>
               <option value="">{course && !meta.course ? `Same as parent (${course})` : "None"}</option>
-              {#each COURSES as c}<option value={c}>{c}</option>{/each}
+              {#each courseNames() as c}<option value={c}>{c}</option>{/each}
             </select>
           </label>
           <label class="field">
