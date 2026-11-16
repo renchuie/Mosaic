@@ -1,7 +1,7 @@
 <script lang="ts">
   import { probe, setKey } from "../lib/labStorage";
   import { labs, refreshProgress, rescan } from "../lib/stores/labs.svelte";
-  import { DEFAULT_SETTINGS, saveSettings, settings } from "../lib/stores/settings.svelte";
+  import { ARROW_COLOURS, CLOZE_COLOURS, DEFAULT_SETTINGS, saveSettings, settings } from "../lib/stores/settings.svelte";
   import { inTauri } from "../lib/tauri";
   import { sync, syncNow } from "../lib/stores/synced.svelte";
   import { refreshNotes } from "../lib/stores/notes.svelte";
@@ -94,6 +94,32 @@
       <div class="seg" role="radiogroup" aria-labelledby="density-l">
         {#each [{ id: "spacious", name: "Spacious" }, { id: "original", name: "Original" }, { id: "compact", name: "Compact" }] as d}
           <button type="button" role="radio" aria-checked={settings.density === d.id} class:on={settings.density === d.id} onclick={() => saveSettings({ density: d.id as "spacious" | "original" | "compact" })}>{d.name}</button>
+        {/each}
+      </div>
+    </div>
+    <h3 class="sub">Flashcards in notes</h3>
+    <div class="field">
+      <span class="label" id="cardbg-l">Card lines</span>
+      <div class="seg" role="radiogroup" aria-labelledby="cardbg-l">
+        <button type="button" role="radio" aria-checked={settings.cardBg !== false} class:on={settings.cardBg !== false} onclick={() => saveSettings({ cardBg: true })}>Soft background</button>
+        <button type="button" role="radio" aria-checked={settings.cardBg === false} class:on={settings.cardBg === false} onclick={() => saveSettings({ cardBg: false })}>Plain, arrow only</button>
+      </div>
+    </div>
+    <div class="field">
+      <span class="label" id="arrow-l">Arrow colour</span>
+      <div class="swatches" role="radiogroup" aria-labelledby="arrow-l">
+        {#each Object.entries(ARROW_COLOURS) as [k, [one, two]]}
+          <button type="button" role="radio" aria-checked={settings.arrowColor === k} class:on={settings.arrowColor === k} title={k === "mosaic" ? "Mosaic (pink and periwinkle)" : k} aria-label={k}
+            onclick={() => saveSettings({ arrowColor: k })}><i style="background: {one}">→</i><i style="background: {two}">⇄</i></button>
+        {/each}
+      </div>
+    </div>
+    <div class="field">
+      <span class="label" id="cloze-l">Cloze colour</span>
+      <div class="swatches" role="radiogroup" aria-labelledby="cloze-l">
+        {#each Object.entries(CLOZE_COLOURS) as [k, [fill, line]]}
+          <button type="button" role="radio" aria-checked={settings.clozeColor === k} class:on={settings.clozeColor === k} title={k} aria-label={k}
+            onclick={() => saveSettings({ clozeColor: k })}><i class="cz" style="background: {fill}; box-shadow: inset 0 -2px 0 {line}">cloze</i></button>
         {/each}
       </div>
     </div>
@@ -274,6 +300,50 @@
   .swatch i:nth-child(1) { left: 6%; }
   .swatch i:nth-child(2) { left: 38%; }
   .swatch i:nth-child(3) { left: 70%; }
+  .sub {
+    margin: 18px 0 4px;
+    font-size: 15px;
+    font-weight: 600;
+  }
+  .swatches {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .swatches button {
+    display: inline-flex;
+    gap: 3px;
+    padding: 5px;
+    border: 0;
+    border-radius: 12px;
+    background: var(--panel);
+    cursor: pointer;
+    transition: transform 0.2s var(--spring, ease);
+  }
+  .swatches button:hover {
+    transform: translateY(-2px);
+  }
+  .swatches button.on {
+    box-shadow: inset 0 0 0 2px var(--text);
+  }
+  .swatches i {
+    display: grid;
+    place-items: center;
+    width: 30px;
+    height: 20px;
+    border-radius: 999px;
+    color: #fff;
+    font-size: 12px;
+    font-style: normal;
+    font-weight: 700;
+  }
+  .swatches i.cz {
+    width: auto;
+    padding: 0 8px;
+    border-radius: 5px;
+    color: var(--text);
+    font-weight: 600;
+  }
   .seg {
     display: inline-flex;
     gap: 4px;

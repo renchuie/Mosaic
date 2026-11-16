@@ -198,6 +198,18 @@ Markdown" view, the `<>` chip on the note header).
   both); focus (button or Ctrl+\) hides the strips, leaving glowing edges whose icons float out on
   hover. `localStorage` "mosaic.notePanels" {pinL, pinR, focus} per machine.
 - Browser preview exposes `window.__notes` (sample notes only) so UI tests can read saved text.
+- After her first test round (Nov 16): cloze "retyping" (typing over or erasing a whole cloze keeps
+  typing inside it until the cursor moves, → or Esc; plugin in the Cloze mark); images are flow
+  lines with `indent` and `width` (`![alt|300](src)`, Obsidian syntax; corner grip resizes,
+  double-click = full width); card lines get inner padding (`--cp`) and a 3px gap; arrows are SVG;
+  Settings → Appearance "Flashcards in notes": card background on/off (`settings.cardBg`,
+  `<html data-cardbg>`), arrow colour (`ARROW_COLOURS`, `--arrow-bg`/`--arrow2-bg`) and cloze
+  colour (`CLOZE_COLOURS`, `--cloze-bg`/`--cloze-line`); `/` "List flashcard"; block menu
+  "One card each / All in one card" for lines with several clozes (sets `c1` on all); highlight
+  shortcuts Ctrl+Shift+1…6 (yellow, rose, sage, peach, lavender, blue), Ctrl+Shift+0 removes;
+  table bar adds rows above/below and columns left/right; selection toolbar waits for mouse-up;
+  course chip is a Mosaic menu (no native select); `NoteToolbar.svelte` is shared by the header
+  and a floating bar at the bottom shown while typing once the header has scrolled away.
 
 ## Notes editor like Docs / Notion (N1, built; now the "Edit as Markdown" view)
 

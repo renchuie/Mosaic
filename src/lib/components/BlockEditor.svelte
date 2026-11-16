@@ -23,6 +23,7 @@
     tagNames,
     imageUrl,
     onpasteimage,
+    onfocuschange,
   }: {
     value: string;
     onchange: () => void;
@@ -31,6 +32,8 @@
     tagNames: () => string[];
     imageUrl: (src: string) => string;
     onpasteimage: (dataUrl: string, ext: string) => Promise<string>;
+    /** true while she is typing in the note (the editor has focus) */
+    onfocuschange?: (typing: boolean) => void;
   } = $props();
 
   let host: HTMLDivElement;
@@ -59,6 +62,7 @@
     { id: "image", label: "Image", icon: "▣", group: "Basic", hint: "or paste one", run: () => pickImage() },
     { id: "link", label: "Link to a note", icon: "↗", group: "Basic", keys: "[[", run: () => editor?.chain().focus().insertContent("[[").run() },
     { id: "card", label: "Flashcard", icon: "→", group: "Study", hint: "Question → answer", keys: "::", run: () => editor?.chain().focus().insertContent({ type: "arrow", attrs: { two: false } }).run() },
+    { id: "listcard", label: "List flashcard", icon: "→•", group: "Study", hint: "the bullets under it are the answer", keys: "::", run: () => listCard() },
     { id: "card2", label: "Two-way flashcard", icon: "⇄", group: "Study", hint: "both directions", keys: ":::", run: () => editor?.chain().focus().insertContent({ type: "arrow", attrs: { two: true } }).run() },
     { id: "cloze", label: "Cloze (hidden part)", icon: "{ }", group: "Study", hint: "select text, then Cloze", keys: "{{ }}", run: () => insertCloze() },
     { id: "tcards", label: "Table of flashcards", icon: "▦→", group: "Study", hint: "one card per cell", run: () => tableCards() },
@@ -68,7 +72,12 @@
   const items = $derived.by((): (MenuItem & { run?: () => void; value?: string })[] => {
     if (!menu) return [];
     const q = menu.q.toLowerCase();
-    if (menu.kind === "slash") return SLASH.filter((i) => !q || i.label.toLowerCase().includes(q) || i.id.startsWith(q) || (i.group ?? "").toLowerCase().startsWith(q)).slice(0, 30);
+    if (menu.kind === "slash") {
+      const hits = SLASH.filter((i) => !q || i.label.toLowerCase().includes(q) || i.id.startsWith(q) || (i.group ?? "").toLowerCase().startsWith(q));
+      // names that start with what she typed come first ("list" → List flashcard before Bullet list)
+      if (q) hits.sort((a, b) => Number(!a.label.toLowerCase().startsWith(q)) - Number(!b.label.toLowerCase().startsWith(q)));
+      return hits.slice(0, 30);
+    }
     if (menu.kind === "link") {
       const names = linkNames();
       const hits = names.filter((n) => n.toLowerCase().includes(q)).sort((a, b) => Number(!a.toLowerCase().startsWith(q)) - Number(!b.toLowerCase().startsWith(q))).slice(0, 8);
@@ -152,7 +161,11 @@
     if (!editor) return;
     const { empty } = editor.state.selection;
     if (!empty) editor.chain().focus().toggleMark("cloze").run();
-    else editor.chain().focus().insertContent({ type: "text", text: "hidden part", marks: [{ type: "cloze" }] }).run();
+    else {
+      // placeholder comes in selected, so typing replaces it (and stays a cloze)
+      const at = editor.state.selection.from;
+      editor.chain().focus().insertContent({ type: "text", text: "hidden part", marks: [{ type: "cloze" }] }).setTextSelection({ from: at, to: at + 11 }).run();
+    }
   }
   function tableCards() {
     if (!editor) return;
@@ -167,18 +180,86 @@
     const r = new FileReader();
     r.onload = async () => {
       const path = await onpasteimage(String(r.result), file.type.split("/")[1]?.replace("jpeg", "jpg") || "png");
-      editor?.chain().focus().insertContent({ type: "image", attrs: { src: path, alt: "" } }).run();
+      putImage(path);
     };
     r.readAsDataURL(file);
+  }
+
+  /** An image on its own line, at the indent of the line it was pasted on, then a fresh line to keep typing. */
+  function putImage(src: string) {
+    if (!editor) return;
+    const { state } = editor;
+    const rf = state.selection.$from;
+    const node = rf.parent;
+    const indent = node.attrs.indent ?? 0;
+    const blank = FLOW.includes(node.type.name) && !node.content.size;
+    const before = rf.before(rf.depth);
+    const at = blank ? before : rf.after(rf.depth);
+    const img = state.schema.nodes.image.create({ src, alt: "", indent });
+    const para = state.schema.nodes.paragraph.create({ indent: FLOW.includes(node.type.name) ? indent : 0 });
+    const tr = blank ? state.tr.replaceWith(at, at + node.nodeSize, [img, para]) : state.tr.insert(at, [img, para]);
+    tr.setSelection(TextSelection.create(tr.doc, at + img.nodeSize + 1));
+    editor.view.dispatch(tr.scrollIntoView());
+    editor.commands.focus();
+  }
+
+  /** "List flashcard": the line becomes the question, the bullets indented under it are the answer. */
+  function listCard() {
+    if (!editor) return;
+    const { state } = editor;
+    const rf = state.selection.$from;
+    const node = rf.parent;
+    if (!node.isTextblock || node.type.spec.code) return;
+    let has = false;
+    node.forEach((c) => (has ||= c.type.name === "arrow"));
+    const end = rf.end();
+    const indent = FLOW.includes(node.type.name) ? (node.attrs.indent ?? 0) : 0;
+    const tr = state.tr;
+    if (!has) tr.insert(end, state.schema.nodes.arrow.create({ two: false }));
+    const after = tr.mapping.map(rf.after());
+    tr.insert(after, state.schema.nodes.bullet.create({ indent: indent + 1 }));
+    tr.setSelection(TextSelection.create(tr.doc, after + 1));
+    editor.view.dispatch(tr.scrollIntoView());
+    editor.commands.focus();
+  }
+
+  // ---- clozes on one line: separate cards or one card -----------------------------------------
+  function clozeRanges(pos: number) {
+    const node = editor?.state.doc.nodeAt(pos);
+    const out: { from: number; to: number; n: number | null; hint: string | null }[] = [];
+    if (!node?.isTextblock) return out;
+    node.forEach((c, off) => {
+      const m = c.marks.find((x) => x.type.name === "cloze");
+      if (!m) return;
+      const from = pos + 1 + off;
+      const last = out[out.length - 1];
+      if (last && last.to === from && last.n === m.attrs.n && last.hint === m.attrs.hint) last.to = from + c.nodeSize;
+      else out.push({ from, to: from + c.nodeSize, n: m.attrs.n, hint: m.attrs.hint });
+    });
+    return out;
+  }
+  function toggleTogether(pos: number) {
+    if (!editor) return;
+    const rs = clozeRanges(pos);
+    const together = rs.length > 1 && rs.every((r) => r.n !== null && r.n === rs[0].n);
+    const type = editor.schema.marks.cloze;
+    const tr = editor.state.tr;
+    for (const r of rs) tr.removeMark(r.from, r.to, type).addMark(r.from, r.to, type.create({ n: together ? null : 1, hint: r.hint }));
+    editor.view.dispatch(tr);
   }
 
   // ---- selection toolbar ---------------------------------------------------------------------
   let bubble = $state<{ x: number; y: number } | null>(null);
   let linkInput = $state<string | null>(null);
+  let mouseDown = false;
   function placeBubble() {
     if (!editor) return;
     const { state, view } = editor;
     const s = state.selection;
+    if (mouseDown) {
+      if (linkInput === null) bubble = null;
+      return;
+    }
     if (s.empty || !(s instanceof TextSelection) || s.$from.parent.type.spec.code || !view.hasFocus()) {
       if (linkInput === null) bubble = null;
       return;
@@ -214,7 +295,7 @@
 
   // ---- block handle ------------------------------------------------------------------------
   let handle = $state<{ y: number; pos: number; h: number } | null>(null);
-  let blockMenu = $state<{ pos: number; y: number; type: string } | null>(null);
+  let blockMenu = $state<{ pos: number; y: number; type: string; clozes: number; together: boolean } | null>(null);
   function topBlockAt(y: number): { pos: number; dom: HTMLElement; node: PMNode } | null {
     if (!editor) return null;
     const view = editor.view;
@@ -271,7 +352,8 @@
     if (!editor || !handle) return;
     const node = editor.state.doc.nodeAt(handle.pos);
     if (!node) return;
-    blockMenu = { pos: handle.pos, y: handle.y, type: node.type.name };
+    const rs = clozeRanges(handle.pos);
+    blockMenu = { pos: handle.pos, y: handle.y, type: node.type.name, clozes: rs.length, together: rs.length > 1 && rs.every((r) => r.n !== null && r.n === rs[0].n) };
   }
   function blockAction(a: string) {
     if (!editor || !blockMenu) return;
@@ -280,7 +362,8 @@
     const node = state.doc.nodeAt(pos);
     blockMenu = null;
     if (!node) return;
-    if (a === "delete") editor.view.dispatch(state.tr.delete(pos, pos + node.nodeSize));
+    if (a === "together") toggleTogether(pos);
+    else if (a === "delete") editor.view.dispatch(state.tr.delete(pos, pos + node.nodeSize));
     else if (a === "dup") editor.view.dispatch(state.tr.insert(pos + node.nodeSize, node.type.create({ ...node.attrs, sid: null }, node.content, node.marks)));
     else if (a === "up" || a === "down") {
       const rp = state.doc.resolve(pos);
@@ -368,7 +451,7 @@
           if (/data-pm-slice/.test(html)) return false;
           let md = "";
           if (html && richHtml(html)) md = htmlToMd(html);
-          else if (/^(#{1,6}\s|[-*+]\s|\d+[.)]\s|>\s|\|.*\|)|\*\*|\[\[|\{\{|\s::\s|==\S/m.test(plain)) md = plain;
+          else if (/^(#{1,6}\s|[-*+]\s|\d+[.)]\s|>\s|\|.*\|)|\*\*|\[\[|\{\{|\s::\s|==\S|<mark\b/im.test(plain)) md = plain;
           if (!md) return false;
           const doc = mdToDoc(md);
           editor?.chain().focus().insertContent(doc.content ?? []).run();
@@ -387,7 +470,9 @@
         placeBubble();
         if (transaction.docChanged) onchange();
       },
+      onFocus: () => onfocuschange?.(true),
       onBlur: () => {
+        onfocuschange?.(false);
         setTimeout(() => {
           if (!editor || editor.isDestroyed) return;
           if (!editor.view.hasFocus() && linkInput === null) bubble = null;
@@ -483,8 +568,10 @@
   }
 </script>
 
+<svelte:window onmouseup={() => { if (mouseDown) { mouseDown = false; setTimeout(placeBubble, 0); } }} />
+
 <!-- svelte-ignore a11y_no_static_element_interactions -->
-<div class="bwrap" bind:this={wrap} onmousemove={onMove} onmouseleave={() => !blockMenu && (handle = null)}>
+<div class="bwrap" bind:this={wrap} onmousemove={onMove} onmousedown={(e) => { if ((e.target as HTMLElement).closest(".mosaic-doc")) mouseDown = true; }} onmouseleave={() => !blockMenu && (handle = null)}>
   <div class="bhost" bind:this={host}></div>
 
   {#if handle && !blockMenu}
@@ -509,6 +596,13 @@
       {#if blockMenu.type === "table"}
         <button type="button" class="mi" onclick={() => blockAction("cards")}><span class="ic">▦→</span>Flashcards from this table</button>
       {/if}
+      {#if blockMenu.clozes > 1}
+        <div class="mh">{blockMenu.clozes} clozes on this line</div>
+        <div class="opt">
+          <button type="button" class:on={!blockMenu.together} onclick={() => blockMenu?.together && blockAction("together")}>One card each</button>
+          <button type="button" class:on={blockMenu.together} onclick={() => !blockMenu?.together && blockAction("together")}>All in one card</button>
+        </div>
+      {/if}
       {#if blockMenu.type === "blockquote" || blockMenu.type === "callout"}
         <button type="button" class="mi" onclick={() => blockAction("unwrap")}><span class="ic">¶</span>Back to plain text</button>
       {/if}
@@ -532,7 +626,7 @@
         <button type="button" class:on={active("code")} title="Code (Ctrl+E)" onclick={() => run("mark", "code")}>{"</>"}</button>
         <span class="sw">
           {#each HL_COLOURS as c}
-            <button type="button" class="dot" data-color={c} title="Highlight {c}" aria-label="Highlight {c}" onclick={() => run("hl", c)}></button>
+            <button type="button" class="dot" data-color={c} title="Highlight {c} (Ctrl+Shift+{HL_COLOURS.indexOf(c) + 1})" aria-label="Highlight {c}" onclick={() => run("hl", c)}></button>
           {/each}
         </span>
         <span class="sep"></span>
@@ -547,10 +641,16 @@
 
   {#if tableBar}
     <div class="tbar" style="top: {tableBar.y}px; left: {tableBar.x}px" onmousedown={(e) => e.preventDefault()} role="toolbar" tabindex="-1" aria-label="Table">
-      <button type="button" onclick={() => editor?.chain().focus().addRowAfter().run()}>+ Row</button>
-      <button type="button" onclick={() => editor?.chain().focus().addColumnAfter().run()}>+ Column</button>
-      <button type="button" onclick={() => editor?.chain().focus().deleteRow().run()}>− Row</button>
-      <button type="button" onclick={() => editor?.chain().focus().deleteColumn().run()}>− Column</button>
+      <span class="grp">Row</span>
+      <button type="button" title="Add a row above" aria-label="Add a row above" onclick={() => editor?.chain().focus().addRowBefore().run()}>↑+</button>
+      <button type="button" title="Add a row below" aria-label="Add a row below" onclick={() => editor?.chain().focus().addRowAfter().run()}>↓+</button>
+      <button type="button" title="Delete this row" aria-label="Delete this row" onclick={() => editor?.chain().focus().deleteRow().run()}>−</button>
+      <span class="sep"></span>
+      <span class="grp">Column</span>
+      <button type="button" title="Add a column to the left" aria-label="Add a column to the left" onclick={() => editor?.chain().focus().addColumnBefore().run()}>←+</button>
+      <button type="button" title="Add a column to the right" aria-label="Add a column to the right" onclick={() => editor?.chain().focus().addColumnAfter().run()}>→+</button>
+      <button type="button" title="Delete this column" aria-label="Delete this column" onclick={() => editor?.chain().focus().deleteColumn().run()}>−</button>
+      <span class="sep"></span>
       <button type="button" class="study" class:on={tableBar.cards} onclick={() => editor?.chain().focus().updateAttributes("table", { cards: !tableBar.cards }).run()}>{tableBar.cards ? "✓ " : ""}Flashcards</button>
       <button type="button" onclick={() => editor?.chain().focus().deleteTable().run()} title="Delete table">✕</button>
     </div>
@@ -699,6 +799,37 @@
     padding: 1px 6px;
     border-radius: 6px;
     background: var(--panel);
+  }
+  .opt {
+    display: flex;
+    gap: 2px;
+    margin: 0 4px 6px;
+    padding: 3px;
+    border-radius: 11px;
+    background: var(--panel);
+  }
+  .opt button {
+    flex: 1;
+    height: 30px;
+    border: 0;
+    border-radius: 9px;
+    background: none;
+    font: inherit;
+    font-size: 12.5px;
+    color: var(--text-muted);
+    cursor: pointer;
+  }
+  .opt button.on {
+    background: var(--surface);
+    color: var(--text);
+    font-weight: 600;
+    box-shadow: 0 2px 6px -3px rgba(40, 44, 80, 0.35);
+  }
+  .grp {
+    padding: 0 4px 0 6px;
+    font-size: 11.5px;
+    font-weight: 600;
+    color: var(--text-muted);
   }
   .turn {
     display: flex;

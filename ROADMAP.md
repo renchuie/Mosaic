@@ -212,5 +212,15 @@ Add things here as they come up (date, page, what happened). Each one is either 
   the consistency pass, the exam prep hub and the widget gallery.
 - Nov 16 · **N1b built at her request** (new note page, tucked panels). Testing it is part of
   daily use now; anything odd goes here.
+- Nov 16 · **Note page test list (her first testing round).** Fix now: cloze placeholder loses its
+  cloze when retyped; coloured highlights look wrong after the Markdown view. Polish now: card line
+  padding and a gap between card lines, centred arrows, list flashcards in the `/` menu, selection
+  toolbar waits for mouse-up, softer selection, cursor below a pasted image, course chip dropdown,
+  floating toolbar at the bottom while typing in a long note. Wishes started now: card look
+  settings (card background on/off, arrow and cloze colours), "hide clozes together" per line,
+  image resize, images under bullets, table rows above / columns left, highlight shortcuts.
+  **Later (own feature):** block style manager for callouts + quotes (colours, icons, own types,
+  quote bar / tint / italic / source line), custom highlight colours and palettes, table column
+  widths, lists inside table cells, cell colours.
 - Nov 16 · Renamed to **Mosaic** ("your student life in full view") and gave it the **glass
   tiles** app icon (option C). Done now, since both were small.

@@ -2,10 +2,10 @@
 // `mdDoc.ts`: a flat list of line blocks (paragraph, bullet, numbered, to-do with an indent
 // level), headings, quotes, callouts, code, tables, images and dividers; inline: bold, italic,
 // strike, code, highlight colours, links, cloze, [[note links]] and the flashcard arrow.
-import { Extension, InputRule, Mark, Node, markInputRule, mergeAttributes, textblockTypeInputRule, type Editor } from "@tiptap/core";
+import { Extension, InputRule, Mark, Node, getMarkRange, markInputRule, mergeAttributes, textblockTypeInputRule, type Editor } from "@tiptap/core";
 import { Plugin, PluginKey, TextSelection, type EditorState, type Transaction } from "@tiptap/pm/state";
-import { Decoration, DecorationSet } from "@tiptap/pm/view";
-import type { Node as PMNode, NodeType } from "@tiptap/pm/model";
+import { Decoration, DecorationSet, type EditorView } from "@tiptap/pm/view";
+import type { Mark as PMMark, Node as PMNode, NodeType } from "@tiptap/pm/model";
 import { Table, TableCell, TableHeader, TableRow } from "@tiptap/extension-table";
 import { Dropcursor, Gapcursor, Placeholder, UndoRedo } from "@tiptap/extensions";
 
@@ -16,6 +16,8 @@ export type EditorOpts = {
 };
 
 export const FLOW = ["paragraph", "bullet", "ordered", "todo"];
+/** Blocks that can be indented with Tab (images can sit under a bullet). */
+const INDENTABLE = [...FLOW, "image"];
 const LIST = ["bullet", "ordered", "todo"];
 
 const indentAttr = {
@@ -215,10 +217,70 @@ const Image = Node.create<{ imageUrl: (s: string) => string }>({
   atom: true,
   draggable: true,
   addOptions: () => ({ imageUrl: (s: string) => s }),
-  addAttributes: () => ({ src: { default: "" }, alt: { default: "" } }),
+  addAttributes: () => ({ src: { default: "" }, alt: { default: "" }, width: { default: null }, indent: { default: 0 } }),
   parseHTML: () => [{ tag: "figure.b-img img", getAttrs: (el) => ({ src: (el as HTMLElement).getAttribute("data-src") ?? "" }) }],
   renderHTML({ node }) {
     return ["figure", { class: "b-img" }, ["img", { src: this.options.imageUrl(node.attrs.src), "data-src": node.attrs.src, alt: node.attrs.alt }]];
+  },
+  addNodeView() {
+    // an image with a corner handle: drag to resize (saved as ![alt|width](src)), double-click it for full size
+    return ({ node, getPos, editor }) => {
+      let cur = node;
+      const dom = document.createElement("figure");
+      dom.className = "b-img";
+      const box = document.createElement("div");
+      box.className = "b-imgbox";
+      const img = document.createElement("img");
+      const grip = document.createElement("span");
+      grip.className = "b-imggrip";
+      grip.title = "Drag to resize · double-click for full width";
+      box.append(img, grip);
+      dom.append(box);
+      const paint = () => {
+        img.src = this.options.imageUrl(cur.attrs.src);
+        img.alt = cur.attrs.alt ?? "";
+        box.style.width = cur.attrs.width ? `${cur.attrs.width}px` : "";
+        dom.style.setProperty("--ind", String(cur.attrs.indent ?? 0));
+      };
+      paint();
+      const set = (attrs: Record<string, unknown>) => {
+        const pos = typeof getPos === "function" ? getPos() : undefined;
+        if (pos !== undefined) editor.view.dispatch(editor.state.tr.setNodeMarkup(pos, undefined, { ...cur.attrs, ...attrs }));
+      };
+      grip.addEventListener("pointerdown", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const startX = e.clientX;
+        const startW = box.getBoundingClientRect().width;
+        const max = dom.getBoundingClientRect().width;
+        grip.setPointerCapture(e.pointerId);
+        const move = (ev: PointerEvent) => {
+          box.style.width = `${Math.round(Math.max(80, Math.min(max, startW + ev.clientX - startX)))}px`;
+        };
+        const up = () => {
+          grip.removeEventListener("pointermove", move);
+          const w = Math.round(box.getBoundingClientRect().width);
+          set({ width: w >= max - 4 ? null : w });
+        };
+        grip.addEventListener("pointermove", move);
+        grip.addEventListener("pointerup", up, { once: true });
+      });
+      grip.addEventListener("dblclick", (e) => {
+        e.preventDefault();
+        set({ width: null });
+      });
+      return {
+        dom,
+        update: (n: PMNode) => {
+          if (n.type !== cur.type) return false;
+          cur = n;
+          paint();
+          return true;
+        },
+        stopEvent: (e: Event) => grip.contains(e.target as HTMLElement),
+        ignoreMutation: () => true,
+      };
+    };
   },
 });
 
@@ -258,7 +320,15 @@ const Arrow = Node.create({
   selectable: true,
   addAttributes: () => ({ two: { default: false } }),
   parseHTML: () => [{ tag: "span.b-arrow", getAttrs: (el) => ({ two: (el as HTMLElement).dataset.two === "true" }) }],
-  renderHTML: ({ node }) => ["span", { class: "b-arrow", "data-two": String(node.attrs.two), title: node.attrs.two ? "Flashcard both ways (click to switch)" : "Flashcard (click to make it two-way)" }, node.attrs.two ? "⇄" : "→"],
+  renderHTML: ({ node }) => [
+    "span",
+    { class: "b-arrow", "data-two": String(node.attrs.two), title: node.attrs.two ? "Flashcard both ways (click to switch)" : "Flashcard (click to make it two-way)" },
+    [
+      "http://www.w3.org/2000/svg svg",
+      { viewBox: "0 0 24 24", width: "15", height: "15", fill: "none", stroke: "currentColor", "stroke-width": "2.6", "stroke-linecap": "round", "stroke-linejoin": "round", "aria-hidden": "true" },
+      ["http://www.w3.org/2000/svg path", { d: node.attrs.two ? "M4 8.5h15M15.5 5l3.5 3.5-3.5 3.5M20 15.5H5M8.5 12L5 15.5 8.5 19" : "M4 12h15M14 6.5l5.5 5.5-5.5 5.5" }],
+    ],
+  ],
   renderText: ({ node }) => (node.attrs.two ? " ::: " : " :: "),
 });
 
@@ -338,7 +408,15 @@ const Highlight = Mark.create({
   parseHTML: () => [{ tag: "mark" }],
   renderHTML: ({ HTMLAttributes }) => ["mark", mergeAttributes({ class: "b-hl" }, HTMLAttributes), 0],
   addKeyboardShortcuts() {
-    return { "Mod-Shift-h": () => this.editor.commands.toggleMark(this.name, { color: null }) };
+    // Ctrl+Shift+1…6: yellow, rose, sage, peach, lavender, blue · Ctrl+Shift+0: no highlight
+    const keys: Record<string, () => boolean> = {
+      "Mod-Shift-h": () => this.editor.commands.toggleMark(this.name, { color: null }),
+      "Mod-Shift-0": () => this.editor.commands.unsetMark(this.name),
+    };
+    HL_COLOURS.forEach((c, i) => {
+      keys[`Mod-Shift-${i + 1}`] = () => this.editor.chain().unsetMark(this.name).setMark(this.name, { color: c === "yellow" ? null : c }).run();
+    });
+    return keys;
   },
   addInputRules() {
     return [markInputRule({ find: /(?:^|\s)(==(?!\s)([^=]+?)(?<!\s)==)$/, type: this.type })];
@@ -362,6 +440,77 @@ const Cloze = Mark.create({
   renderHTML: ({ HTMLAttributes }) => ["span", mergeAttributes({ class: "b-cloze" }, HTMLAttributes), 0],
   addInputRules() {
     return [markInputRule({ find: /(\{\{([^{}]+)\}\})$/, type: this.type })];
+  },
+  addProseMirrorPlugins() {
+    // Retyping a whole hidden part keeps it hidden: typing over a fully selected cloze, or
+    // erasing it (all at once or letter by letter) and then typing, stays inside the cloze.
+    const type = this.type;
+    /** The marks of a range that is entirely one cloze, else null. */
+    const wholeCloze = (state: EditorState, from: number, to: number) => {
+      let marks: readonly PMMark[] | null = null;
+      let ok = from < to;
+      state.doc.nodesBetween(from, to, (n) => {
+        if (!ok || !n.isInline) return;
+        if (!n.isText || !type.isInSet(n.marks)) ok = false;
+        else marks ??= n.marks;
+      });
+      return ok ? marks : null;
+    };
+    // "retyping": after a whole cloze was typed over or erased, typing at that spot stays in the
+    // cloze until the cursor moves away (click, arrows) or Esc / → is pressed.
+    let retypeAt: number | null = null;
+    let retypeMarks: readonly PMMark[] = [];
+    const eraseKeepingMark = (view: EditorView, from: number, to: number, marks: readonly PMMark[]) => {
+      retypeAt = from;
+      retypeMarks = marks;
+      view.dispatch(view.state.tr.delete(from, to).setStoredMarks(marks));
+      return true;
+    };
+    const typeInCloze = (view: EditorView, from: number, to: number, text: string, marks: readonly PMMark[]) => {
+      retypeAt = from + text.length;
+      retypeMarks = marks;
+      const tr = view.state.tr.replaceWith(from, to, view.state.schema.text(text, marks));
+      view.dispatch(tr.setSelection(TextSelection.create(tr.doc, from + text.length)));
+      return true;
+    };
+    return [
+      new Plugin({
+        view: () => ({
+          update: (view) => {
+            const s = view.state.selection;
+            if (retypeAt !== null && (!s.empty || s.from !== retypeAt)) retypeAt = null;
+          },
+        }),
+        props: {
+          handleTextInput(view, from, to, text) {
+            if (from === to && retypeAt === from) return typeInCloze(view, from, to, text, retypeMarks);
+            const marks = wholeCloze(view.state, from, to);
+            return marks ? typeInCloze(view, from, to, text, marks) : false;
+          },
+          handleKeyDown(view, e) {
+            if (retypeAt !== null && (e.key === "Escape" || e.key === "ArrowRight")) {
+              retypeAt = null;
+              view.dispatch(view.state.tr.setStoredMarks([]));
+              return e.key === "Escape";
+            }
+            if (e.key !== "Backspace" && e.key !== "Delete") return false;
+            const { from, to, empty, $from } = view.state.selection;
+            if (!empty) {
+              const marks = wholeCloze(view.state, from, to);
+              return marks ? eraseKeepingMark(view, from, to, marks) : false;
+            }
+            // the last letter of a cloze: erase it but keep typing inside the cloze
+            const at = e.key === "Backspace" ? from - 1 : from;
+            if (at < $from.start() || at >= $from.end()) return false;
+            const marks = wholeCloze(view.state, at, at + 1);
+            if (!marks) return false;
+            const range = getMarkRange(view.state.doc.resolve(at + 1), type) ?? getMarkRange(view.state.doc.resolve(at), type);
+            if (!range || range.to - range.from !== 1) return false;
+            return eraseKeepingMark(view, at, at + 1, marks);
+          },
+        },
+      }),
+    ];
   },
 });
 
@@ -500,12 +649,12 @@ function indent(editor: Editor, dir: 1 | -1): boolean {
   const tr = state.tr;
   let any = false;
   state.doc.nodesBetween(from, to, (node, pos, parent, index) => {
-    if (!FLOW.includes(node.type.name)) return true;
+    if (!INDENTABLE.includes(node.type.name)) return true;
     const cur = node.attrs.indent ?? 0;
     let max = 0;
     if (parent && index > 0) {
       const prev = parent.child(index - 1);
-      max = FLOW.includes(prev.type.name) ? (prev.attrs.indent ?? 0) + 1 : 0;
+      max = INDENTABLE.includes(prev.type.name) ? (prev.attrs.indent ?? 0) + 1 : 0;
     }
     const next = Math.max(0, Math.min(cur + dir, dir > 0 ? Math.max(max, cur) : cur));
     if (next !== cur) {
@@ -553,7 +702,7 @@ function decorations(doc: PMNode): DecorationSet {
     let pos = start;
     parent.forEach((node) => {
       const name = node.type.name;
-      if (FLOW.includes(name)) {
+      if (INDENTABLE.includes(name)) {
         const emptyPara = name === "paragraph" && !node.content.size;
         if (!emptyPara) {
           const lvl = node.attrs.indent ?? 0;

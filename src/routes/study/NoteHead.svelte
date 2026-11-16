@@ -19,7 +19,7 @@
 
 <script lang="ts">
   import Icon from "../../lib/components/Icon.svelte";
-  import { HL_COLOURS } from "../../lib/editor/blocks";
+  import NoteToolbar from "./NoteToolbar.svelte";
   import type { Meta } from "../../lib/notes";
   import { courseByName, courseNames } from "../../lib/stores/courses.svelte";
   import { allTags, dirOf } from "../../lib/stores/notes.svelte";
@@ -68,7 +68,7 @@
   const icon = $derived(typeof meta.icon === "string" && meta.icon ? meta.icon : "");
   const coverStyle = $derived(cover ? (COVERS[cover] ? `background: ${COVERS[cover]}` : `background: center / cover no-repeat url("${coverUrl(cover)}")`) : "");
 
-  let pick = $state<"icon" | "cover" | "menu" | null>(null);
+  let pick = $state<"icon" | "cover" | "menu" | "course" | null>(null);
   let emojiText = $state("");
   let tagText = $state("");
   let addingTag = $state(false);
@@ -123,12 +123,23 @@
     </div>
 
     <div class="chips">
-      <label class="chip course" style={course ? `--c: ${course[1].color}` : ""}>
-        <Icon name="book" size={13} />
-        <select value={meta.course ?? ""} aria-label="Course" onchange={(e) => onmeta({ course: e.currentTarget.value || undefined })}>
-          <option value="">No course</option>{#each courseNames() as c}<option value={c}>{c}</option>{/each}
-        </select>
-      </label>
+      <div class="mwrap">
+        <button type="button" class="chip course" style={course ? `--c: ${course[1].color}` : ""} aria-haspopup="listbox" aria-expanded={pick === "course"}
+          onclick={() => (pick = pick === "course" ? null : "course")}>
+          <Icon name="book" size={13} /><span class="cn">{meta.course ?? "No course"}</span><span class="chev" aria-hidden="true">▾</span>
+        </button>
+        {#if pick === "course"}
+          <div class="pop menu clist" role="listbox" aria-label="Course">
+            {#each ["", ...courseNames()] as c}
+              {@const cc = c ? courseByName(c) : undefined}
+              <button type="button" role="option" aria-selected={(meta.course ?? "") === c} class="mi copt" class:on={(meta.course ?? "") === c}
+                onclick={() => { onmeta({ course: c || undefined }); pick = null; }}>
+                <span class="cdot" style={cc ? `background: ${cc[1].color}` : ""}></span>{c || "No course"}
+              </button>
+            {/each}
+          </div>
+        {/if}
+      </div>
       <label class="chip"><Icon name="calendar" size={13} /><input type="date" class:empty={!meta.date} value={meta.date ?? ""} aria-label="Date" onchange={(e) => onmeta({ date: e.currentTarget.value || undefined })} /></label>
       {#each tags as t (t)}
         <span class="chip tag">#{t}<button type="button" aria-label="Remove tag {t}" onclick={() => onmeta({ tags: tags.filter((x) => x !== t) })}>×</button></span>
@@ -174,30 +185,7 @@
     {/if}
 
     {#if !source}
-      <div class="toolbar" role="toolbar" aria-label="Formatting">
-        <button type="button" onclick={() => onrun("block", "heading:1")} title="Heading 1">H1</button>
-        <button type="button" onclick={() => onrun("block", "heading:2")} title="Heading 2">H2</button>
-        <button type="button" onclick={() => onrun("block", "heading:3")} title="Heading 3">H3</button>
-        <span class="sep"></span>
-        <button type="button" onclick={() => onrun("mark", "bold")} title="Bold (Ctrl+B)"><b>B</b></button>
-        <button type="button" onclick={() => onrun("mark", "italic")} title="Italic (Ctrl+I)"><i>I</i></button>
-        <button type="button" onclick={() => onrun("mark", "strike")} title="Strike (Ctrl+Shift+X)"><s>S</s></button>
-        <span class="hl">
-          {#each HL_COLOURS as c}<button type="button" class="dot" data-color={c} title="Highlight {c}" aria-label="Highlight {c}" onclick={() => onrun("hl", c)}></button>{/each}
-        </span>
-        <span class="sep"></span>
-        <button type="button" onclick={() => onrun("ul")} title="Bullet list">•</button>
-        <button type="button" onclick={() => onrun("ol")} title="Numbered list">1.</button>
-        <button type="button" onclick={() => onrun("todo")} title="To-do">☐</button>
-        <button type="button" onclick={() => onrun("table")} title="Table">▦</button>
-        <button type="button" onclick={() => onrun("c-note")} title="Callout">❝</button>
-        <span class="sep"></span>
-        <button type="button" class="study" onclick={() => onrun("card")} title="Flashcard: question → answer (or type ::)">→</button>
-        <button type="button" class="study" onclick={() => onrun("card2")} title="Two-way flashcard (or type :::)">⇄</button>
-        <button type="button" class="study" onclick={() => onrun("cloze")} title="Cloze: hide the selected part">{"{ }"}</button>
-        <button type="button" onclick={() => onrun("link")} title="Link to a note ([[)">[[ ]]</button>
-        <span class="hint">Type <kbd>/</kbd> for blocks</span>
-      </div>
+      <NoteToolbar {onrun} />
     {/if}
   </div>
 
@@ -379,14 +367,58 @@
     font-weight: 600;
     color: var(--text-muted);
   }
-  .chip.course select {
-    max-width: 170px;
+  .chip.course {
+    cursor: pointer;
+    max-width: 230px;
+  }
+  .chip.course .cn {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .chev {
+    font-size: 10px;
+    opacity: 0.6;
+  }
+  .chip:focus-visible,
+  .chip:focus-within {
+    outline: none;
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--lavender, #c9b8f0) 80%, transparent);
+  }
+  .chip input:focus {
+    outline: none;
+  }
+  .clist {
+    left: 0;
+    width: 250px;
+    max-height: 320px;
+    overflow-y: auto;
+    gap: 2px;
+  }
+  .copt {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: none;
+  }
+  .copt:hover {
+    background: var(--panel);
+  }
+  .copt.on {
+    background: color-mix(in srgb, var(--lavender, #c9b8f0) 30%, transparent);
+    font-weight: 600;
+  }
+  .cdot {
+    flex: none;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--hairline);
   }
   .chip.course[style] {
     background: color-mix(in srgb, var(--c) 40%, var(--white, #fff));
     color: var(--text);
   }
-  .chip select,
   .chip input {
     border: 0;
     background-color: transparent;
@@ -590,73 +622,9 @@
     padding: 0 12px;
     font-size: 13px;
   }
-  .toolbar {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 2px;
-    align-items: center;
-  }
-  .toolbar button {
-    min-width: 32px;
-    min-height: 30px;
-    padding: 0 7px;
-    border: 0;
-    border-radius: 9px;
-    background: none;
-    font: inherit;
-    font-size: 13px;
-    color: var(--text-muted);
-    cursor: pointer;
-  }
-  .toolbar button:hover {
-    background: var(--panel);
-    color: var(--text);
-  }
-  .toolbar .study {
-    color: #a8434f;
-    font-weight: 700;
-  }
-  .hl {
-    display: inline-flex;
-    gap: 3px;
-    padding: 0 4px;
-  }
-  .toolbar .dot {
-    min-width: 0;
-    width: 16px;
-    height: 16px;
-    min-height: 0;
-    padding: 0;
-    border-radius: 50%;
-    box-shadow: inset 0 0 0 1px rgba(59, 48, 51, 0.1);
-  }
-  .toolbar .dot:hover {
-    transform: scale(1.25);
-  }
-  .sep {
-    width: 1px;
-    height: 16px;
-    margin: 0 4px;
-    background: var(--hairline);
-  }
-  .hint {
-    margin-left: auto;
-    font-size: 12px;
-    color: var(--text-muted);
-  }
-  .hint kbd {
-    font: inherit;
-    font-weight: 700;
-    padding: 0 5px;
-    border-radius: 5px;
-    background: var(--chip);
-  }
   @container (max-width: 700px) {
     .inner {
       padding: 12px 18px 8px;
-    }
-    .hint {
-      display: none;
     }
   }
 </style>

@@ -18,6 +18,7 @@
   import NoteTree from "./NoteTree.svelte";
   import NotesHome from "./NotesHome.svelte";
   import NoteHead from "./NoteHead.svelte";
+  import NoteToolbar from "./NoteToolbar.svelte";
   import NoteSide, { PANELS, type Panel } from "./NoteSide.svelte";
 
   let { rel }: { rel: string | null } = $props();
@@ -299,6 +300,21 @@
     }).length;
   });
 
+  // ---- floating toolbar: shown at the bottom while she types and the header has scrolled away ----
+  let scrollEl = $state<HTMLElement>();
+  let headHidden = $state(false);
+  let typing = $state(false);
+  let typingTimer = 0;
+  function checkHead() {
+    const tb = scrollEl?.querySelector(".nh .toolbar");
+    headHidden = !!(tb && scrollEl && tb.getBoundingClientRect().bottom < scrollEl.getBoundingClientRect().top + 4);
+  }
+  function setTyping(on: boolean) {
+    window.clearTimeout(typingTimer);
+    if (on) typing = true;
+    else typingTimer = window.setTimeout(() => (typing = false), 150);
+  }
+
   // ---- linked references -------------------------------------------------------------------------
   let showMentions = $state(false);
   const mentions = $derived.by(() => {
@@ -364,7 +380,10 @@
       {/if}
 
       <section class="center">
-        <div class="scroll">
+        {#if typing && headHidden && !source}
+          <div class="floatbar"><NoteToolbar floating onrun={(c, a) => blocks?.run(c, a)} /></div>
+        {/if}
+        <div class="scroll" bind:this={scrollEl} onscroll={checkHead}>
           <NoteHead {rel} {meta} bind:title {status} {errorText} {source} {dirs}
             coverUrl={(s) => imageUrl(rel!, s)}
             onmeta={setMeta} onrename={doRename} onmove={doMove} ondelete={doDelete} ontoggleSource={toggleSource}
@@ -376,7 +395,7 @@
                   linkNames={() => allNotes().map(linkName)} tagNames={allTags}
                   imageUrl={(src) => imageUrl(rel!, src)} onpasteimage={(d, ext) => savePastedImage(rel!, d, ext)} />
               {:else}
-                <BlockEditor bind:this={blocks} value={body} onchange={changed} onopenlink={openLink}
+                <BlockEditor bind:this={blocks} value={body} onchange={changed} onopenlink={openLink} onfocuschange={setTyping}
                   linkNames={() => allNotes().map(linkName)} tagNames={allTags}
                   imageUrl={(src) => imageUrl(rel!, src)} onpasteimage={(d, ext) => savePastedImage(rel!, d, ext)} />
               {/if}
@@ -570,6 +589,24 @@
     background: var(--surface);
     box-shadow: var(--shadow);
     overflow: hidden;
+  }
+  .center {
+    position: relative;
+  }
+  .floatbar {
+    position: absolute;
+    left: 50%;
+    bottom: 16px;
+    z-index: 7;
+    max-width: calc(100% - 32px);
+    transform: translateX(-50%);
+    animation: barin 0.3s var(--spring, ease) backwards;
+  }
+  @keyframes barin {
+    from {
+      opacity: 0;
+      transform: translate(-50%, 16px);
+    }
   }
   .scroll {
     flex: 1;

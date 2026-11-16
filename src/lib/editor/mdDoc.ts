@@ -18,7 +18,15 @@ export type PMMark = { type: string; attrs?: Record<string, unknown> };
 export type PMNode = { type: string; attrs?: Record<string, unknown>; content?: PMNode[]; text?: string; marks?: PMMark[] };
 
 const ID_RE = /\s*<!--sd:([a-z0-9]{4,})-->/;
-const FLOW = new Set(["paragraph", "bullet", "ordered", "todo"]);
+// "Flow" blocks are lines of the page: they keep the spacing she typed and can be indented.
+const FLOW = new Set(["paragraph", "bullet", "ordered", "todo", "image"]);
+/** `![alt|300](src)`: Obsidian's way of giving an image a width. */
+const IMG_RE = /^!\[([^\]\n]*)\]\(([^)\s]+)\)\s*$/;
+function imageAttrs(alt: string, src: string, indent: number): Record<string, unknown> {
+  const w = /^(.*?)\|\s*(\d{2,4})(?:x\d+)?\s*$/.exec(alt);
+  return { src, alt: w ? w[1] : alt, width: w ? Number(w[2]) : null, indent };
+}
+const imageMd = (a: Record<string, unknown> = {}) => `![${a.alt ?? ""}${a.width ? `|${a.width}` : ""}](${a.src ?? ""})`;
 
 // ---- inline: Markdown → nodes ----------------------------------------------------------------
 
@@ -119,8 +127,9 @@ export function parseInline(s: string, marks: PMMark[] = [], ctx: Ctx = { arrow:
       i += m[0].length;
       continue;
     }
-    if (c === "<" && (m = /^<mark(?:\s+class="([\w-]+)")?\s*>([\s\S]*?)<\/mark>/.exec(rest))) {
-      inner(m[2], { type: "highlight", attrs: { color: m[1] && m[1] !== "yellow" ? m[1] : null } });
+    if (c === "<" && (m = /^<mark\b([^>]*)>([\s\S]*?)<\/mark>/i.exec(rest))) {
+      const cls = /class\s*=\s*["']?([\w-]+)/i.exec(m[1])?.[1]?.toLowerCase();
+      inner(m[2], { type: "highlight", attrs: { color: cls && cls !== "yellow" ? cls : null } });
       i += m[0].length;
       continue;
     }
@@ -233,7 +242,11 @@ export function serializeInline(nodes: PMNode[] = [], cell = false): string {
       const t = n.text ?? "";
       const core = t.trim();
       if (!core) {
-        // whitespace only: keep it inside whatever is open
+        // whitespace only: close what it isn't part of, but don't open anything for it
+        let k = 0;
+        while (k < stack.length && k < want.length && sameMark(stack[k].m, want[k])) k++;
+        for (let j = stack.length - 1; j >= k; j--) out += close(stack[j].m, stack[j].opener);
+        stack.length = k;
         out += pend + t;
         pend = "";
         return;
@@ -431,10 +444,12 @@ export function parseBlocks(lines: string[]): PMNode[] {
       i = j - 1;
       continue;
     }
-    // image on its own line
-    if ((m = /^\s*!\[([^\]\n]*)\]\(([^)\s]+)\)\s*$/.exec(line))) {
-      push(block("image", { src: m[2], alt: m[1] }));
-      structural();
+    // image on its own line (indented under a bullet, it belongs to that bullet)
+    if ((m = IMG_RE.exec(line.trimStart()))) {
+      const w = width(/^[ \t]*/.exec(line)![0]);
+      const level = w ? levelOf(w) : 0;
+      push(block("image", imageAttrs(m[1], m[2], level)));
+      cols = cols.slice(0, level + 1);
       continue;
     }
     // list item
@@ -507,6 +522,13 @@ function serializeBlocks(nodes: PMNode[], seen: Set<string>, owners: Owner[], ba
       let level = Math.max(0, Math.min(Number(n.attrs?.indent ?? 0), cols.length - 1));
       counters.length = level + 1;
       const indent = " ".repeat(cols[level]);
+      if (n.type === "image") {
+        counters[level] = undefined;
+        owners.push({ line, path: here });
+        out.push(indent + imageMd(n.attrs));
+        cols = cols.slice(0, level + 1);
+        return;
+      }
       let marker = "";
       if (n.type === "bullet") marker = "- ";
       else if (n.type === "todo") marker = `- [${n.attrs?.checked ? "x" : " "}] `;
@@ -536,9 +558,6 @@ function serializeBlocks(nodes: PMNode[], seen: Set<string>, owners: Owner[], ba
       }
       case "hr":
         out.push("---");
-        break;
-      case "image":
-        out.push(`![${n.attrs?.alt ?? ""}](${n.attrs?.src ?? ""})`);
         break;
       case "raw":
         out.push(...(n.content?.map((c) => c.text ?? "").join("") ?? "").split("\n"));
