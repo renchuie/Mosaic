@@ -121,5 +121,5 @@ Add things here as they come up (date, page, what happened). Each one is either 
   settings and avatar at the bottom; page names on hover). Replaces the labelled sidebar and
   the streak panel. **Week 6.**
 - Nov 16 · New look being tried: **Frosted glass** (soft pastel colour blooms behind translucent,
-  blurred cards with a thin bright edge) and **cozier spacing** (tighter gaps and padding, 20px
-  corners). Both are tweaks on the canvas next to the current pastel look; decide before week 6.
+  blurred cards with a thin bright edge) and **roomier spacing** (bigger gaps and padding than now,
+  28px corners; she said "cozy" but meant more room). Both are tweaks on the canvas next to the current pastel look; decide before week 6.
