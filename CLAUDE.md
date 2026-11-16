@@ -11,6 +11,8 @@ laptop (NVIDIA GPU) through `./install.sh`.
 - Before installing any system package, say exactly what and why.
 - Never edit her Hyprland config. Offer snippets (`packaging/hyprland-rules.conf`) she pastes herself.
 - Personal data never goes in the repo.
+- Work follows `ROADMAP.md`: one focus per week until v1.0 on Dec 31, 2026. Stay inside the current
+  week's focus; log anything else under "Found this week" in that file.
 
 ## Stack (decided)
 
