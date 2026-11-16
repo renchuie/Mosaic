@@ -321,21 +321,7 @@ button.dot[data-color] {
   border-radius: 16px;
   background: color-mix(in srgb, var(--cc) 22%, transparent);
 }
-.mosaic-doc .b-callout[data-kind="tip"],
-.mosaic-doc .b-callout[data-kind="success"] {
-  --cc: var(--sage, #a9cdc3);
-}
-.mosaic-doc .b-callout[data-kind="exam"],
-.mosaic-doc .b-callout[data-kind="warning"] {
-  --cc: var(--rose, #f2b8b5);
-}
-.mosaic-doc .b-callout[data-kind="info"] {
-  --cc: #b9d4ee;
-}
-.mosaic-doc .b-callout[data-kind="example"],
-.mosaic-doc .b-callout[data-kind="question"] {
-  --cc: var(--peach, #f6cfa8);
-}
+/* each type's colour, icon and label come from the block style manager (generated CSS) */
 .mosaic-doc .b-chead {
   display: flex;
   align-items: center;
@@ -357,7 +343,8 @@ button.dot[data-color] {
   color: var(--text);
   cursor: pointer;
 }
-.mosaic-doc .b-cbadge span {
+.mosaic-doc .b-cbadge::before {
+  content: "•";
   display: grid;
   place-items: center;
   width: 19px;
@@ -365,6 +352,21 @@ button.dot[data-color] {
   border-radius: 50%;
   background: var(--white, #fff);
   font-size: 11px;
+  line-height: 1;
+}
+.mosaic-doc .b-cbadge::after {
+  content: attr(data-label);
+}
+.mosaic-doc .b-cbadge:hover {
+  filter: brightness(0.97);
+}
+/* a quote's last line starting with a dash is its source */
+.mosaic-doc .b-quote .b-src {
+  margin-top: 4px;
+  font-size: 0.88em;
+  font-style: normal;
+  font-weight: 600;
+  color: var(--text-muted);
 }
 .mosaic-doc .b-ctitle {
   flex: 1;

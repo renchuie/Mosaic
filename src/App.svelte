@@ -10,6 +10,7 @@
   import Study from "./routes/Study.svelte";
   import EventEditor from "./lib/components/EventEditor.svelte";
   import TagManager from "./lib/components/TagManager.svelte";
+  import BlockStyleManager from "./lib/components/BlockStyleManager.svelte";
   import TimerPill from "./lib/components/TimerPill.svelte";
   import { fly } from "svelte/transition";
   import { backOut } from "svelte/easing";
@@ -48,6 +49,7 @@
 </div>
 <EventEditor />
 <TagManager />
+<BlockStyleManager />
 <TimerPill />
 
 <style>

@@ -216,6 +216,16 @@ Markdown" view, the `<>` chip on the note header).
   group numbers / + new group, sets the cloze `n` (`{{cN::…}}`); numbered clozes show a badge.
   Card line tints follow the arrow colour (`ARROW_COLOURS` entries 3–4 → `--card-bg`, `--card-bg2`
   for two-way lines).
+- Block style manager (`BlockStyleManager.svelte`, store `src/lib/stores/blockStyles.svelte.ts`):
+  synced collections `calloutTypes` (record per kind = the word in `> [!kind]`: label, icon,
+  colour, order, hidden; built-ins seeded u=1, can be renamed / recoloured / hidden, her own can
+  be deleted) and `blockStyles` record `quote` {bar, tint, italic}. `blockStylesCss()` generates the
+  per-kind CSS (`--cc`, badge `::before` icon / `::after` label) and the quote style; BlockEditor
+  puts it in a `<style>` in `<svelte:head>`. Unknown kinds show their own word (badge
+  `data-label`) in the default lavender. Clicking a callout badge opens the type menu ("Edit
+  styles…"); the `/` menu lists visible types, plus "Quote with source". A quote's last line
+  starting with a dash gets class `b-src` (decoration); ⠿ on a quote → "Add a source line".
+  Opened from Settings → Appearance too.
 - Saving on leave (bug found Nov 16: leaving a note within the 700 ms autosave lost the last
   edit): BlockEditor keeps a `dirty` flag and hands its Markdown to `onleave` in `onDestroy`;
   NotesView's `leaveFor(rel)` rebuilds the file from the saved front matter + title and saves it a

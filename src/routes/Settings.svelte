@@ -2,6 +2,7 @@
   import { probe, setKey } from "../lib/labStorage";
   import { labs, refreshProgress, rescan } from "../lib/stores/labs.svelte";
   import { ARROW_COLOURS, CLOZE_COLOURS, DEFAULT_SETTINGS, saveSettings, settings } from "../lib/stores/settings.svelte";
+  import { styleManager } from "../lib/stores/blockStyles.svelte";
   import { inTauri } from "../lib/tauri";
   import { sync, syncNow } from "../lib/stores/synced.svelte";
   import { refreshNotes } from "../lib/stores/notes.svelte";
@@ -122,6 +123,11 @@
             onclick={() => saveSettings({ clozeColor: k })}><i class="cz" style="background: {fill}; box-shadow: inset 0 -2px 0 {line}">cloze</i></button>
         {/each}
       </div>
+    </div>
+    <h3 class="sub">Callouts and quotes</h3>
+    <div class="field">
+      <span class="hint muted">Colours, icons and names of your callout types (add your own), and how quotes look.</span>
+      <button type="button" class="btn quiet" style="justify-self: start" onclick={() => (styleManager.open = true)}>Edit callout and quote styles…</button>
     </div>
   </section>
 

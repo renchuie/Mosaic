@@ -10,6 +10,8 @@ import { Table, TableCell, TableHeader, TableRow } from "@tiptap/extension-table
 import { Dropcursor, Gapcursor, Placeholder, UndoRedo } from "@tiptap/extensions";
 
 export type EditorOpts = {
+  /** the callout badge was clicked: show the type menu */
+  onCalloutMenu: (pos: number, rect: DOMRect) => void;
   imageUrl: (src: string) => string;
   onOpenLink: (target: string) => void;
   onOpenUrl: (href: string) => void;
@@ -91,22 +93,14 @@ const Blockquote = Node.create({
   renderHTML: () => ["blockquote", { class: "b-quote" }, 0],
 });
 
-export const CALLOUTS: { kind: string; label: string; icon: string }[] = [
-  { kind: "note", label: "Note", icon: "✎" },
-  { kind: "tip", label: "Tip", icon: "✦" },
-  { kind: "exam", label: "Exam", icon: "★" },
-  { kind: "warning", label: "Warning", icon: "!" },
-  { kind: "info", label: "Info", icon: "i" },
-  { kind: "example", label: "Example", icon: "❖" },
-  { kind: "question", label: "Question", icon: "?" },
-  { kind: "success", label: "Key point", icon: "✓" },
-];
-
-const Callout = Node.create({
+// Callout types (label, icon, colour) live in the block style manager; their look comes from the
+// CSS it generates per kind. The badge shows the kind's own word until a style exists for it.
+const Callout = Node.create<{ onMenu: (pos: number, rect: DOMRect) => void }>({
   name: "callout",
   group: "block",
   content: "block+",
   defining: true,
+  addOptions: () => ({ onMenu: () => {} }),
   addAttributes: () => ({ kind: { default: "note", rendered: false }, fold: hidden(""), title: hidden("") }),
   parseHTML: () => [{ tag: "aside.b-callout" }],
   renderHTML: ({ node }) => ["aside", { class: "b-callout", "data-kind": node.attrs.kind }, ["div", { class: "b-cbody" }, 0]],
@@ -121,7 +115,7 @@ const Callout = Node.create({
       const badge = document.createElement("button");
       badge.type = "button";
       badge.className = "b-cbadge";
-      badge.title = "Change callout type";
+      badge.title = "Callout type and style";
       const title = document.createElement("input");
       title.className = "b-ctitle";
       title.placeholder = "Title";
@@ -131,9 +125,9 @@ const Callout = Node.create({
       body.className = "b-cbody";
       dom.append(head, body);
       const paint = () => {
-        const k = CALLOUTS.find((c) => c.kind === cur.attrs.kind) ?? { kind: cur.attrs.kind, label: cur.attrs.kind, icon: "•" };
-        dom.dataset.kind = k.kind;
-        badge.innerHTML = `<span>${k.icon}</span>${k.label}`;
+        const kind = String(cur.attrs.kind || "note");
+        dom.dataset.kind = kind;
+        badge.dataset.label = kind.charAt(0).toUpperCase() + kind.slice(1).replace(/[-_]/g, " ");
         if (document.activeElement !== title) title.value = cur.attrs.title ?? "";
       };
       paint();
@@ -144,8 +138,8 @@ const Callout = Node.create({
       };
       badge.addEventListener("mousedown", (e) => e.preventDefault());
       badge.addEventListener("click", () => {
-        const i = CALLOUTS.findIndex((c) => c.kind === cur.attrs.kind);
-        set({ kind: CALLOUTS[(i + 1) % CALLOUTS.length].kind });
+        const pos = typeof getPos === "function" ? getPos() : undefined;
+        if (pos !== undefined) this.options.onMenu(pos, badge.getBoundingClientRect());
       });
       title.addEventListener("change", () => set({ title: title.value }));
       title.addEventListener("keydown", (e) => {
@@ -734,6 +728,13 @@ function decorations(doc: PMNode): DecorationSet {
         }
       } else counters.length = 0;
       if (name === "blockquote" || name === "callout") walk(node, pos + 1);
+      if (name === "blockquote" && node.childCount > 1) {
+        const last = node.lastChild!;
+        if (last.type.name === "paragraph" && /^\s*(—|–|--|~)\s?/.test(last.textContent)) {
+          const at = pos + node.nodeSize - 1 - last.nodeSize;
+          out.push(Decoration.node(at, at + last.nodeSize, { class: "b-src" }));
+        }
+      }
       if (name === "table" && node.attrs.cards) out.push(Decoration.node(pos, pos + node.nodeSize, { class: "cards" }));
       if (node.isTextblock && !node.type.spec.code) {
         node.forEach((child, off) => {
@@ -812,7 +813,7 @@ function behaviour(opts: EditorOpts) {
 
 export function mosaicExtensions(opts: EditorOpts) {
   return [
-    Doc, Text, Paragraph, Bullet, Ordered, Todo, Heading, Blockquote, Callout, CodeBlock, Raw, Hr,
+    Doc, Text, Paragraph, Bullet, Ordered, Todo, Heading, Blockquote, Callout.configure({ onMenu: opts.onCalloutMenu }), CodeBlock, Raw, Hr,
     Image.configure({ imageUrl: opts.imageUrl }), MTable, TableRow, MHeader, MCell,
     Wikilink, Arrow, InlineImage.configure({ imageUrl: opts.imageUrl }), HardBreak,
     Bold, Italic, Strike, Code, Highlight, Link, Cloze,

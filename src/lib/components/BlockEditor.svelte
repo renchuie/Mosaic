@@ -11,7 +11,8 @@
   import { NodeSelection, TextSelection } from "@tiptap/pm/state";
   import { getMarkRange } from "@tiptap/core";
   import type { Node as PMNode } from "@tiptap/pm/model";
-  import { mosaicExtensions, CALLOUTS, FLOW, HL_COLOURS } from "../editor/blocks";
+  import { mosaicExtensions, FLOW, HL_COLOURS } from "../editor/blocks";
+  import { blockStylesCss, styleManager, visibleCallouts } from "../stores/blockStyles.svelte";
   import { docToMd, mdToDoc, type PMNode as JNode } from "../editor/mdDoc";
   import { htmlToMd, richHtml } from "../editor/htmlToMd";
   import "../editor/editor.css";
@@ -51,7 +52,7 @@
   let sel = $state(0);
   let menuEl = $state<HTMLDivElement>();
 
-  const SLASH: (MenuItem & { run: () => void })[] = [
+  const SLASH_BASE: (MenuItem & { run: () => void })[] = [
     { id: "p", label: "Text", icon: "¶", group: "Basic", run: () => turnInto("paragraph") },
     { id: "h1", label: "Heading 1", icon: "H1", group: "Basic", keys: "#", run: () => turnInto("heading", { level: 1 }) },
     { id: "h2", label: "Heading 2", icon: "H2", group: "Basic", keys: "##", run: () => turnInto("heading", { level: 2 }) },
@@ -70,14 +71,19 @@
     { id: "card2", label: "Two-way flashcard", icon: "⇄", group: "Study", hint: "both directions", keys: ":::", run: () => editor?.chain().focus().insertContent({ type: "arrow", attrs: { two: true } }).run() },
     { id: "cloze", label: "Cloze (hidden part)", icon: "{ }", group: "Study", hint: "select text, then Cloze", keys: "{{ }}", run: () => insertCloze() },
     { id: "tcards", label: "Table of flashcards", icon: "▦→", group: "Study", hint: "one card per cell", run: () => tableCards() },
-    ...CALLOUTS.map((c) => ({ id: `c-${c.kind}`, label: `${c.label} callout`, icon: c.icon, group: "Callouts", run: () => editor?.chain().focus().wrapIn("callout", { kind: c.kind, title: c.kind === "exam" ? "High yield" : "" }).run() })),
+  ];
+  /** The "/" menu: basic and study blocks, then her callout types. */
+  const slashItems = (): (MenuItem & { run: () => void })[] => [
+    ...SLASH_BASE,
+    { id: "q-src", label: "Quote with source", icon: "❝—", group: "Basic", hint: "the last line, starting with —, is the source", run: () => quoteWithSource() },
+    ...visibleCallouts().map(([k, t]) => ({ id: `c-${k}`, label: `${t.label} callout`, icon: t.icon || "•", group: "Callouts", run: () => editor?.chain().focus().wrapIn("callout", { kind: k, title: "" }).run() })),
   ];
 
   const items = $derived.by((): (MenuItem & { run?: () => void; value?: string })[] => {
     if (!menu) return [];
     const q = menu.q.toLowerCase();
     if (menu.kind === "slash") {
-      const hits = SLASH.filter((i) => !q || i.label.toLowerCase().includes(q) || i.id.startsWith(q) || (i.group ?? "").toLowerCase().startsWith(q));
+      const hits = slashItems().filter((i) => !q || i.label.toLowerCase().includes(q) || i.id.startsWith(q) || (i.group ?? "").toLowerCase().startsWith(q));
       // names that start with what she typed come first ("list" → List flashcard before Bullet list)
       if (q) hits.sort((a, b) => Number(!a.label.toLowerCase().startsWith(q)) - Number(!b.label.toLowerCase().startsWith(q)));
       return hits.slice(0, 30);
@@ -413,12 +419,48 @@
       }
     } else if (a === "cards") editor.view.dispatch(state.tr.setNodeMarkup(pos, undefined, { ...node.attrs, cards: !node.attrs.cards }));
     else if (a === "unwrap") editor.chain().setTextSelection(pos + 2).lift(node.type.name).run();
+    else if (a === "source") addSource(pos);
     else if (a.startsWith("to:")) {
       const [, type, lvl] = a.split(":");
       turnInto(type, type === "heading" ? { level: Number(lvl) } : {}, pos);
     }
     editor.commands.focus();
   }
+
+  // ---- callouts and quotes ------------------------------------------------------------------------
+  let calloutMenu = $state<{ pos: number; x: number; y: number } | null>(null);
+  function setCalloutKind(kind: string) {
+    if (!editor || !calloutMenu) return;
+    const node = editor.state.doc.nodeAt(calloutMenu.pos);
+    if (node?.type.name === "callout") editor.view.dispatch(editor.state.tr.setNodeMarkup(calloutMenu.pos, undefined, { ...node.attrs, kind }));
+    calloutMenu = null;
+    editor.commands.focus();
+  }
+  /** A source line at the end of a quote ("— Pharmacotherapy, ch. 4"). */
+  function addSource(pos: number) {
+    if (!editor) return;
+    const node = editor.state.doc.nodeAt(pos);
+    if (node?.type.name !== "blockquote") return;
+    const end = pos + node.nodeSize - 1;
+    const tr = editor.state.tr.insert(end, editor.schema.nodes.paragraph.create(null, editor.schema.text("— ")));
+    tr.setSelection(TextSelection.create(tr.doc, end + 3));
+    editor.view.dispatch(tr.scrollIntoView());
+    editor.commands.focus();
+  }
+  function quoteWithSource() {
+    if (!editor) return;
+    editor.chain().focus().wrapIn("blockquote").run();
+    const rf = editor.state.selection.$from;
+    for (let d = rf.depth; d > 0; d--) {
+      if (rf.node(d).type.name === "blockquote") {
+        const pos = rf.before(d);
+        const tr = editor.state.tr.insert(pos + rf.node(d).nodeSize - 1, editor.schema.nodes.paragraph.create(null, editor.schema.text("— ")));
+        editor.view.dispatch(tr);
+        break;
+      }
+    }
+  }
+  const stylesCss = $derived(blockStylesCss());
 
   // ---- table toolbar ---------------------------------------------------------------------------
   const tableBar = $derived.by(() => {
@@ -445,6 +487,10 @@
       extensions: mosaicExtensions({
         imageUrl,
         onOpenLink: (t) => onopenlink(t),
+        onCalloutMenu: (pos, rect) => {
+          const w = wrap.getBoundingClientRect();
+          calloutMenu = { pos, x: rect.left - w.left, y: rect.bottom - w.top + 6 };
+        },
         onOpenUrl: (h) => window.open(h, "_blank"),
       }),
       content: mdToDoc(value),
@@ -615,7 +661,7 @@
       const [t, l] = (arg ?? "paragraph").split(":");
       turnInto(t, t === "heading" ? { level: Number(l) } : {});
     } else {
-      const it = SLASH.find((s) => s.id === cmd);
+      const it = slashItems().find((s) => s.id === cmd) ?? (cmd.startsWith("c-") ? slashItems().find((s) => s.id.startsWith("c-")) : undefined);
       it?.run();
     }
   }
@@ -623,6 +669,10 @@
     editor?.commands.focus();
   }
 </script>
+
+<svelte:head>
+  {@html `<style data-mosaic="block-styles">${stylesCss}</style>`}
+</svelte:head>
 
 <svelte:window onmouseup={() => { if (mouseDown) { mouseDown = false; setTimeout(placeBubble, 0); } }} />
 
@@ -659,8 +709,12 @@
           <button type="button" class:on={blockMenu.together} onclick={() => !blockMenu?.together && blockAction("together")}>All in one card</button>
         </div>
       {/if}
+      {#if blockMenu.type === "blockquote"}
+        <button type="button" class="mi" onclick={() => blockAction("source")}><span class="ic">—</span>Add a source line</button>
+      {/if}
       {#if blockMenu.type === "blockquote" || blockMenu.type === "callout"}
         <button type="button" class="mi" onclick={() => blockAction("unwrap")}><span class="ic">¶</span>Back to plain text</button>
+        <button type="button" class="mi" onclick={() => { blockMenu = null; styleManager.open = true; }}><span class="ic">🎨</span>Edit callout and quote styles…</button>
       {/if}
       <button type="button" class="mi" onclick={() => blockAction("up")}><span class="ic">↑</span>Move up</button>
       <button type="button" class="mi" onclick={() => blockAction("down")}><span class="ic">↓</span>Move down</button>
@@ -692,6 +746,19 @@
         <button type="button" title="Link to a note with this name" onclick={noteLink}>[[ ]]</button>
         <button type="button" class:on={active("link")} title="Web link" onclick={() => (linkInput = editor?.getAttributes("link").href ?? "")}>🔗</button>
       {/if}
+    </div>
+  {/if}
+
+  {#if calloutMenu}
+    <button type="button" class="scrim" aria-label="Close" onclick={() => (calloutMenu = null)}></button>
+    <div class="menu cmenu" style="left: {calloutMenu.x}px; top: {calloutMenu.y}px" role="menu">
+      <div class="mh">Callout type</div>
+      {#each visibleCallouts() as [k, t] (k)}
+        <button type="button" class="mi" class:on={editor?.state.doc.nodeAt(calloutMenu.pos)?.attrs.kind === k} onclick={() => setCalloutKind(k)}>
+          <span class="ic" style="background: color-mix(in srgb, {t.color} 60%, white)">{t.icon}</span>{t.label}
+        </button>
+      {/each}
+      <button type="button" class="mi edit" onclick={() => { calloutMenu = null; styleManager.open = true; }}><span class="ic">🎨</span>Edit styles…</button>
     </div>
   {/if}
 
@@ -801,6 +868,18 @@
   }
   .pop.up {
     transform: translateY(-100%);
+  }
+  .cmenu {
+    position: absolute;
+    z-index: 6;
+    width: 230px;
+    max-height: 360px;
+    overflow-y: auto;
+  }
+  .cmenu .edit {
+    margin-top: 4px;
+    border-top: 1px solid var(--hairline, rgba(0, 0, 0, 0.08));
+    border-radius: 0 0 10px 10px;
   }
   .bmenu {
     position: absolute;
