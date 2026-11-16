@@ -6,7 +6,7 @@
   // The Mosaic note editor (N1b): blocks with no visible Markdown, saved as plain .md.
   // "/" menu, [[ note links, #tags, a toolbar on selected text, block handles (+ and drag),
   // flashcard arrows (→ one way, ⇄ both ways) and cloze, rich paste from Docs / web pages.
-  import { onDestroy, onMount } from "svelte";
+  import { onDestroy, onMount, untrack } from "svelte";
   import { Editor } from "@tiptap/core";
   import { NodeSelection, TextSelection } from "@tiptap/pm/state";
   import { getMarkRange } from "@tiptap/core";
@@ -25,6 +25,7 @@
     imageUrl,
     onpasteimage,
     onfocuschange,
+    onleave,
   }: {
     value: string;
     onchange: () => void;
@@ -35,6 +36,8 @@
     onpasteimage: (dataUrl: string, ext: string) => Promise<string>;
     /** true while she is typing in the note (the editor has focus) */
     onfocuschange?: (typing: boolean) => void;
+    /** called with the note's Markdown when the editor closes with changes not yet asked for */
+    onleave?: (md: string) => void;
   } = $props();
 
   let host: HTMLDivElement;
@@ -494,15 +497,23 @@
           return docToMd({ type: "doc", content: json }).md.trimEnd();
         },
       },
+      // Editor events can fire while Svelte is rebuilding the page (focus leaves as a note closes),
+      // and page state can't change mid-rebuild: pass them on right after (a microtask, before paint).
       onTransaction: ({ transaction }) => {
-        tick++;
-        detectMenu();
-        placeBubble();
-        if (transaction.docChanged) onchange();
+        if (closing) return; // the editor's own last updates while it closes
+        if (transaction.docChanged) dirty = true;
+        const changed = transaction.docChanged;
+        queueMicrotask(() => {
+          if (closing || !editor || editor.isDestroyed) return;
+          tick++;
+          detectMenu();
+          placeBubble();
+          if (changed) onchange();
+        });
       },
-      onFocus: () => onfocuschange?.(true),
+      onFocus: () => queueMicrotask(() => !closing && onfocuschange?.(true)),
       onBlur: () => {
-        onfocuschange?.(false);
+        queueMicrotask(() => !closing && onfocuschange?.(false));
         setTimeout(() => {
           if (!editor || editor.isDestroyed) return;
           if (!editor.view.hasFocus() && linkInput === null) bubble = null;
@@ -510,7 +521,21 @@
       },
     });
   });
-  onDestroy(() => editor?.destroy());
+  // the page is going away (another note or page): hand over what wasn't saved yet
+  let dirty = false;
+  let closing = false;
+  const leave = untrack(() => onleave);
+  onDestroy(() => {
+    closing = true;
+    if (editor && !editor.isDestroyed && dirty && leave) {
+      try {
+        leave(docToMd(editor.getJSON() as JNode).md);
+      } catch (e) {
+        console.error("saving on leave", e);
+      }
+    }
+    editor?.destroy();
+  });
 
   // ---- for the page -------------------------------------------------------------------------
   let lastOwners: ReturnType<typeof docToMd>["owners"] = [];
@@ -519,6 +544,7 @@
     if (!editor) return value;
     const r = docToMd(editor.getJSON() as JNode);
     lastOwners = r.owners;
+    dirty = false;
     return r.md;
   }
   const posOfPath = (path: number[]): number | null => {

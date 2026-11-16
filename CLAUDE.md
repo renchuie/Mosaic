@@ -216,6 +216,12 @@ Markdown" view, the `<>` chip on the note header).
   group numbers / + new group, sets the cloze `n` (`{{cN::…}}`); numbered clozes show a badge.
   Card line tints follow the arrow colour (`ARROW_COLOURS` entries 3–4 → `--card-bg`, `--card-bg2`
   for two-way lines).
+- Saving on leave (bug found Nov 16: leaving a note within the 700 ms autosave lost the last
+  edit): BlockEditor keeps a `dirty` flag and hands its Markdown to `onleave` in `onDestroy`;
+  NotesView's `leaveFor(rel)` rebuilds the file from the saved front matter + title and saves it a
+  tick later; the Markdown view saves `body` the same way (`saveSourceNow`). Editor events reach
+  page state through `queueMicrotask` and are ignored while closing, because focus leaving during
+  a Svelte rebuild otherwise throws `state_unsafe_mutation`.
 
 ## Notes editor like Docs / Notion (N1, built; now the "Edit as Markdown" view)
 

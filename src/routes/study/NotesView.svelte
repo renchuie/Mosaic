@@ -52,6 +52,8 @@
 
   $effect(() => {
     if (rel && note && loadedRel !== rel) {
+      window.clearTimeout(timer); // a save still waiting belongs to the note being left (saved on leave)
+      if (source && status === "saving" && loadedRel) saveSourceNow(loadedRel, body);
       const s = splitNote(note.text);
       meta = s.meta;
       const t = stripTitle(s.body, linkName(note));
@@ -97,6 +99,29 @@
     body = md;
     return titleText !== null ? `# ${titleText}\n\n${md}` : md;
   }
+  /** Markdown view: save the text of a note being left before its autosave ran. */
+  function saveSourceNow(r: string, text: string) {
+    const e = getNote(r);
+    if (!e) return;
+    const out = joinNote(splitNote(e.text).meta, assignIds(text, cardId).body);
+    // after this tick: the page is being torn down right now, and state can't change mid-teardown
+    if (out !== e.text) setTimeout(() => void saveNote(r, out, e.mtime).catch((err) => console.error("save on leave", err)), 0);
+  }
+
+  /** Save a note's text that the editor handed over as it closed (left within the autosave delay). */
+  function leaveFor(r: string) {
+    return (md: string) => {
+      const e = getNote(r);
+      if (!e) return;
+      const s = splitNote(e.text);
+      const t = stripTitle(s.body, linkName(e));
+      const ids = assignIds(md, cardId);
+      const text = joinNote(s.meta, (t.title !== null ? `# ${t.title}\n\n` : "") + ids.body);
+      if (text === e.text) return;
+      setTimeout(() => void saveNote(r, text, e.mtime).catch((err) => console.error("save on leave", err)), 0);
+    };
+  }
+
   async function flush(force = false) {
     if (!loadedRel) return;
     const r = loadedRel;
@@ -207,6 +232,7 @@
   $effect(() => () => {
     if (notes.editing === loadedRel) notes.editing = null;
     window.clearTimeout(timer);
+    if (source && status === "saving" && loadedRel) saveSourceNow(loadedRel, body);
   });
   // "Edit in note" from a flashcard: jump to the card's line once the editor is ready
   $effect(() => {
@@ -395,7 +421,7 @@
                   linkNames={() => allNotes().map(linkName)} tagNames={allTags}
                   imageUrl={(src) => imageUrl(rel!, src)} onpasteimage={(d, ext) => savePastedImage(rel!, d, ext)} />
               {:else}
-                <BlockEditor bind:this={blocks} value={body} onchange={changed} onopenlink={openLink} onfocuschange={setTyping}
+                <BlockEditor bind:this={blocks} value={body} onchange={changed} onopenlink={openLink} onfocuschange={setTyping} onleave={leaveFor(loadedRel!)}
                   linkNames={() => allNotes().map(linkName)} tagNames={allTags}
                   imageUrl={(src) => imageUrl(rel!, src)} onpasteimage={(d, ext) => savePastedImage(rel!, d, ext)} />
               {/if}
