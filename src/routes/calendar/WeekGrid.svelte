@@ -4,6 +4,8 @@
   import Icon from "../../lib/components/Icon.svelte";
   import { fmtTime, fromKey, minutes, pad, todayKey, type Occurrence } from "../../lib/calendar";
   import { editEvent, newEvent, tagOf, tagStyle, visible } from "../../lib/stores/calendar.svelte";
+  import { visibleTasks } from "../../lib/stores/tasks.svelte";
+  import TaskChip from "../../lib/components/TaskChip.svelte";
 
   let { days }: { days: string[] } = $props();
   const HOUR = 68;
@@ -11,6 +13,7 @@
   const all = $derived(visible(days[0], days[days.length - 1]));
   const timed = $derived(all.filter((o) => !o.ev.allDay && o.ev.start && o.ev.end));
   const allDay = $derived(all.filter((o) => o.ev.allDay));
+  const dueTasks = $derived(visibleTasks(days[0], days[days.length - 1]));
   const startHour = $derived(Math.min(8, ...timed.map((o) => Math.floor(minutes(o.ev.start) / 60))));
   const endHour = $derived(Math.max(21, ...timed.map((o) => Math.ceil(minutes(o.ev.end) / 60))));
   const hours = $derived(Array.from({ length: endHour - startHour }, (_, i) => startHour + i));
@@ -74,12 +77,15 @@
       </div>
     {/each}
 
-    {#if allDay.length}
-      <div class="gutter-label muted">All day</div>
+    {#if allDay.length || dueTasks.length}
+      <div class="gutter-label muted">{dueTasks.length ? "Tasks" : "All day"}</div>
       {#each days as d}
         <div class="allday">
           {#each allDay.filter((o) => o.date === d) as o (o.id + o.date)}
             <button type="button" class="chip" style={tagStyle(o.ev.kind)} onclick={(e) => editEvent(o.id, o.date, e)}><span class="tag-dot"></span>{o.ev.title}</button>
+          {/each}
+          {#each dueTasks.filter((o) => o.date === d) as o (o.id + o.date)}
+            <TaskChip {o} showTime={days.length === 1} />
           {/each}
         </div>
       {/each}

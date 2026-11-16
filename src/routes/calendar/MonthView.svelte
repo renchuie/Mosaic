@@ -1,11 +1,14 @@
 <script lang="ts">
   import { addDays, fmtTime, fromKey, mondayOf, monthStart, todayKey } from "../../lib/calendar";
   import { editEvent, newEvent, tagStyle, view, visible } from "../../lib/stores/calendar.svelte";
+  import { visibleTasks } from "../../lib/stores/tasks.svelte";
+  import TaskChip from "../../lib/components/TaskChip.svelte";
 
   let { ondayview }: { ondayview: (day: string) => void } = $props();
   const first = $derived(mondayOf(monthStart(view.cursor)));
   const cells = $derived(Array.from({ length: 42 }, (_, i) => addDays(first, i)));
   const all = $derived(visible(cells[0], cells[41]));
+  const allTasks = $derived(visibleTasks(cells[0], cells[41]));
   const month = $derived(view.cursor.slice(0, 7));
   const today = todayKey();
   const MAX = 3;
@@ -15,18 +18,23 @@
   {#each ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"] as d}<span class="dow">{d}</span>{/each}
   {#each cells as c (c)}
     {@const items = all.filter((o) => o.date === c)}
+    {@const dayTasks = allTasks.filter((o) => o.date === c)}
+    {@const room = Math.max(0, MAX - dayTasks.length)}
     <!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_static_element_interactions -->
     <div class="cell" class:out={c.slice(0, 7) !== month} class:today={c === today} onclick={(e) => newEvent({ date: c }, e)}>
       <button type="button" class="num" onclick={(e) => { e.stopPropagation(); ondayview(c); }} aria-label="Open {fromKey(c).toDateString()}">{Number(c.slice(8))}</button>
-      {#each items.slice(0, MAX) as o (o.id + o.date)}
+      {#each dayTasks.slice(0, MAX) as o (o.id + o.date)}
+        <TaskChip {o} showTime={false} />
+      {/each}
+      {#each items.slice(0, room) as o (o.id + o.date)}
         <button type="button" class="chip" style={tagStyle(o.ev.kind)} onclick={(e) => { e.stopPropagation(); editEvent(o.id, o.date, e); }}>
           <span class="tag-dot"></span>
           {#if !o.ev.allDay}<span class="t">{fmtTime(o.ev.start).replace(":00", "").replace(" ", "").toLowerCase()}</span>{/if}
           <span class="n">{o.ev.title}</span>
         </button>
       {/each}
-      {#if items.length > MAX}
-        <button type="button" class="more" onclick={(e) => { e.stopPropagation(); ondayview(c); }}>+{items.length - MAX} more</button>
+      {#if items.length + dayTasks.length > MAX}
+        <button type="button" class="more" onclick={(e) => { e.stopPropagation(); ondayview(c); }}>+{items.length + dayTasks.length - MAX} more</button>
       {/if}
     </div>
   {/each}

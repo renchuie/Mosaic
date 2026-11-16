@@ -140,11 +140,33 @@ Do not go back to thin coloured blocks on a plain grid.
   built-in tags are seeded too (u=1, so any edit wins).
 - Dashboard: countdown, mini month, next-exam tile and Today timeline read the calendar.
 
+## Tasks (built early, at her request; Phase 4 builds on this)
+
+- Tasks are the second kind of calendar entry (collection `tasks`, synced). Shape in
+  `src/lib/calendar.ts` (`Task`): title, notes, tag (default built-in "Task" tag), course, due day
+  (optional) and optional due time, priority (high / normal / low), status (todo / doing / done;
+  the Phase 4 board uses status as its column, custom columns may add ids), doneAt, estimate in
+  minutes (for the Phase 4 study plan), checklist (`subtasks`), repeat with per-day `doneDates`
+  and `skip`. Keep this shape stable.
+- One editor for both (`EventEditor.svelte`): new entries have an Event / Task switch; existing
+  ones keep their type. Every field is reset on open. Time inputs accept any minute (11:59 PM
+  deadlines). Weekly repeat days follow the chosen date until she picks days herself.
+- Calendar: tasks show as tickable chips (`TaskChip.svelte`) in the Week/Day "Tasks" row and in
+  Month cells, and as cards (`TaskCard.svelte`) in List, which also has an Overdue section.
+- Overdue = one-off tasks past due and not done (any age), and repeating tasks' missed days from
+  the last 14 days.
+- Dashboard: Tasks card lists overdue, today, then the next 5 days (tick, open, add); "Due today"
+  tile and the summary line use real tasks.
+- Tasks page (`src/routes/Tasks.svelte`): quick add (no date / today / tomorrow), course and tag
+  filters, groups Overdue, Today, Tomorrow, This week, Later (one row per repeating task), No due
+  date, Done (optional). The board view is still Phase 4.
+
 ## Other decisions
 
-- Tasks: BOARD view, switchable between columns by status and columns by course, and she can add her
-  own categories/columns. Fields: course, due date, priority, done. Daily study plan with ordered
-  blocks, durations, start/pause timer that survives page changes, check-off.
+- Tasks (Phase 4 still to do): BOARD view, switchable between columns by status and columns by
+  course, and she can add her own categories/columns, built on the task records above. Daily study
+  plan with ordered blocks, durations (task estimates help), start/pause timer that survives page
+  changes, check-off.
 - Streak: a day counts if she opened a lab or checked off a study block. Activity heatmap feeds it.
 - Grades: each course can be weighted by category or by points. Show current grade and what is
   needed on remaining items to hit a target. Fall 2026 courses: Therapeutics IV, Pharmacy Law,

@@ -1,7 +1,7 @@
 // Local calendar and its tags, stored in the synced store (collections
 // "events" and "tags") so they follow you between machines.
 import {
-  BUILTIN_TAGS, DEFAULT_TAGS, addDays, daysBetween, inkOn, isExam, occurrences, todayKey, type CalEvent, type Tag,
+  BUILTIN_TAGS, DEFAULT_TAGS, addDays, daysBetween, inkOn, isExam, occurrences, todayKey, type CalEvent, type Tag, type Task,
 } from "../calendar";
 import { folderExams } from "./labs.svelte";
 import { settings } from "./settings.svelte";
@@ -34,10 +34,11 @@ export function saveTag(id: string | null, t: Omit<Tag, "order"> & { order?: num
   put("tags", id ?? `tag-${newId()}`, { ...t, order });
 }
 
-/** Deleting a tag moves its events to "Other". Built-in tags can be renamed and recoloured, not deleted. */
+/** Deleting a tag moves its events to "Other" and its tasks to "Task". Built-in tags can be renamed and recoloured, not deleted. */
 export function deleteTag(id: string) {
   if (BUILTIN_TAGS.includes(id)) return;
   for (const [eid, ev] of events()) if (ev.kind === id) put("events", eid, { ...ev, kind: "other" });
+  for (const [tid, t] of entries<Task>("tasks")) if (t.tag === id) put("tasks", tid, { ...t, tag: "task" });
   del("tags", id);
 }
 
@@ -128,36 +129,60 @@ export function toggleTag(id: string) {
 /** Occurrences in a range, without hidden tags. */
 export const visible = (from: string, to: string) => occ(from, to).filter((o) => !view.hidden.includes(o.ev.kind));
 
-// ---- the shared event editor (one popover, opened from anywhere) --------------
+// ---- the shared editor (one popover for events and tasks, opened from anywhere) ----
 
 export const editor = $state({
   open: false,
+  /** event or task */
+  type: "event" as "event" | "task",
+  /** an existing entry can't switch type */
+  canSwitch: true,
   id: null as string | null,
-  /** the occurrence that was clicked, for "delete this day" */
+  /** the occurrence that was clicked, for "delete this day" and per-day ticks */
   date: null as string | null,
   draft: null as CalEvent | null,
+  task: null as Task | null,
   /** where to show the popover (screen point); null = centred */
   anchor: null as { x: number; y: number } | null,
 });
 
 const anchorOf = (e?: MouseEvent | null) => (e && (e.clientX || e.clientY) ? { x: e.clientX, y: e.clientY } : null);
 
-export function newEvent(partial: Partial<CalEvent> = {}, e?: MouseEvent | null) {
-  editor.id = null;
-  editor.date = null;
-  editor.draft = { title: "", kind: "study", date: todayKey(), start: "16:00", end: "17:00", ...partial };
+function openEditor(type: "event" | "task", id: string | null, date: string | null, e?: MouseEvent | null) {
+  editor.type = type;
+  editor.canSwitch = id === null;
+  editor.id = id;
+  editor.date = date;
   editor.anchor = anchorOf(e);
   editor.open = true;
+}
+
+export function newEvent(partial: Partial<CalEvent> = {}, e?: MouseEvent | null) {
+  editor.draft = { title: "", kind: "study", date: todayKey(), start: "16:00", end: "17:00", ...partial };
+  editor.task = null;
+  openEditor("event", null, null, e);
 }
 
 export function editEvent(id: string, date: string, e?: MouseEvent | null) {
   const ev = getEvent(id);
   if (!ev) return;
-  editor.id = id;
-  editor.date = date;
   editor.draft = structuredClone($state.snapshot(ev) as CalEvent);
-  editor.anchor = anchorOf(e);
-  editor.open = true;
+  editor.task = null;
+  openEditor("event", id, date, e);
+}
+
+export function newTask(partial: Partial<Task> = {}, e?: MouseEvent | null) {
+  editor.task = { title: "", tag: "task", priority: "normal", status: "todo", created: Date.now(), due: todayKey(), ...partial };
+  editor.draft = null;
+  openEditor("task", null, null, e);
+}
+
+export function editTask(id: string, date: string | null, e?: MouseEvent | null) {
+  const t = get<Task>("tasks", id);
+  if (!t) return;
+  editor.task = structuredClone($state.snapshot(t) as Task);
+  editor.draft = null;
+  openEditor("task", id, date, e);
 }
 
 export const tagManager = $state({ open: false });

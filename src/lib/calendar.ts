@@ -12,6 +12,7 @@ export const DEFAULT_TAGS: Record<string, Tag> = {
   exam: { name: "Exam", color: "#F2B8B5", exam: true, order: 1 },
   study: { name: "Study", color: "#A9CDC3", order: 2 },
   other: { name: "Other", color: "#F6CFA8", order: 3 },
+  task: { name: "Task", color: "#D9CCF0", order: 4 },
 };
 export const BUILTIN_TAGS = Object.keys(DEFAULT_TAGS);
 
@@ -206,4 +207,86 @@ export function inkOn(hex: string): string {
   };
   const L = 0.2126 * lin(n >> 16) + 0.7152 * lin((n >> 8) & 255) + 0.0722 * lin(n & 255);
   return L > 0.36 ? "#3B3033" : "#FFFDFB";
+}
+
+// ---- tasks -----------------------------------------------------------------
+// Tasks are the second kind of calendar entry. The same shape feeds the
+// Phase 4 board (status = column), so keep it stable.
+
+export type Priority = "low" | "normal" | "high";
+/** Built-in statuses; the Phase 4 board may add custom column ids. */
+export type TaskStatus = "todo" | "doing" | "done" | (string & {});
+export type Subtask = { id: string; title: string; done: boolean };
+
+export type Task = {
+  title: string;
+  notes?: string;
+  /** tag id, default "task" */
+  tag?: string;
+  course?: string;
+  /** due day; tasks without one live only on the Tasks page */
+  due?: string;
+  /** optional due time "HH:MM" */
+  dueTime?: string;
+  priority: Priority;
+  status: TaskStatus;
+  /** when it was marked done (ms) */
+  doneAt?: number;
+  /** minutes it should take, for the study plan */
+  estimate?: number;
+  repeat?: Repeat;
+  /** repeating tasks: the days that were checked off */
+  doneDates?: string[];
+  /** repeating tasks: days that were deleted */
+  skip?: string[];
+  subtasks?: Subtask[];
+  created: number;
+};
+
+export type TaskOcc = { id: string; task: Task; date: string; done: boolean };
+
+export const PRIORITY_LABEL: Record<Priority, string> = { high: "High", normal: "Normal", low: "Low" };
+export const STATUS_LABEL: Record<string, string> = { todo: "To do", doing: "In progress", done: "Done" };
+const PRIORITY_RANK: Record<Priority, number> = { high: 0, normal: 1, low: 2 };
+
+export const isTaskDone = (t: Task, date?: string | null) =>
+  t.repeat ? !!date && !!t.doneDates?.includes(date) : t.status === "done";
+
+/** Every time a task is due between from..to, sorted by day, time (untimed first), priority. */
+export function taskOccurrences(tasks: [string, Task][], from: string, to: string): TaskOcc[] {
+  const out: TaskOcc[] = [];
+  for (const [id, t] of tasks) {
+    if (!t.due) continue;
+    if (!t.repeat) {
+      if (t.due >= from && t.due <= to) out.push({ id, task: t, date: t.due, done: isTaskDone(t) });
+      continue;
+    }
+    const asEvent: CalEvent = { title: t.title, kind: "task", date: t.due, repeat: t.repeat, skip: t.skip };
+    for (const o of occurrences([[id, asEvent]], from, to)) out.push({ id, task: t, date: o.date, done: isTaskDone(t, o.date) });
+  }
+  return out.sort(
+    (a, b) =>
+      (a.date < b.date ? -1 : a.date > b.date ? 1 : 0) ||
+      minutes(a.task.dueTime ?? "00:00") - minutes(b.task.dueTime ?? "00:00") ||
+      PRIORITY_RANK[a.task.priority] - PRIORITY_RANK[b.task.priority],
+  );
+}
+
+/** Not done and past due: one-off tasks of any age, repeats from the last two weeks. */
+export function overdueTasks(tasks: [string, Task][], today: string): TaskOcc[] {
+  const once = tasks
+    .filter(([, t]) => !t.repeat && t.due && t.due < today && !isTaskDone(t))
+    .map(([id, t]) => ({ id, task: t, date: t.due!, done: false }));
+  const repeats = taskOccurrences(tasks.filter(([, t]) => t.repeat), addDays(today, -14), addDays(today, -1)).filter((o) => !o.done);
+  return [...once, ...repeats].sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0));
+}
+
+/** "Due today", "Due tomorrow", "Due Fri, Nov 20", "2 days overdue" */
+export function dueLabel(date: string, today: string): string {
+  const n = daysBetween(today, date);
+  if (n === 0) return "Due today";
+  if (n === 1) return "Due tomorrow";
+  if (n === -1) return "1 day overdue";
+  if (n < 0) return `${-n} days overdue`;
+  return `Due ${fromKey(date).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })}`;
 }

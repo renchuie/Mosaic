@@ -3,13 +3,15 @@
   import LabCard from "../lib/components/LabCard.svelte";
   import Wave from "../lib/components/Wave.svelte";
   import MiniMonth from "../lib/components/MiniMonth.svelte";
-  import { TONES, focusBlock, today } from "../lib/sample/data";
-  import { fmtTime, fromKey, todayKey } from "../lib/calendar";
-  import { editEvent, exams, newEvent, occ, tagStyle } from "../lib/stores/calendar.svelte";
+  import { TONES, focusBlock } from "../lib/sample/data";
+  import { addDays, dueLabel, fmtTime, fromKey, todayKey } from "../lib/calendar";
+  import { editEvent, editTask, exams, newEvent, newTask, occ, tagStyle } from "../lib/stores/calendar.svelte";
+  import { overdue as overdueTasks, tasksOn, toggleTask } from "../lib/stores/tasks.svelte";
   import { settings } from "../lib/stores/settings.svelte";
   import { inherited, labHref, labs, labsIn, streakInfo } from "../lib/stores/labs.svelte";
 
   const now = new Date();
+  const cap = (x: string) => x.charAt(0).toUpperCase() + x.slice(1);
   const when = (n: number) => (n === 0 ? "Today" : n === 1 ? "Tomorrow" : `${n} days`);
 
   const allExams = $derived(exams());
@@ -18,9 +20,13 @@
   const todayK = todayKey();
   const todays = $derived(occ(todayK, todayK));
 
-  let tasks = $state(today.tasks.map((t) => ({ ...t })));
-  const dueLeft = $derived(tasks.filter((t) => !t.done).length);
-  const overdue = $derived(tasks.filter((t) => t.overdue && !t.done).length);
+  // Tasks: overdue first, then today, then the next few days.
+  const lateTasks = $derived(overdueTasks());
+  const todayTasks = $derived(tasksOn(todayK, todayK));
+  const soonTasks = $derived(tasksOn(addDays(todayK, 1), addDays(todayK, 5)).filter((o) => !o.done));
+  const taskRows = $derived([...lateTasks, ...todayTasks, ...soonTasks].slice(0, 8));
+  const dueLeft = $derived(todayTasks.filter((o) => !o.done).length);
+  const overdue = $derived(lateTasks.length);
   const allLabs = $derived(labsIn(labs.tree).sort((a, b) => b.lastOpened - a.lastOpened || a.lab.title.localeCompare(b.lab.title)));
   const revisit = $derived(allLabs.reduce((n, l) => n + l.progress.missed, 0));
   const cont = $derived(allLabs[0]);
@@ -49,7 +55,7 @@
       <h1 class="display">Hi, {settings.name}.</h1>
       <p class="summary">
         {#if next}<b>{next.title}</b> {next.days <= 1 ? `is ${when(next.days).toLowerCase()}` : `in ${next.days} days`} ·{/if}
-        {dueLeft} due today · {revisit} to revisit
+        {dueLeft} due today{overdue ? ` · ${overdue} overdue` : ""} · {revisit} to revisit
       </p>
     </header>
 
@@ -125,24 +131,28 @@
 
     <section class="card">
       <div class="sec-head">
-        <h2 class="h2">Tasks due</h2>
-        <span class="tag">{tasks.length - dueLeft} of {tasks.length} done</span>
+        <h2 class="h2">Tasks</h2>
+        <a class="link" href="#/tasks">All tasks <Icon name="arrow" size={14} /></a>
       </div>
-      <ul class="tasks">
-        {#each tasks as t}
-          <li class:done={t.done}>
-            <label>
-              <input type="checkbox" bind:checked={t.done} />
-              <span class="box"><Icon name="check" size={14} /></span>
-              <span class="t-text">
-                <span class="t-title">{t.title}</span>
-                <span class="t-course muted">{t.course}</span>
-              </span>
-            </label>
-            <span class="tag" class:alert={t.overdue && !t.done}>{t.overdue && !t.done ? "Overdue" : t.due}</span>
-          </li>
-        {/each}
-      </ul>
+      {#if taskRows.length}
+        <ul class="tasks">
+          {#each taskRows as o (o.id + o.date)}
+            <li class:done={o.done}>
+              <button type="button" class="box" aria-pressed={o.done} aria-label="{o.done ? 'Mark not done' : 'Mark done'}: {o.task.title}" onclick={() => toggleTask(o.id, o.date)}>
+                <Icon name="check" size={14} />
+              </button>
+              <button type="button" class="t-text" onclick={(e) => editTask(o.id, o.date, e)}>
+                <span class="t-title"><span class="tag-dot" style={tagStyle(o.task.tag ?? "task")}></span>{o.task.title}{#if o.task.priority === "high" && !o.done}<span class="hi">High</span>{/if}</span>
+                <span class="t-course muted">{[o.task.course, o.task.subtasks?.length ? `${o.task.subtasks.filter((x) => x.done).length}/${o.task.subtasks.length} steps` : ""].filter(Boolean).join(" · ") || "No course"}</span>
+              </button>
+              <span class="tag" class:alert={!o.done && o.date < todayK}>{o.done ? "Done" : cap(dueLabel(o.date, todayK).replace("Due ", ""))}{o.task.dueTime && !o.done ? ` · ${fmtTime(o.task.dueTime)}` : ""}</span>
+            </li>
+          {/each}
+        </ul>
+      {:else}
+        <p class="muted">Nothing due in the next few days.</p>
+      {/if}
+      <button type="button" class="btn quiet add" onclick={(e) => newTask({}, e)}>+ Add task</button>
     </section>
   </div>
 
@@ -366,42 +376,47 @@
   .tasks li:first-child {
     border-top: 0;
   }
-  .tasks label {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    min-height: 54px;
-    flex: 1;
-    min-width: 0;
-    cursor: pointer;
-  }
-  .tasks input {
-    position: absolute;
-    opacity: 0;
-    pointer-events: none;
-  }
-  .box {
+  .tasks .box {
     flex: none;
     display: grid;
     place-items: center;
-    width: 24px;
-    height: 24px;
+    width: 26px;
+    height: 26px;
+    margin: 9px 0;
+    padding: 0;
+    border: 1.5px solid color-mix(in srgb, var(--charcoal) 45%, transparent);
     border-radius: 50%;
-    background: var(--track);
+    background: var(--surface);
     color: transparent;
-    transition: background 0.15s ease;
   }
-  input:checked + .box {
+  .tasks .box[aria-pressed="true"] {
     background: var(--sage);
+    border-color: var(--sage-deep);
     color: var(--text);
-  }
-  input:focus-visible + .box {
-    outline: 2.5px solid var(--charcoal);
-    outline-offset: 2px;
   }
   .t-text {
     display: grid;
+    flex: 1;
     min-width: 0;
+    min-height: 52px;
+    align-content: center;
+    border: 0;
+    background: none;
+    padding: 0;
+    text-align: left;
+  }
+  .t-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .hi {
+    font-size: 11.5px;
+    font-weight: 600;
+    padding: 1px 8px;
+    border-radius: var(--radius-pill);
+    background: var(--rose-soft);
+    color: #8f3b45;
   }
   .t-title {
     font-weight: 500;
@@ -410,6 +425,7 @@
     font-size: 13.5px;
   }
   li.done .t-title {
+    opacity: 0.7;
     text-decoration: line-through;
     color: var(--text-muted);
   }

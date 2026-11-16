@@ -23,6 +23,7 @@
     book: "M4 5.5A2.5 2.5 0 0 1 6.5 3H20v15H6.5A2.5 2.5 0 0 0 4 20.5zM4 20.5A2.5 2.5 0 0 0 6.5 23H20v-5",
     dots: "M5 12h.01M12 12h.01M19 12h.01",
     panel: "M4 5h16v14H4zM9.5 5v14",
+    flag: "M5 21V4M5 4h11l-2 4 2 4H5",
     external: "M14 4h6v6M20 4l-9 9M18 14v5H5V6h5",
   };
   let { name, size = 20 }: { name: string; size?: number } = $props();
