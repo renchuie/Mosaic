@@ -11,6 +11,7 @@
   } from "../../lib/stores/notes.svelte";
   import NewNoteDialog from "./NewNoteDialog.svelte";
   import NoteTree from "./NoteTree.svelte";
+  import NotesHome from "./NotesHome.svelte";
   import { pdfHref, pdfName, resolvePdfLink } from "../../lib/stores/pdfs.svelte";
 
   let { rel }: { rel: string | null } = $props();
@@ -155,12 +156,12 @@
 </script>
 
 <div class="nwrap">
-<div class="notes">
+<div class="notes" class:homeview={!(rel && note)}>
   <aside class="left">
     <NoteTree current={rel} onnew={(f) => { newMode = "note"; newFolder = f; newOpen = true; }} onnewfolder={() => { newMode = "folder"; newFolder = rel ? dirOf(rel) : ""; newOpen = true; }} />
   </aside>
 
-  <section class="center">
+  <section class="center" class:bare={!(rel && note)}>
     {#if rel && note}
       <header class="nh">
         <div class="crumbs">
@@ -236,18 +237,7 @@
     {:else if rel && notes.loaded}
       <div class="empty card"><p>This note isn't in the notes folder any more.</p><a class="btn quiet" href="#/study/notes">Back to notes</a></div>
     {:else}
-      <div class="empty">
-        <Icon name="pen" size={30} />
-        <h2 class="display">Pick a note, or start one</h2>
-        <p class="muted">Notes are Markdown files in <code>{notes.root || "your Notes folder"}</code>, so they're on your Drive and open in any app.</p>
-        <button type="button" class="btn primary" onclick={() => { newMode = "note"; newFolder = ""; newOpen = true; }}>+ New note</button>
-        {#if notes.error}<p class="err">{notes.error}</p>{/if}
-        {#if recentNotes(5).length}
-          <ul class="recent">
-            {#each recentNotes(5) as e (e.rel)}<li><a href={noteHref(e.rel)}>{e.p.title}</a></li>{/each}
-          </ul>
-        {/if}
-      </div>
+      <NotesHome onnew={(f) => { newMode = "note"; newFolder = f; newOpen = true; }} />
     {/if}
   </section>
 
@@ -327,6 +317,15 @@
     background: var(--surface);
     box-shadow: var(--shadow);
     overflow: hidden;
+  }
+  .notes.homeview {
+    grid-template-columns: 250px minmax(0, 1fr);
+  }
+  .center.bare {
+    background: none;
+    box-shadow: none;
+    overflow: auto;
+    padding: 2px 4px 24px;
   }
   @container (max-width: 1100px) {
     .notes {
@@ -542,26 +541,11 @@
     padding: 30px;
     text-align: center;
   }
-  .empty h2 {
-    font-size: 24px;
-    font-weight: 600;
-  }
-  .empty code,
   .small code {
     font-size: 12.5px;
     background: var(--chip);
     padding: 1px 6px;
     border-radius: 6px;
-  }
-  .err {
-    color: #a8434f;
-  }
-  .recent {
-    list-style: none;
-    margin: 8px 0 0;
-    padding: 0;
-    display: grid;
-    gap: 4px;
   }
   .right section {
     display: grid;

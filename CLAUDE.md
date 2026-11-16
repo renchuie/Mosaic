@@ -53,7 +53,40 @@ The full vision, principles and what she likes or dislikes in each inspiration a
   installs the binary, icon and `.desktop` file into `~/.local`.
 - NVIDIA: `install.sh` detects the driver and puts `WEBKIT_DISABLE_DMABUF_RENDERER=1` in the launcher.
 
-## Design (decided: soft, fluid pastel)
+## Look (Nov 16 redesign, built): frosted glass, floating rail, roomier, lively
+
+Built from her choices on the design canvas. This section wins where the older "Design" section
+below disagrees.
+- **Themes** (Settings → Appearance; `settings.theme`, `<html data-theme>`): `glass` (default)
+  and `pastel` (the original solid look). Glass = colour blooms on `--backdrop`, translucent white
+  `--panel` / `--surface`, a thin bright `--edge` (the one exception to "no outlines") and
+  `--blur`. **Only the big layers blur** (main panel, rail, dialogs, menus); cards are plain
+  translucent white on the already-blurred panel. Backdrop blur is costly to repaint in WebKitGTK,
+  so don't add `backdrop-filter` to cards or list items. Anything floating (dialogs, `div.menu`,
+  `div.pop`, `div.selmenu`) gets the nearly opaque `--surface-float` from base.css. Inputs use
+  `--field`.
+- **Density** (`settings.density`, `<html data-density>`): spacious (default), original, compact.
+  Spacing tokens: `--gap`, `--card-pad`, `--main-pad`, `--shell-pad`, `--radius`.
+- **Floating rail** (`Sidebar.svelte`): logo, + quick add (Task, Event, Note, Flashcard, PDF), page
+  icons with a dark marker that slides to the active page, overdue dot on Tasks, streak badge,
+  Settings, avatar initial; names show on hover/focus (CSS `data-tip`). Replaced the labelled
+  sidebar and the streak panel.
+- **Folder tiles** (`FolderTile.svelte`): tab + frosted body; the open folder (last used) takes its
+  course colour and shows sheets (note snippets or PDF page sketches); any folder shows them on
+  hover. Used on Notes home (`NotesHome.svelte`, shown when no note is open), PDFs home (folder
+  view when not searching) and Study Home.
+- **Study Home** (`StudyHome.svelte`) is the card dashboard from the mockup: hero with week strip,
+  next exam with readiness ring (cards ready + lab average), today's plan with ticks, flashcards,
+  mastery by course, jump back in, habits this week (from activity), weak spots (lapses + labs to
+  revisit), note folders, 7-day review forecast, drug of the day (from her Drug cards), focus
+  timer, recall labs. Highlights inbox, exam prep hub and the widget gallery are not built.
+- **Motion**: tokens `--spring` (overshoots a little), `--spring-soft`, `--ease-out`. Pages arrive
+  with a springy rise (`App.svelte`, keyed per page), cards pop in with a short stagger, dialogs
+  and menus pop, buttons lift and squish, icons wiggle on hover, ticks pop, bars and rings fill.
+  Entrance animations use `backwards` fill so they never pin `transform` afterwards (hover lifts and
+  the board's drag ghost rely on that). All motion is off with "reduce motion".
+
+## Design (decided: soft, fluid pastel; now the "pastel" theme)
 
 She dropped neo-brutalism entirely (first softened it, then switched). Do not bring back ink
 borders, hard shadows, window-dot header strips, hatched fills, Unbounded or Space Mono. (Outfit + DM Sans were tried and replaced too.)

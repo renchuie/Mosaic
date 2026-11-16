@@ -78,6 +78,27 @@
   <h1 class="display">Settings</h1>
   <p class="muted about">Mosaic · your student life in full view</p>
 
+  <section class="card look" aria-labelledby="look-h">
+    <h2 class="h2" id="look-h">Appearance</h2>
+    <div class="themes" role="radiogroup" aria-label="Theme">
+      {#each [{ id: "glass", name: "Frosted glass", note: "Soft colour behind frosted panels" }, { id: "pastel", name: "Pastel", note: "The original solid pastel look" }] as th}
+        <button type="button" role="radio" aria-checked={settings.theme === th.id} class="theme" class:on={settings.theme === th.id} onclick={() => saveSettings({ theme: th.id as "glass" | "pastel" })}>
+          <span class="swatch {th.id}" aria-hidden="true"><i></i><i></i><i></i></span>
+          <b>{th.name}</b>
+          <span class="muted small">{th.note}</span>
+        </button>
+      {/each}
+    </div>
+    <div class="field">
+      <span class="label" id="density-l">Spacing</span>
+      <div class="seg" role="radiogroup" aria-labelledby="density-l">
+        {#each [{ id: "spacious", name: "Spacious" }, { id: "original", name: "Original" }, { id: "compact", name: "Compact" }] as d}
+          <button type="button" role="radio" aria-checked={settings.density === d.id} class:on={settings.density === d.id} onclick={() => saveSettings({ density: d.id as "spacious" | "original" | "compact" })}>{d.name}</button>
+        {/each}
+      </div>
+    </div>
+  </section>
+
   <form class="card" onsubmit={save}>
     <h2 class="h2">You and your labs</h2>
     <label class="field">
@@ -192,6 +213,88 @@
 <style>
   .about {
     margin: -8px 0 4px;
+  }
+  .look {
+    display: grid;
+    gap: 16px;
+  }
+  .themes {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 12px;
+  }
+  .theme {
+    display: grid;
+    gap: 4px;
+    justify-items: start;
+    padding: 14px;
+    border: 0;
+    border-radius: 20px;
+    background: var(--chip);
+    text-align: left;
+  }
+  .theme:hover {
+    transform: translateY(-2px);
+  }
+  .theme.on {
+    background: var(--surface);
+    box-shadow: 0 0 0 2px var(--primary), var(--shadow);
+  }
+  .small {
+    font-size: 13px;
+  }
+  .swatch {
+    position: relative;
+    width: 100%;
+    height: 64px;
+    border-radius: 14px;
+    margin-bottom: 6px;
+    overflow: hidden;
+  }
+  .swatch.glass {
+    background: radial-gradient(60% 80% at 15% 20%, #ffd6e4, transparent 70%), radial-gradient(60% 80% at 90% 10%, #d5e1ff, transparent 70%), radial-gradient(60% 80% at 80% 100%, #cff2e6, transparent 70%), #f2f1f8;
+  }
+  .swatch.pastel {
+    background: linear-gradient(135deg, #ecd2cf, #f1e2d6 48%, #d9e6de);
+  }
+  .swatch i {
+    position: absolute;
+    top: 14px;
+    width: 30%;
+    height: 36px;
+    border-radius: 10px;
+  }
+  .swatch.glass i {
+    background: rgba(255, 255, 255, 0.6);
+    border: 1px solid rgba(255, 255, 255, 0.85);
+  }
+  .swatch.pastel i {
+    background: #fffdfb;
+  }
+  .swatch i:nth-child(1) { left: 6%; }
+  .swatch i:nth-child(2) { left: 38%; }
+  .swatch i:nth-child(3) { left: 70%; }
+  .seg {
+    display: inline-flex;
+    gap: 4px;
+    padding: 4px;
+    border-radius: var(--radius-pill);
+    background: var(--chip);
+    justify-self: start;
+  }
+  .seg button {
+    min-height: 40px;
+    padding: 0 18px;
+    border: 0;
+    border-radius: var(--radius-pill);
+    background: none;
+    font-weight: 500;
+    color: var(--text-muted);
+  }
+  .seg button.on {
+    background: var(--surface);
+    color: var(--text);
+    box-shadow: var(--shadow);
   }
   .settings {
     display: grid;

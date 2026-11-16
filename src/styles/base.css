@@ -39,10 +39,12 @@ a {
 /* shared primitives */
 .card {
   background: var(--surface);
+  border: var(--edge);
   border-radius: var(--radius);
   box-shadow: var(--shadow);
-  padding: 20px;
+  padding: var(--card-pad);
   min-width: 0;
+  transition: box-shadow var(--t) var(--ease-out), transform var(--t) var(--spring);
 }
 .label {
   font-size: 12.5px;
@@ -78,11 +80,15 @@ a {
   font-weight: 600;
   font-size: 15px;
   text-decoration: none;
-  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  transition: transform var(--t) var(--spring), box-shadow var(--t) var(--ease-out), background-color var(--t-fast) ease;
 }
 .btn:hover {
-  transform: translateY(-1px);
+  transform: translateY(-2px);
   box-shadow: var(--shadow-lift);
+}
+.btn:active {
+  transform: translateY(0) scale(0.95);
+  transition-duration: 0.08s;
 }
 .btn.primary {
   background: var(--primary);
@@ -118,9 +124,109 @@ a {
 .t-sage { background: var(--g-sage); }
 .t-butter { background: var(--g-butter); }
 
+/* ---- motion -------------------------------------------------------------------------
+   Lively but short: things pop in with a little overshoot (var(--spring)) and settle.
+   Everything is switched off for "reduce motion". */
+@keyframes pop-in {
+  from {
+    opacity: 0;
+    transform: translateY(14px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes dialog-pop {
+  from {
+    opacity: 0;
+    transform: translateY(16px) scale(0.92);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+}
+@keyframes wiggle {
+  0%, 100% { transform: rotate(0); }
+  30% { transform: rotate(-8deg) scale(1.08); }
+  60% { transform: rotate(6deg) scale(1.04); }
+}
+@keyframes tick-pop {
+  0% { transform: scale(0.6); }
+  60% { transform: scale(1.18); }
+  100% { transform: scale(1); }
+}
+
+/* cards pop in one after another when a page opens (up to 12, then all at once) */
+.card {
+  animation: pop-in var(--t-slow) var(--spring) backwards;
+}
+:is(*) > .card:nth-child(2) { animation-delay: 40ms; }
+:is(*) > .card:nth-child(3) { animation-delay: 80ms; }
+:is(*) > .card:nth-child(4) { animation-delay: 120ms; }
+:is(*) > .card:nth-child(5) { animation-delay: 160ms; }
+:is(*) > .card:nth-child(6) { animation-delay: 200ms; }
+:is(*) > .card:nth-child(7) { animation-delay: 240ms; }
+:is(*) > .card:nth-child(8) { animation-delay: 270ms; }
+:is(*) > .card:nth-child(9) { animation-delay: 300ms; }
+:is(*) > .card:nth-child(n + 10) { animation-delay: 320ms; }
+
+dialog[open] {
+  animation: dialog-pop 0.42s var(--spring) backwards;
+}
+dialog[open]::backdrop {
+  animation: fade-in 0.25s ease backwards;
+}
+:is(div.menu, div.pop, div.selmenu) {
+  animation: dialog-pop 0.3s var(--spring) backwards;
+}
+
+/* progress bars and rings fill smoothly */
+:where(.bar, .track, .progress) > :where(span, i, div) {
+  transition: width 0.7s var(--spring-soft);
+}
+:where(circle, path)[stroke-dasharray] {
+  transition: stroke-dasharray 0.8s var(--spring-soft), stroke-dashoffset 0.8s var(--spring-soft);
+}
+
+/* links and chips that look like buttons get the same gentle spring */
+:where(a, button):not(.btn) {
+  transition: transform var(--t) var(--spring), background-color var(--t-fast) ease, color var(--t-fast) ease, box-shadow var(--t) var(--ease-out);
+}
+
+/* glass: everything that floats over the page is nearly opaque and blurs what is behind */
+:root[data-theme="glass"] :is(dialog, div.menu, div.pop, div.selmenu) {
+  background: var(--surface-float) !important;
+  -webkit-backdrop-filter: var(--blur);
+  backdrop-filter: var(--blur);
+  border: var(--edge);
+}
+:root[data-theme="glass"] dialog::backdrop {
+  background: rgba(35, 38, 58, 0.18);
+}
+
 @media (prefers-reduced-motion: reduce) {
-  * {
+  *,
+  *::before,
+  *::after {
     transition: none !important;
+    animation: none !important;
   }
 }
 
@@ -147,7 +253,7 @@ a {
   min-height: var(--hit);
   border: 0;
   border-radius: var(--radius-sm);
-  background: var(--panel);
+  background: var(--field);
   padding: 10px 14px;
   font: inherit;
   color: inherit;

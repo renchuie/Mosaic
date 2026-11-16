@@ -204,5 +204,9 @@ Add things here as they come up (date, page, what happened). Each one is either 
 - Nov 16 · Structure (likely): Courses merge into Study (one school space); Tasks + Calendar
   merge into a Planner tab. The app will later get a personal-life side next to the student side.
   Decide the structure before week 5 (courses) and week 4 (planner).
+- Nov 16 · **Look pulled forward at her request (built):** frosted glass (default) + pastel theme
+  switch, roomier spacing with a density switch, floating rail, folder tiles on Notes / PDFs /
+  Study Home, the Study Home card dashboard, lively spring animations. Week 6 still has dark mode,
+  the consistency pass, the exam prep hub and the widget gallery.
 - Nov 16 · Renamed to **Mosaic** ("your student life in full view") and gave it the **glass
   tiles** app icon (option C). Done now, since both were small.

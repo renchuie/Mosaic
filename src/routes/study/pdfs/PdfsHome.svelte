@@ -1,5 +1,6 @@
 <script lang="ts">
   import Icon from "../../../lib/components/Icon.svelte";
+  import FolderTile from "../../../lib/components/FolderTile.svelte";
   import { courseByName } from "../../../lib/stores/courses.svelte";
   import { courseOfPdf, pdfDir, pdfHref, pdfInfo, pdfName, pdfs, recentPdfs, refreshPdfs } from "../../../lib/stores/pdfs.svelte";
   import { settings } from "../../../lib/stores/settings.svelte";
@@ -22,9 +23,54 @@
     return [...m].sort((a, b) => a[0].localeCompare(b[0]));
   });
   const recent = $derived(recentPdfs(6));
+
+  // folder view (no search or course filter): tiles for the folders inside `dir`
+  let dir = $state("");
+  const under = (d: string, rel: string) => (d ? rel.startsWith(d + "/") : true);
+  const lastRead = $derived(recentPdfs(1)[0]?.[0]);
+  const tiles = $derived.by(() => {
+    const kids = new Map<string, typeof withCourse>();
+    for (const f of withCourse) {
+      if (!under(dir, f.rel)) continue;
+      const rest = dir ? f.rel.slice(dir.length + 1) : f.rel;
+      if (!rest.includes("/")) continue;
+      const d = (dir ? dir + "/" : "") + rest.split("/")[0];
+      kids.set(d, [...(kids.get(d) ?? []), f]);
+    }
+    return [...kids]
+      .sort((a, b) => a[0].localeCompare(b[0]))
+      .map(([d, files]) => {
+        const marked = files.filter((f) => pdfInfo(f.rel)?.annots).length;
+        const byRead = [...files].sort((a, b) => (pdfInfo(b.rel)?.opened ?? 0) - (pdfInfo(a.rel)?.opened ?? b.mtime) || b.mtime - a.mtime);
+        const c = files.find((f) => f.course)?.course;
+        return {
+          d,
+          name: d.split("/").pop()!,
+          color: courseByName(c)?.[1].color ?? "#C9B5F5",
+          lines: [`${files.length} ${files.length === 1 ? "PDF" : "PDFs"}${marked ? ` · ${marked} with marks` : ""}`, size(files.reduce((n, f) => n + f.size, 0))],
+          sheets: byRead.slice(0, 2).map(() => ({ head: `color-mix(in srgb, ${courseByName(c)?.[1].color ?? "#C9B5F5"} 45%, white)` })),
+          open: !!lastRead && under(d, lastRead),
+        };
+      });
+  });
+  const loose = $derived(withCourse.filter((f) => pdfDir(f.rel) === dir));
   const size = (b: number) => (b > 1e6 ? `${(b / 1e6).toFixed(1)} MB` : `${Math.max(1, Math.round(b / 1e3))} KB`);
   const tint = (c?: string) => courseByName(c)?.[1].color ?? "var(--peach)";
 </script>
+
+{#snippet row(f: (typeof withCourse)[number])}
+  {@const info = pdfInfo(f.rel)}
+  <li>
+    <a href={pdfHref(f.rel)}>
+      <span class="fi" style="--t: {tint(f.course)}"><Icon name="file" size={16} /></span>
+      <span class="nm">{pdfName(f.rel)}</span>
+      <span class="meta muted small">
+        {#if info?.annots}<span class="pill">{info.annots} {info.annots === 1 ? "mark" : "marks"}</span>{/if}
+        {#if info?.opened}p. {info.page}{info.pages ? `/${info.pages}` : ""} · {/if}{size(f.size)}
+      </span>
+    </a>
+  </li>
+{/snippet}
 
 <div class="home">
   <header class="top">
@@ -75,26 +121,40 @@
     <p class="muted">Looking for PDFs…</p>
   {:else if !shown.length}
     <div class="card"><p class="muted">{pdfs.files.length ? "Nothing matches." : "No PDFs found yet. Put lecture slides and readings anywhere in the PDF folder (Settings) and they show up here."}</p></div>
-  {:else}
-    {#each groups as [dir, files] (dir)}
-      <details class="grp" open={groups.length <= 8 || !!q || !!course}>
-        <summary><Icon name="folder" size={16} /> <b>{dir || "Top folder"}</b> <span class="muted small">{files.length}</span></summary>
+  {:else if !q && !course}
+    {#if dir}
+      <nav class="crumbs" aria-label="Folder">
+        <button type="button" onclick={() => (dir = "")}>All folders</button>
+        {#each dir.split("/") as part, i}<span aria-hidden="true">›</span><button type="button" onclick={() => (dir = dir.split("/").slice(0, i + 1).join("/"))}>{part}</button>{/each}
+      </nav>
+    {/if}
+    {#if tiles.length}
+      <div class="tiles">
+        {#each tiles as t (t.d)}
+          <FolderTile name={t.name} color={t.color} lines={t.lines} sheets={t.sheets} pages open={t.open} onclick={() => (dir = t.d)} />
+        {/each}
+      </div>
+    {/if}
+    {#if loose.length}
+      <section class="grp">
+        <h2 class="label lh">{dir ? "In this folder" : "Not in a folder"}</h2>
         <ul>
-          {#each files as f (f.rel)}
-            {@const info = pdfInfo(f.rel)}
-            <li>
-              <a href={pdfHref(f.rel)}>
-                <span class="fi" style="--t: {tint(f.course)}"><Icon name="file" size={16} /></span>
-                <span class="nm">{pdfName(f.rel)}</span>
-                <span class="meta muted small">
-                  {#if info?.annots}<span class="pill">{info.annots} {info.annots === 1 ? "mark" : "marks"}</span>{/if}
-                  {#if info?.opened}p. {info.page}{info.pages ? `/${info.pages}` : ""} · {/if}{size(f.size)}
-                </span>
-              </a>
-            </li>
+          {#each loose as f (f.rel)}
+            {@render row(f)}
           {/each}
         </ul>
-      </details>
+      </section>
+    {/if}
+  {:else}
+    {#each groups as [d, files] (d)}
+      <section class="grp">
+        <h2 class="label lh"><Icon name="folder" size={14} /> {d || "Top folder"} · {files.length}</h2>
+        <ul>
+          {#each files as f (f.rel)}
+            {@render row(f)}
+          {/each}
+        </ul>
+      </section>
     {/each}
   {/if}
 </div>
@@ -224,24 +284,40 @@
   .grp {
     border-radius: var(--radius);
     background: var(--surface);
+    border: var(--edge);
     box-shadow: var(--shadow);
-    padding: 6px 10px;
+    padding: 14px 12px 6px;
+    animation: pop-in var(--t-slow) var(--spring) backwards;
   }
-  summary {
+  .lh {
     display: flex;
     align-items: center;
-    gap: 8px;
-    min-height: 44px;
-    padding: 0 8px;
-    cursor: pointer;
-    list-style: none;
+    gap: 6px;
+    margin: 0 8px 4px;
   }
-  summary::-webkit-details-marker {
-    display: none;
+  .tiles {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+    gap: calc(var(--gap) + 4px) var(--gap);
   }
-  summary b {
-    font-weight: 600;
-    overflow-wrap: anywhere;
+  .crumbs {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+    color: var(--text-muted);
+  }
+  .crumbs button {
+    min-height: 36px;
+    padding: 0 12px;
+    border: 0;
+    border-radius: var(--radius-pill);
+    background: var(--chip);
+    font-weight: 500;
+  }
+  .crumbs button:last-child {
+    background: var(--surface);
+    color: var(--text);
   }
   ul {
     list-style: none;
@@ -260,6 +336,7 @@
   }
   li a:hover {
     background: var(--chip);
+    transform: translateX(3px);
   }
   .fi {
     display: grid;

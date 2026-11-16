@@ -1,7 +1,9 @@
-/* Design tokens: soft, fluid pastel look. Components use the semantic tokens
-   (second block) only, so dark mode later is one block that redefines them. */
+/* Design tokens. Components use the semantic tokens only, so a theme is one block that
+   redefines them. Themes and spacing are picked by attributes on <html>
+   (data-theme, data-density; see applyLook in the settings store).
+   Default look (Nov 16): frosted glass + spacious. "pastel" is the original solid look. */
 :root {
-  /* palette */
+  /* palette (shared by every theme: the subtle colour in the app) */
   --rose: #f2b8b5;
   --rose-deep: #e3949b;
   --rose-soft: #fbe4e1;
@@ -12,15 +14,20 @@
   --sage-soft: #dcebe4;
   --butter: #f7e3b0;
   --butter-soft: #fcf3d9;
+  --lavender: #c9b5f5;
+  --periwinkle: #7d8be8;
   --ivory: #fbf6f0;
   --white: #fffdfb;
   --charcoal: #3b3033;
   --mauve: #6f6164;
 
-  /* semantic */
+  /* semantic (pastel values; the glass block below overrides them) */
   --backdrop: linear-gradient(135deg, #ecd2cf 0%, #f1e2d6 48%, #d9e6de 100%);
   --panel: var(--ivory);
   --surface: var(--white);
+  /* surfaces that float over everything (dialogs, menus, popovers) stay nearly opaque */
+  --surface-float: var(--white);
+  --field: var(--ivory);
   --text: var(--charcoal);
   --text-muted: var(--mauve);
   --hairline: rgba(59, 48, 51, 0.09);
@@ -30,6 +37,10 @@
   --go: var(--sage);
   --alert: var(--rose-deep);
   --track: rgba(59, 48, 51, 0.08);
+  --accent: var(--sage-deep);
+  /* glass parts: off in the pastel theme */
+  --edge: 0 solid transparent;
+  --blur: none;
 
   /* tone gradients for cards */
   --g-rose: linear-gradient(140deg, #f9d5d0 0%, #f2b8b5 100%);
@@ -49,5 +60,66 @@
   --font-body: "Atkinson Hyperlegible Next", system-ui, sans-serif;
 
   --hit: 44px;
+
+  /* spacing (spacious values; density blocks below) */
+  --gap: 24px;
+  --card-pad: 24px;
+  --main-pad: 34px 38px 42px;
+  --shell-pad: 18px;
+
+  /* motion: lively, a little bouncy (springs overshoot slightly, then settle) */
+  --spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --spring-soft: cubic-bezier(0.25, 1.3, 0.5, 1);
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --t-fast: 0.18s;
+  --t: 0.32s;
+  --t-slow: 0.5s;
+}
+
+/* ---- frosted glass ------------------------------------------------------------------
+   Soft colour blooms behind translucent white. Only the big layers (main panel, rail,
+   dialogs) blur what is behind them; cards are plain translucent white on top of the
+   already-blurred panel. That keeps it fast in WebKitGTK (blur is costly to repaint). */
+:root[data-theme="glass"] {
+  --backdrop:
+    radial-gradient(42% 52% at 8% 12%, #ffd6e4 0%, transparent 70%),
+    radial-gradient(46% 56% at 92% 6%, #d5e1ff 0%, transparent 70%),
+    radial-gradient(50% 50% at 80% 90%, #cff2e6 0%, transparent 70%),
+    radial-gradient(40% 46% at 16% 94%, #ffefc9 0%, transparent 70%),
+    #f2f1f8;
+  --panel: rgba(255, 255, 255, 0.4);
+  --surface: rgba(255, 255, 255, 0.66);
+  --surface-float: rgba(255, 255, 255, 0.9);
+  --field: rgba(35, 38, 58, 0.05);
+  --text: #23263a;
+  --text-muted: #555a72;
+  --hairline: rgba(35, 38, 58, 0.09);
+  --chip: rgba(35, 38, 58, 0.06);
+  --primary: #2a2e45;
+  --on-primary: #ffffff;
+  --track: rgba(35, 38, 58, 0.08);
+  --accent: var(--periwinkle);
+  --edge: 1px solid rgba(255, 255, 255, 0.75);
+  --blur: blur(24px) saturate(160%);
+  --shadow: 0 1px 2px rgba(40, 44, 80, 0.04), 0 12px 30px -16px rgba(40, 44, 80, 0.22), inset 0 1px 0 rgba(255, 255, 255, 0.6);
+  --shadow-lift: 0 2px 4px rgba(40, 44, 80, 0.05), 0 22px 40px -18px rgba(40, 44, 80, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.7);
+}
+
+/* ---- spacing --------------------------------------------------------------------- */
+:root[data-density="original"] {
   --gap: 18px;
+  --card-pad: 20px;
+  --main-pad: 26px 26px 32px;
+  --shell-pad: 14px;
+  --radius: 26px;
+}
+:root[data-density="compact"] {
+  --gap: 12px;
+  --card-pad: 16px;
+  --main-pad: 18px 20px 24px;
+  --shell-pad: 10px;
+  --radius: 20px;
+}
+:root[data-density="spacious"] {
+  --radius: 28px;
 }
