@@ -5,12 +5,14 @@
   import Icon from "../../lib/components/Icon.svelte";
   import { cardHtml } from "../../lib/cards";
   import { courseByName } from "../../lib/stores/courses.svelte";
-  import { imageUrl, noteHref, notes } from "../../lib/stores/notes.svelte";
-  import { allCards, ensureIds, grade, LEARN_AHEAD, preview, queue, RATINGS, statusOf, undo, type CardRef, type Scope } from "../../lib/stores/srs.svelte";
+  import { notes } from "../../lib/stores/notes.svelte";
+  import OcclusionView from "../../lib/components/OcclusionView.svelte";
+  import { allCards, cramQueue, cramReviewed, ensureIds, grade, LEARN_AHEAD, preview, queue, RATINGS, statusOf, undo, type CardRef, type Scope } from "../../lib/stores/srs.svelte";
   import { get } from "../../lib/stores/synced.svelte";
   import type { SrsRec } from "../../lib/stores/srs.svelte";
 
-  let { scope }: { scope: Scope } = $props();
+  /** cram: go through every card in scope without changing the schedule */
+  let { scope, cram = false }: { scope: Scope; cram?: boolean } = $props();
 
   let pending = $state<string[]>([]); // keys still to see
   let current = $state<CardRef | null>(null);
@@ -22,11 +24,14 @@
   let ready = $state(false);
   let intervals = $state<Record<number, string>>({});
 
-  const label = $derived(scope.kind === "all" ? "All decks" : scope.kind === "course" ? scope.name : notes.files[scope.rel]?.p.title ?? "Note");
+  const label = $derived(
+    (cram ? "Cram · " : "") +
+      (scope.kind === "all" ? "All decks" : scope.kind === "course" ? scope.name : scope.kind === "library" ? "Card library" : notes.files[scope.rel]?.p.title ?? "Note"),
+  );
 
   onMount(async () => {
     await ensureIds();
-    pending = queue(scope).map((r) => r.card.key);
+    pending = (cram ? cramQueue(scope) : queue(scope)).map((r) => r.card.key);
     started = Date.now();
     ready = true;
     next();
@@ -47,10 +52,10 @@
     }
     const rec = (k: string) => get<SrsRec>("srs", k);
     const dueNow = keys.find((k) => !rec(k) || rec(k)!.due <= now + (statusOf(rec(k), now) === "learning" ? 0 : LEARN_AHEAD) || statusOf(rec(k), now) === "review");
-    const k = dueNow ?? keys.sort((a, b) => (rec(a)?.due ?? 0) - (rec(b)?.due ?? 0))[0];
+    const k = cram ? keys[0] : (dueNow ?? keys.sort((a, b) => (rec(a)?.due ?? 0) - (rec(b)?.due ?? 0))[0]);
     current = refByKey(k);
     shownAt = Date.now();
-    intervals = current ? preview(k) : {};
+    intervals = current ? (cram ? { 1: "again soon", 2: "done", 3: "done", 4: "done" } : preview(k)) : {};
   }
 
   function reveal() {
@@ -60,7 +65,17 @@
   function rate(g: number) {
     if (!current || !shown) return;
     const k = current.card.key;
-    grade(k, g as (typeof RATINGS)[number]["grade"], Date.now() - shownAt);
+    if (cram) {
+      cramReviewed(g === 1, Date.now() - shownAt);
+      done++;
+      if (g === 1) againCount++;
+      // missed cards come back a few cards later
+      const rest = pending.filter((x) => x !== k);
+      pending = g === 1 ? [...rest.slice(0, 3), k, ...rest.slice(3)] : rest;
+      next();
+      return;
+    }
+    grade(k, g as (typeof RATINGS)[number]["grade"], Date.now() - shownAt, current.course);
     done++;
     if (g === 1) againCount++;
     const after = get<SrsRec>("srs", k);
@@ -89,12 +104,13 @@
     } else if (shown && (e.key === " " || e.key === "Enter")) {
       e.preventDefault();
       rate(3);
-    } else if (e.key === "z" || (e.key === "z" && e.ctrlKey)) doUndo();
+    } else if (e.key === "z" && !cram) doUndo();
   }
 
   const left = $derived.by(() => {
     const now = Date.now();
     let n = 0, l = 0, r = 0;
+    if (cram) return { n: 0, l: 0, r: pending.length };
     for (const k of pending) {
       const s = statusOf(get<SrsRec>("srs", k), now);
       if (s === "new") n++;
@@ -103,7 +119,7 @@
     }
     return { n, l, r };
   });
-  const img = (s: string) => (current ? imageUrl(current.note.rel, s) : s);
+  const img = (s: string) => (current ? current.img(s) : s);
   const course = $derived(current?.course ? courseByName(current.course) : undefined);
 </script>
 
@@ -127,13 +143,16 @@
         {#each current.card.context as c, i}<span>{c}</span>{#if i < current.card.context.length - 1}<span class="sep">›</span>{/if}{/each}
       </div>
       <div class="front" class:cloze={current.card.kind === "cloze"}>{@html cardHtml(current.card.front, img)}</div>
+      {#if current.card.masks && current.card.image}
+        <div class="occwrap"><OcclusionView src={img(current.card.image)} masks={current.card.masks} target={current.card.target} reveal={shown} /></div>
+      {/if}
       {#if current.card.kind === "list" && !shown}<p class="hint muted">List card: recall every item.</p>{/if}
-      {#if shown}
+      {#if shown && current.card.back.trim()}
         <hr />
         <div class="back">{@html cardHtml(current.card.back, img)}</div>
       {/if}
-      <a class="edit" href={noteHref(current.note.rel)} onclick={() => (notes.jump = { rel: current!.note.rel, line: current!.card.line })}>
-        <Icon name="pen" size={13} /> {current.note.p.title}
+      <a class="edit" href={current.href} onclick={() => current?.note && (notes.jump = { rel: current.note.rel, line: current.card.line })}>
+        <Icon name="pen" size={13} /> {current.title}
       </a>
     </article>
 
@@ -156,7 +175,7 @@
       <span class="big">🎉</span>
       <h2 class="display">{done ? "Session done" : "Nothing due here"}</h2>
       {#if done}
-        <p>{done} reviews in {Math.max(1, Math.round((Date.now() - started) / 60000))} min · {done ? Math.round(((done - againCount) / done) * 100) : 0}% remembered</p>
+        <p>{done} {cram ? "cards crammed" : "reviews"} in {Math.max(1, Math.round((Date.now() - started) / 60000))} min · {done ? Math.round(((done - againCount) / done) * 100) : 0}% remembered</p>
       {:else}
         <p class="muted">No cards are due in this deck right now.</p>
       {/if}
@@ -287,6 +306,9 @@
     background: var(--chip);
     padding: 1px 6px;
     border-radius: 6px;
+  }
+  .occwrap {
+    text-align: center;
   }
   .hint {
     text-align: center;

@@ -13,6 +13,7 @@ import { initCalendar } from "./lib/stores/calendar.svelte";
 import { initPlan } from "./lib/stores/plan.svelte";
 import { initCourses } from "./lib/stores/courses.svelte";
 import { initNotes } from "./lib/stores/notes.svelte";
+import { initLibrary } from "./lib/stores/library.svelte";
 import { inTauri, invoke } from "./lib/tauri";
 import { selfTest, timerTest } from "./lib/selftest";
 
@@ -21,6 +22,7 @@ mount(App, { target: document.getElementById("app")! });
 await initSynced(migrateLabDocs).catch((e) => console.error("sync", e));
 initCalendar();
 initCourses();
+initLibrary();
 await initPlan().catch((e) => console.error("plan", e));
 await initLabs().catch((e) => console.error("labs", e));
 await initNotes().catch((e) => console.error("notes", e));

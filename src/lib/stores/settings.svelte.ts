@@ -13,6 +13,8 @@ export type Settings = {
   /** flashcards: new cards introduced per day, and FSRS target retention (0.7–0.97) */
   newPerDay: number;
   retention: number;
+  /** keep cards in an exam's course from being scheduled past the evening before it */
+  examAware: boolean;
 };
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -25,6 +27,7 @@ export const DEFAULT_SETTINGS: Settings = {
   notesRoot: "~/GoogleDrive/Pharmacy School/Study Lab/Notes",
   newPerDay: 20,
   retention: 0.9,
+  examAware: true,
 };
 
 export const settings = $state<Settings>({ ...DEFAULT_SETTINGS });

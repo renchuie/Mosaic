@@ -2,10 +2,13 @@
 // Synced collections: "srs" (one record per card key) and "reviewDays" (counts per day).
 import { createEmptyCard, fsrs, generatorParameters, Rating, State, type Card as FCard, type Grade } from "ts-fsrs";
 import { assignIds, cardId, extractCards, type NoteCard } from "../cards";
-import { addDays, todayKey, toKey } from "../calendar";
+import { addDays, fromKey, todayKey, toKey } from "../calendar";
+import type { Mask } from "../cardTypes";
+import { exams } from "./calendar.svelte";
+import { cardsOfItem, getType, items, previewImages } from "./library.svelte";
 import { joinNote, splitNote } from "../notes";
 import { markStudyDay } from "./labs.svelte";
-import { notes, saveNote, type NoteEntry } from "./notes.svelte";
+import { imageUrl, noteHref, notes, saveNote, type NoteEntry } from "./notes.svelte";
 import { settings } from "./settings.svelte";
 import { del, entries, get, put } from "./synced.svelte";
 
@@ -23,8 +26,20 @@ export type SrsRec = {
   suspended?: boolean;
 };
 export type DayRev = { reviews: number; new: number; again: number; ms: number };
-export type CardRef = { card: NoteCard; note: NoteEntry; course?: string; rec?: SrsRec };
-export type Scope = { kind: "all" } | { kind: "course"; name: string } | { kind: "note"; rel: string };
+/** A reviewable card from a note or from the card library. */
+export type CardRef = {
+  card: NoteCard & { masks?: Mask[]; target?: string; image?: string };
+  course?: string;
+  rec?: SrsRec;
+  note?: NoteEntry;
+  item?: { id: string; type: string };
+  /** where it came from, and a link there */
+  title: string;
+  href: string;
+  /** resolves image paths written in the card */
+  img: (src: string) => string;
+};
+export type Scope = { kind: "all" } | { kind: "course"; name: string } | { kind: "note"; rel: string } | { kind: "library" };
 
 const scheduler = () => fsrs(generatorParameters({ request_retention: settings.retention || 0.9, enable_fuzz: true, maximum_interval: 3650 }));
 
@@ -53,16 +68,34 @@ function cardsOf(e: NoteEntry): NoteCard[] {
   return cards;
 }
 
-/** Every card in every note (only ones with ids can be reviewed). */
+const libImg = (src: string) => previewImages.get(src) ?? imageUrl("", src);
+
+/** Every card in every note and in the library (note cards need an id before they can be reviewed). */
 export function allCards(): CardRef[] {
   const out: CardRef[] = [];
-  for (const e of Object.values(notes.files))
-    for (const card of cardsOf(e)) out.push({ card, note: e, course: e.p.meta.course ? String(e.p.meta.course) : undefined, rec: get<SrsRec>("srs", card.key) });
+  for (const e of Object.values(notes.files)) {
+    const course = e.p.meta.course ? String(e.p.meta.course) : undefined;
+    for (const card of cardsOf(e))
+      out.push({ card, note: e, course, rec: get<SrsRec>("srs", card.key), title: e.p.title, href: noteHref(e.rel), img: (s) => imageUrl(e.rel, s) });
+  }
+  for (const [id, it] of items()) {
+    const t = getType(it.type);
+    for (const g of cardsOfItem(id, it))
+      out.push({
+        card: { key: g.key, lineId: g.key, kind: "item", front: g.front, back: g.back, context: [t?.name ?? "Card", ...(it.tags ?? []).map((x) => `#${x}`)], line: 0, masks: g.masks, target: g.target, image: g.image },
+        item: { id, type: it.type },
+        course: it.course,
+        rec: get<SrsRec>("srs", g.key),
+        title: (t?.kind === "occlusion" ? it.fields.Header : t?.fields.map((f) => it.fields[f]).find((v) => v?.trim()))?.slice(0, 60) || t?.name || "Card",
+        href: `#/study/cards/library/${id}`,
+        img: libImg,
+      });
+  }
   return out;
 }
 
 export const inScope = (s: Scope) => (r: CardRef) =>
-  s.kind === "all" ? true : s.kind === "course" ? r.course === s.name : r.note.rel === s.rel;
+  s.kind === "all" ? true : s.kind === "course" ? r.course === s.name : s.kind === "library" ? !!r.item : r.note?.rel === s.rel;
 
 /** Write ids into card lines that don't have one yet (skipping the note open in the editor). */
 export async function ensureIds(): Promise<number> {
@@ -167,10 +200,23 @@ export function fmtInterval(ms: number): string {
 
 let last: { key: string; rec?: SrsRec; day: string; dayRec?: DayRev } | null = null;
 
-export function grade(key: string, g: Grade, ms: number) {
+/** Next exam (from tomorrow on) for a course, if any. */
+export function nextExam(course?: string) {
+  return course ? exams().find((e) => e.course === course && e.days >= 1) : undefined;
+}
+/** The evening before an exam: the latest a card should come due. */
+const beforeExam = (date: string) => fromKey(date).getTime() - 6 * 3600000;
+
+export function grade(key: string, g: Grade, ms: number, course?: string) {
   const rec = get<SrsRec>("srs", key);
   const now = new Date();
   const next = scheduler().next(rec ? toF(rec) : createEmptyCard(now), now, g).card;
+  // exam-aware: never schedule a card in an exam's course past the evening before it
+  const ex = settings.examAware !== false ? nextExam(course) : undefined;
+  if (ex) {
+    const cap = beforeExam(ex.date);
+    if (next.due.getTime() > cap && cap > now.getTime() + 3600000) next.due = new Date(cap);
+  }
   const day = todayKey();
   const d = dayRev(day);
   last = { key, rec, day, dayRec: get<DayRev>("reviewDays", day) };
@@ -188,6 +234,48 @@ export function undo(): string | null {
   else del("srs", l.key); // it was new: back to new
   if (l.dayRec) put("reviewDays", l.day, l.dayRec);
   return l.key;
+}
+
+/** Cram: count the review for today and the streak, but leave the schedule alone. */
+export function cramReviewed(again: boolean, ms: number) {
+  const day = todayKey();
+  const d = dayRev(day);
+  put("reviewDays", day, { ...d, reviews: d.reviews + 1, again: d.again + (again ? 1 : 0), ms: d.ms + Math.min(ms, 120000) });
+  if (d.reviews === 0) markStudyDay("reviews");
+}
+
+/** Every card in scope, most-forgotten first, then new ones: for cramming. */
+export function cramQueue(s: Scope): CardRef[] {
+  const list = allCards().filter((r) => r.card.lineId && !r.rec?.suspended).filter(inScope(s));
+  return [...list.filter((r) => r.rec).sort((a, b) => a.rec!.due - b.rec!.due), ...list.filter((r) => !r.rec)];
+}
+
+/** Upcoming exams with their course's cards: how many are new or due only after the exam. */
+export function examReadiness(days = 45) {
+  const out = [];
+  for (const ex of exams().filter((e) => e.days >= 1 && e.days <= days && e.course)) {
+    const cards = allCards().filter((r) => r.card.lineId && r.course === ex.course && !r.rec?.suspended);
+    if (!cards.length) continue;
+    const cap = beforeExam(ex.date);
+    out.push({ exam: ex, total: cards.length, unseen: cards.filter((r) => !r.rec).length, late: cards.filter((r) => r.rec && r.rec.due > cap).length });
+  }
+  return out;
+}
+
+/** Spread the course's cards that are due after the exam over the days before it. */
+export function fitBeforeExam(course: string, date: string): number {
+  const cap = beforeExam(date);
+  const late = allCards()
+    .filter((r) => r.course === course && r.rec && !r.rec.suspended && r.rec.due > cap)
+    .sort((a, b) => a.rec!.stability - b.rec!.stability);
+  const today = todayKey();
+  const days = Math.max(1, Math.round((fromKey(date).getTime() - fromKey(today).getTime()) / 864e5) - 1);
+  late.forEach((r, i) => {
+    const day = addDays(today, 1 + Math.floor((i * days) / Math.max(1, late.length)));
+    const due = Math.min(fromKey(day).getTime() + 18 * 3600000, cap);
+    put("srs", r.card.key, { ...r.rec!, due });
+  });
+  return late.length;
 }
 
 export function setSuspended(key: string, on: boolean) {

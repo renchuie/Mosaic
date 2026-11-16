@@ -3,9 +3,10 @@
   import { cardHtml } from "../../lib/cards";
   import { fromKey } from "../../lib/calendar";
   import { courseByName, courses } from "../../lib/stores/courses.svelte";
-  import { imageUrl, noteHref, notes } from "../../lib/stores/notes.svelte";
+  import { noteHref, notes } from "../../lib/stores/notes.svelte";
   import { saveSettings, settings } from "../../lib/stores/settings.svelte";
-  import { allCards, counts, dayRev, ensureIds, fmtInterval, forecast, retention, setSuspended, statusOf } from "../../lib/stores/srs.svelte";
+  import { allCards, counts, dayRev, ensureIds, examReadiness, fitBeforeExam, fmtInterval, forecast, retention, setSuspended, statusOf } from "../../lib/stores/srs.svelte";
+  import { items } from "../../lib/stores/library.svelte";
 
   const enc = (s: string) => encodeURIComponent(s);
   let backfilled = $state(0);
@@ -24,8 +25,11 @@
       .map(([id, c]) => ({ id, c, k: counts({ kind: "course", name: c.name }) }))
       .filter((x) => x.k.total),
   );
+  const lib = $derived(counts({ kind: "library" }));
+  const ready = $derived(examReadiness());
+  let fitted = $state<Record<string, number>>({});
   const byNote = $derived(
-    [...new Set(refs.map((r) => r.note.rel))]
+    [...new Set(refs.filter((r) => r.note).map((r) => r.note!.rel))]
       .map((rel) => ({ rel, e: notes.files[rel], k: counts({ kind: "note", rel }) }))
       .filter((x) => x.e && x.k.total)
       .sort((a, b) => b.k.due + b.k.newToday - (a.k.due + a.k.newToday) || b.k.total - a.k.total),
@@ -36,7 +40,7 @@
   const list = $derived(
     refs
       .filter((r) => r.card.lineId)
-      .filter((r) => !q.trim() || `${r.card.front} ${r.card.back} ${r.note.p.title}`.toLowerCase().includes(q.trim().toLowerCase()))
+      .filter((r) => !q.trim() || `${r.card.front} ${r.card.back} ${r.title}`.toLowerCase().includes(q.trim().toLowerCase()))
       .slice(0, 200),
   );
   const st = (r: (typeof refs)[0]) => statusOf(r.rec);
@@ -57,9 +61,31 @@
       {:else if all.total}
         <p class="done">All caught up for now 🎉</p>
       {/if}
-      <p class="muted small">{all.total} cards in your notes{backfilled ? ` · ${backfilled} new cards found` : ""}</p>
+      <p class="muted small">{all.total} cards{backfilled ? ` · ${backfilled} new found in notes` : ""}</p>
+      <a class="libbtn" href="#/study/cards/library"><Icon name="book" size={15} /> Card library</a>
     </div>
   </section>
+
+  {#if ready.length}
+    <section class="exams">
+      {#each ready as x (x.exam.key)}
+        <div class="ex">
+          <span class="exd"><b class="display">{x.exam.days}</b><small>{x.exam.days === 1 ? "day" : "days"}</small></span>
+          <span class="ext">
+            <b>{x.exam.title}</b>
+            <span>
+              {x.total} cards · {x.late ? `${x.late} not due again until after the exam` : "every reviewed card comes up before it"}{x.unseen ? ` · ${x.unseen} never studied` : ""}
+            </span>
+            {#if fitted[x.exam.key] !== undefined}<span class="okm">Moved {fitted[x.exam.key]} cards to the days before the exam.</span>{/if}
+          </span>
+          <span class="exb">
+            {#if x.late}<button type="button" class="btn quiet sm" onclick={() => (fitted = { ...fitted, [x.exam.key]: fitBeforeExam(x.exam.course, x.exam.date) })}>Fit before exam</button>{/if}
+            <a class="btn sm" href="#/study/cards/cram/course:{enc(x.exam.course)}">Cram</a>
+          </span>
+        </div>
+      {/each}
+    </section>
+  {/if}
 
   {#if !all.total}
     <section class="card how">
@@ -69,8 +95,9 @@
         <li><code>Digoxin ::: narrow therapeutic index</code> <span>two cards, both ways</span></li>
         <li><code>Start {"{{SGLT2i}}"} regardless of diabetes</code> <span>cloze (hide the part in braces)</span></li>
         <li><code>Four pillars of GDMT ::</code> with bullets indented under it <span>list card</span></li>
+        <li><code>:: table</code> on the line above a table <span>one card per filled cell</span></li>
       </ul>
-      <a class="btn quiet" href="#/study/notes">Open notes</a>
+      <div class="row2"><a class="btn quiet" href="#/study/notes">Open notes</a><a class="btn quiet" href="#/study/cards/library">Or use the card library</a></div>
     </section>
   {:else}
     <div class="stats">
@@ -91,9 +118,20 @@
                 <span class="dot"></span><b>{d.c.name}</b>
                 <span class="nums"><span class="n-due">{d.k.due}</span><span class="n-new">{d.k.newToday}</span><span class="muted">{d.k.total}</span></span>
                 <a class="btn quiet sm" href="#/study/cards/review/course:{enc(d.c.name)}" class:off={!d.k.due && !d.k.newToday}>Review</a>
+                <a class="cram" href="#/study/cards/cram/course:{enc(d.c.name)}" title="Go through every card without changing the schedule">Cram</a>
               </li>
             {/each}
           </ul>
+          {#if lib.total}
+            <h3 class="label sub">Card library</h3>
+            <ul class="decks">
+              <li style="--c: #cdb4f7">
+                <span class="dot"></span><a class="nl" href="#/study/cards/library">All library cards</a>
+                <span class="nums"><span class="n-due">{lib.due}</span><span class="n-new">{lib.newToday}</span><span class="muted">{lib.total}</span></span>
+                <a class="btn quiet sm" href="#/study/cards/review/library" class:off={!lib.due && !lib.newToday}>Review</a>
+              </li>
+            </ul>
+          {/if}
           <h3 class="label sub">By note</h3>
           <ul class="decks">
             {#each byNote as d (d.rel)}
@@ -118,10 +156,10 @@
             <ul class="clist">
               {#each list as r (r.card.key)}
                 <li class:sus={st(r) === "suspended"}>
-                  <div class="cf">{@html cardHtml(r.card.front, (s) => imageUrl(r.note.rel, s))}</div>
-                  <div class="cb muted">{@html cardHtml(r.card.back, (s) => imageUrl(r.note.rel, s))}</div>
+                  <div class="cf">{@html cardHtml(r.card.front, r.img)}{#if r.card.masks}<span class="muted"> (image occlusion)</span>{/if}</div>
+                  <div class="cb muted">{@html cardHtml(r.card.back, r.img)}</div>
                   <div class="cm">
-                    <a href={noteHref(r.note.rel)} onclick={() => (notes.jump = { rel: r.note.rel, line: r.card.line })}>{r.note.p.title}</a>
+                    <a href={r.href} onclick={() => r.note && (notes.jump = { rel: r.note.rel, line: r.card.line })}>{r.title}</a>
                     <span class="tag">{r.card.kind}</span>
                     <span>{dueText(r)}</span>
                     <button type="button" class="mini" onclick={() => setSuspended(r.card.key, st(r) !== "suspended")}>{st(r) === "suspended" ? "Unsuspend" : "Suspend"}</button>
@@ -154,6 +192,7 @@
             <select class="input" value={String(settings.retention)} onchange={(e) => saveSettings({ retention: Number(e.currentTarget.value) })}>
               {#each [0.8, 0.85, 0.9, 0.93, 0.95] as r}<option value={String(r)}>{Math.round(r * 100)}%{r === 0.9 ? " (recommended)" : r >= 0.93 ? " (more reviews)" : " (fewer reviews)"}</option>{/each}
             </select></label>
+          <label class="chk"><input type="checkbox" checked={settings.examAware} onchange={(e) => saveSettings({ examAware: e.currentTarget.checked })} /> Before an exam, bring that course's cards up by the evening before</label>
           <p class="muted small">Scheduling uses FSRS, the same method as modern Anki. Higher retention means you remember more, with more reviews.</p>
         </section>
       </aside>
@@ -291,7 +330,7 @@
   }
   .decks li {
     display: grid;
-    grid-template-columns: auto minmax(0, 1fr) auto auto;
+    grid-template-columns: auto minmax(0, 1fr) auto auto auto;
     gap: 12px;
     align-items: center;
     min-height: 46px;
@@ -329,6 +368,89 @@
   }
   .nums .muted {
     font-weight: 500;
+  }
+  .cram {
+    font-size: 12.5px;
+    color: var(--text-muted);
+    padding: 0 6px;
+  }
+  .decks li > .btn:last-child {
+    grid-column: span 2;
+  }
+  .libbtn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--on-primary);
+    font-size: 14px;
+    font-weight: 600;
+    opacity: 0.9;
+  }
+  .row2 {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .chk {
+    display: flex;
+    gap: 8px;
+    align-items: flex-start;
+    font-size: 13.5px;
+    cursor: pointer;
+  }
+  .chk input {
+    width: 17px;
+    height: 17px;
+    margin-top: 2px;
+    accent-color: var(--sage-deep);
+  }
+  .exams {
+    display: grid;
+    gap: 10px;
+  }
+  .ex {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    gap: 14px;
+    align-items: center;
+    padding: 12px 16px;
+    border-radius: 20px;
+    background: var(--g-rose);
+    box-shadow: var(--shadow);
+  }
+  .exd {
+    display: grid;
+    justify-items: center;
+    min-width: 50px;
+    line-height: 1;
+  }
+  .exd b {
+    font-size: 30px;
+    font-weight: 600;
+  }
+  .exd small {
+    font-size: 12px;
+  }
+  .ext {
+    display: grid;
+    gap: 2px;
+    font-size: 13.5px;
+  }
+  .ext b {
+    font-size: 15.5px;
+    font-weight: 600;
+  }
+  .okm {
+    font-weight: 600;
+    color: #3f7366;
+  }
+  .exb {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+  .exb .btn:not(.quiet) {
+    background: var(--surface);
   }
   .sm {
     min-height: 34px;

@@ -5,10 +5,12 @@
 //   Text with {{hidden}} part     cloze (each {{…}} is its own card; {{c1::a}} … {{c1::b}} hide together)
 //   {{answer::hint}}              cloze with a hint shown in the gap
 //   List question ::              list card: the answer is the indented bullets under it
+//   :: table                      on the line above a Markdown table: one card per filled cell,
+//                                 "**Row** · Column?" → cell
 //
 // Each card line gets a hidden id comment, `<!--sd:k3x9ab-->`, so review history survives edits.
 
-export type CardKind = "basic" | "reverse" | "cloze" | "list";
+export type CardKind = "basic" | "reverse" | "cloze" | "list" | "table" | "item";
 
 export type NoteCard = {
   /** review key: line id + which card (":r", ":c2") */
@@ -68,8 +70,29 @@ function children(ls: Line[], k: number): Line[] {
   return out;
 }
 
-function kindOf(ls: Line[], k: number): "card" | "cloze" | "list" | null {
+const TABLE_RE = /^::\s*table\b/i;
+const cells = (row: string) => row.trim().replace(/^\||\|$/g, "").split("|").map((c) => c.trim());
+
+/** The table right under a ":: table" line: header and body rows. */
+function tableAfter(ls: Line[], k: number): { header: string[]; rows: string[][] } | null {
+  let j = k + 1;
+  while (j < ls.length && !ls[j].text.trim()) j++;
+  const tl: string[] = [];
+  for (; j < ls.length && /^\s*\|/.test(ls[j].raw); j++) tl.push(ls[j].raw);
+  if (tl.length < 3 || !/^\s*\|?\s*:?-+/.test(tl[1])) return null;
+  return { header: cells(tl[0]), rows: tl.slice(2).map(cells) };
+}
+
+/** Short stable hash so a table cell keeps its review history while the row/column names stay the same. */
+function hash(s: string): string {
+  let h = 5381;
+  for (let i = 0; i < s.length; i++) h = ((h << 5) + h + s.charCodeAt(i)) | 0;
+  return (h >>> 0).toString(36).slice(0, 6);
+}
+
+function kindOf(ls: Line[], k: number): "card" | "cloze" | "list" | "table" | null {
   const l = ls[k];
+  if (TABLE_RE.test(l.text)) return tableAfter(ls, k) ? "table" : null;
   const c = splitCard(l.text);
   if (c) {
     if (c.back) return "card";
@@ -97,6 +120,24 @@ export function extractCards(body: string): NoteCard[] {
     const context = [...heads.map((x) => x.text), ...parents.slice(-2).map((p) => plain(p.text))].filter(Boolean);
     const kind = kindOf(ls, k);
     const key = (suffix = "") => (l.id ? l.id + suffix : `new-${l.i}${suffix}`);
+    if (kind === "table") {
+      const t = tableAfter(ls, k)!;
+      const strip = (s: string) => s.replace(/\*\*/g, "").trim();
+      for (const row of t.rows) {
+        const name = row[0]?.trim();
+        if (!name) continue;
+        t.header.forEach((col, ci) => {
+          if (ci === 0 || !row[ci]?.trim() || !col.trim()) return;
+          out.push({
+            key: key(`:t${hash(`${strip(name).toLowerCase()}|${strip(col).toLowerCase()}`)}`),
+            lineId: l.id, kind: "table",
+            front: `**${strip(name)}** · ${strip(col)}?`, back: row[ci].replace(/<br\s*\/?>/gi, "\n").trim(),
+            context: [...context, ...(t.header[0] ? [t.header[0]] : [])], line: l.i,
+          });
+        });
+      }
+      return;
+    }
     if (kind === "card") {
       const c = splitCard(l.text)!;
       out.push({ key: key(), lineId: l.id, kind: "basic", front: c.front, back: c.back, context, line: l.i });
@@ -166,11 +207,23 @@ export function inline(md: string, img: (src: string) => string = (s) => s): str
   return s;
 }
 
-/** Card side to HTML: a "- " list becomes a bulleted list. */
+/** Card side to HTML: runs of "- " lines become lists, other lines become paragraphs. */
 export function cardHtml(md: string, img?: (src: string) => string): string {
   const rows = md.split("\n");
-  if (rows.length > 1 || /^\s*- /.test(md)) {
-    return `<ul>${rows.filter(Boolean).map((r) => `<li style="margin-left:${(/^\s*/.exec(r)![0].length / 2) * 18}px">${inline(r.replace(/^\s*-\s*/, ""), img)}</li>`).join("")}</ul>`;
+  if (rows.length === 1 && !/^\s*- /.test(md)) return inline(md, img);
+  let html = "";
+  let list: string[] = [];
+  const flush = () => {
+    if (list.length) html += `<ul>${list.join("")}</ul>`;
+    list = [];
+  };
+  for (const r of rows) {
+    if (/^\s*[-*] /.test(r)) list.push(`<li style="margin-left:${(/^\s*/.exec(r)![0].length / 2) * 18}px">${inline(r.replace(/^\s*[-*]\s*/, ""), img)}</li>`);
+    else {
+      flush();
+      if (r.trim()) html += `<p>${inline(r, img)}</p>`;
+    }
   }
-  return inline(md, img);
+  flush();
+  return html;
 }
