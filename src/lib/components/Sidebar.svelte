@@ -1,12 +1,12 @@
 <script lang="ts">
   import Icon from "./Icon.svelte";
-  import { PAGES, route } from "../router.svelte";
+  import { NAV, route } from "../router.svelte";
   import { streakInfo } from "../stores/labs.svelte";
   const streak = $derived(streakInfo());
 
   const labels: Record<string, string> = {
     dashboard: "Dashboard",
-    labs: "Labs",
+    study: "Study",
     calendar: "Calendar",
     tasks: "Tasks",
     courses: "Courses",
@@ -22,9 +22,10 @@
   </div>
 
   <nav aria-label="Main">
-    {#each PAGES as p}
-      <a href="#/{p}" class="item" class:active={route.page === p} aria-current={route.page === p ? "page" : undefined}>
-        <Icon name={p} />
+    {#each NAV as p}
+      {@const on = route.page === p || (p === "study" && route.page === "labs")}
+      <a href="#/{p}" class="item" class:active={on} aria-current={on ? "page" : undefined}>
+        <Icon name={p === "study" ? "book" : p} />
         <span class="text">{labels[p]}</span>
       </a>
     {/each}

@@ -7,6 +7,7 @@
   import Calendar from "./routes/Calendar.svelte";
   import Tasks from "./routes/Tasks.svelte";
   import Courses from "./routes/Courses.svelte";
+  import Study from "./routes/Study.svelte";
   import EventEditor from "./lib/components/EventEditor.svelte";
   import TagManager from "./lib/components/TagManager.svelte";
   import TimerPill from "./lib/components/TimerPill.svelte";
@@ -19,6 +20,8 @@
   <main class:flush={viewer}>
     {#if route.page === "dashboard"}
       <Dashboard />
+    {:else if route.page === "study"}
+      <Study />
     {:else if route.page === "labs"}
       <Labs />
     {:else if route.page === "courses"}

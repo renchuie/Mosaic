@@ -6,6 +6,7 @@ import { entries, sync, syncNow } from "./stores/synced.svelte";
 import { exams } from "./stores/calendar.svelte";
 import { addBlock, clock, completeBlock, getPlan, spent, startBlock } from "./stores/plan.svelte";
 import { todayKey } from "./calendar";
+import { notes, refreshNotes } from "./stores/notes.svelte";
 
 /** Run 1 starts a timer and quits; run 2 shows it kept counting across the restart, then finishes it. */
 export async function timerTest() {
@@ -40,6 +41,10 @@ export async function selfTest() {
     log(`events=${entries("events").length} folders=${JSON.stringify(entries("folders"))} days=${entries("days").length} labOpens=${entries("labOpens").length}`);
     log(`exams=${exams().map((e) => `${e.title}@${e.date}`).join(", ")}`);
     log(`storage keys after sync=${Object.keys(readAll()).join(", ")}`);
+    await refreshNotes();
+    log(`notes root=${notes.root} error=${notes.error} files=${Object.keys(notes.files).join(" | ")} dirs=${notes.dirs.join(" | ")}`);
+    const hf = Object.values(notes.files).find((n) => n.p.title === "Heart failure");
+    if (hf) log(`HF links=${hf.p.links.join(",")} tags=${hf.p.tags.join(",")} course=${hf.p.meta.course}`);
     log(`selftest done (${ms()})`);
   } catch (e) {
     log(`selftest error: ${e} (${ms()})`);

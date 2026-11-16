@@ -11,6 +11,7 @@
   import { deleteEvent, editor, saveEvent, skipDay, tagManager, tagStyle, tags } from "../stores/calendar.svelte";
   import { deleteTask, saveTask, skipTaskDay } from "../stores/tasks.svelte";
   import { newId } from "../stores/synced.svelte";
+  import { classNote, noteHref, notes } from "../stores/notes.svelte";
 
   let dialog = $state<HTMLDialogElement>();
   let type = $state<"event" | "task">("event");
@@ -202,6 +203,16 @@
     }
     close();
   }
+
+  /** Open (or create) the note for this class on this day. */
+  async function openNotes() {
+    if (!editor.id) return;
+    const date = editor.date ?? f.date;
+    const rel = await classNote(editor.id, date, f.title.trim() || "Class", f.course);
+    close();
+    location.hash = noteHref(rel);
+  }
+  const hasNote = $derived(!!editor.id && Object.values(notes.files).some((e) => e.p.meta.event === `${editor.id}@${editor.date ?? f.date}`));
 
   function remove(which: "day" | "all") {
     if (!editor.id) return;
@@ -405,6 +416,9 @@
         {:else}
           <button type="button" class="btn quiet danger" onclick={() => remove("all")}>Yes, delete</button>
         {/if}
+      {/if}
+      {#if editor.id && type === "event"}
+        <button type="button" class="btn quiet notes" onclick={openNotes}><Icon name="pen" size={15} /> {hasNote ? "Open notes" : "Take notes"}</button>
       {/if}
       <span class="spacer"></span>
       {#if type === "event" && !ev.allDay && ev.start && ev.end && minutes(ev.end) > minutes(ev.start)}
@@ -693,6 +707,9 @@
   }
   .small-sum {
     font-size: 13px;
+  }
+  .notes {
+    background: color-mix(in srgb, #cdb4f7 30%, var(--white));
   }
   .danger {
     background: var(--rose-soft);

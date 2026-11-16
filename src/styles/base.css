@@ -171,3 +171,8 @@ select {
   background-position: right 14px center !important;
   cursor: pointer;
 }
+
+/* WebKitGTK shows today's date in an empty date box; grey it so it doesn't look set */
+input[type="date"].empty {
+  color: color-mix(in srgb, var(--text-muted) 55%, transparent);
+}

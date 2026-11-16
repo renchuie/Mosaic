@@ -21,6 +21,8 @@ const HEAD_BYTES: u64 = 64 * 1024;
 const MAX_LAB_BYTES: u64 = 40 * 1024 * 1024;
 /// URL prefix the app uses for files in the labs folder.
 pub const LABS_PREFIX: &str = "/__labs/";
+/// URL prefix for files in the notes folder (pasted images).
+pub const NOTES_PREFIX: &str = "/__notes/";
 
 #[derive(Default)]
 pub struct LabsState {
@@ -399,8 +401,13 @@ fn mime(path: &str) -> &'static str {
 /// are answered from the labs folder; everything else is left to Tauri.
 pub fn serve(app: &AppHandle, request: &http::Request<Vec<u8>>, response: &mut http::Response<Cow<'static, [u8]>>) {
     let path = percent_decode(request.uri().path());
-    let Some(rel) = path.strip_prefix(LABS_PREFIX) else { return };
-    let root = app.state::<LabsState>().root.lock().unwrap().clone();
+    let (rel, root) = if let Some(rel) = path.strip_prefix(LABS_PREFIX) {
+        (rel, app.state::<LabsState>().root.lock().unwrap().clone())
+    } else if let Some(rel) = path.strip_prefix(NOTES_PREFIX) {
+        (rel, crate::notes::root_for_serving(&app.state::<crate::notes::NotesState>()))
+    } else {
+        return;
+    };
     let (status, ctype, body): (u16, &str, Vec<u8>) = match root.as_deref().and_then(|r| resolve(r, rel)) {
         None => (404, "text/plain; charset=utf-8", b"Labs folder not set".to_vec()),
         Some(file) => match fs::read(&file) {

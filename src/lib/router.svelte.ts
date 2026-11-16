@@ -1,5 +1,7 @@
 // Tiny hash router: #/labs, #/labs/<folder or lab path>, #/calendar …
-export const PAGES = ["dashboard", "labs", "calendar", "tasks", "courses", "settings"] as const;
+export const PAGES = ["dashboard", "study", "labs", "calendar", "tasks", "courses", "settings"] as const;
+/** Sidebar order. "labs" (Recall Labs) lives inside Study. */
+export const NAV = ["dashboard", "study", "calendar", "tasks", "courses", "settings"] as const;
 export type Page = (typeof PAGES)[number];
 
 function read(): { page: Page; rest: string } {

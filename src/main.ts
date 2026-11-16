@@ -12,6 +12,7 @@ import { initSynced } from "./lib/stores/synced.svelte";
 import { initCalendar } from "./lib/stores/calendar.svelte";
 import { initPlan } from "./lib/stores/plan.svelte";
 import { initCourses } from "./lib/stores/courses.svelte";
+import { initNotes } from "./lib/stores/notes.svelte";
 import { inTauri, invoke } from "./lib/tauri";
 import { selfTest, timerTest } from "./lib/selftest";
 
@@ -22,6 +23,7 @@ initCalendar();
 initCourses();
 await initPlan().catch((e) => console.error("plan", e));
 await initLabs().catch((e) => console.error("labs", e));
+await initNotes().catch((e) => console.error("notes", e));
 
 // STUDYDESK_ROUTE=labs/... opens a page at start; STUDYDESK_ROUTE=selftest prints checks (used for testing).
 if (inTauri) {

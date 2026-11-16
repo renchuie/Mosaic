@@ -4,6 +4,7 @@
   import { DEFAULT_SETTINGS, saveSettings, settings } from "../lib/stores/settings.svelte";
   import { inTauri } from "../lib/tauri";
   import { sync, syncNow } from "../lib/stores/synced.svelte";
+  import { refreshNotes } from "../lib/stores/notes.svelte";
 
   let name = $state(settings.name);
   let root = $state(settings.labsRoot);
@@ -11,6 +12,7 @@
   let keywords = $state(settings.examKeywords);
   let syncOn = $state(settings.syncEnabled);
   let syncDir = $state(settings.syncDir);
+  let notesRoot = $state(settings.notesRoot);
   let saved = $state(false);
 
   async function save(e: SubmitEvent) {
@@ -24,7 +26,9 @@
       examKeywords: keywords.trim() || DEFAULT_SETTINGS.examKeywords,
       syncEnabled: syncOn,
       syncDir: syncDir.trim() || DEFAULT_SETTINGS.syncDir,
+      notesRoot: notesRoot.trim() || DEFAULT_SETTINGS.notesRoot,
     });
+    void refreshNotes();
     if (syncChanged) void syncNow();
     saved = true;
     setTimeout(() => (saved = false), 2000);
@@ -82,6 +86,11 @@
       <span class="label">How many folder levels to scan</span>
       <input type="number" min="1" max="8" bind:value={depth} />
       <span class="hint muted">Lower is faster on the Drive mount.</span>
+    </label>
+    <label class="field">
+      <span class="label">Notes folder</span>
+      <input bind:value={notesRoot} spellcheck="false" />
+      <span class="hint muted">Your notes are Markdown files here, so they also open in any other app.</span>
     </label>
     <label class="field">
       <span class="label">Words that mark an exam</span>

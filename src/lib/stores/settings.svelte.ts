@@ -8,6 +8,8 @@ export type Settings = {
   examKeywords: string;
   syncEnabled: boolean;
   syncDir: string;
+  /** folder of Markdown notes (Study → Notes) */
+  notesRoot: string;
 };
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -17,6 +19,7 @@ export const DEFAULT_SETTINGS: Settings = {
   examKeywords: "Exam",
   syncEnabled: true,
   syncDir: "~/GoogleDrive/Pharmacy School/Study Lab/Study Desk Sync",
+  notesRoot: "~/GoogleDrive/Pharmacy School/Study Lab/Notes",
 };
 
 export const settings = $state<Settings>({ ...DEFAULT_SETTINGS });

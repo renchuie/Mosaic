@@ -169,7 +169,7 @@
           </label>
           <label class="field">
             <span class="label">Exam date</span>
-            <input type="date" value={meta.examDate ?? ""} onchange={(e) => setFolderMeta(folder.rel, { examDate: e.currentTarget.value || undefined })} />
+            <input type="date" class:empty={!meta.examDate} value={meta.examDate ?? ""} onchange={(e) => setFolderMeta(folder.rel, { examDate: e.currentTarget.value || undefined })} />
           </label>
           <div class="field">
             <span class="label">Colour</span>

@@ -2,6 +2,7 @@
 // sync (per-machine files in a Google Drive folder).
 
 mod labs;
+mod notes;
 mod store;
 mod sync;
 
@@ -25,6 +26,7 @@ fn debug_quit(app: tauri::AppHandle) {
 fn main() {
     tauri::Builder::default()
         .manage(labs::LabsState::default())
+        .manage(notes::NotesState::default())
         .setup(|app| {
             // The main window is built here (not from config alone) so labs can be
             // served on the app's own origin.
@@ -41,6 +43,13 @@ fn main() {
             labs::scan_labs,
             labs::open_in_system,
             sync::machine_name,
+            notes::notes_list,
+            notes::notes_read,
+            notes::notes_write,
+            notes::notes_write_file,
+            notes::notes_mkdir,
+            notes::notes_move,
+            notes::notes_trash,
             sync::sync_write,
             sync::sync_read,
             debug_route,

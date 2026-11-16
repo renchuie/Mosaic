@@ -48,6 +48,7 @@
   const upcoming = $derived(exams().filter((e) => e.days >= 0).slice(0, 3));
 </script>
 
+<div class="calwrap">
 <div class="calpage" class:noside={!view.side}>
   {#if view.side}
   <aside class="side">
@@ -123,14 +124,18 @@
     {/if}
   </section>
 </div>
+</div>
 
 <style>
+  .calwrap {
+    container-type: inline-size;
+    min-width: 0;
+  }
   .calpage {
     display: grid;
     grid-template-columns: 240px minmax(0, 1fr);
     gap: var(--gap);
     align-items: start;
-    container-type: inline-size;
   }
   .calpage.noside {
     grid-template-columns: minmax(0, 1fr);

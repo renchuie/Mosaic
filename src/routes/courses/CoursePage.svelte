@@ -9,6 +9,8 @@
   import { foldersFor, labsFor, studyFor, upcomingFor } from "../../lib/stores/courseLinks.svelte";
   import { folderHref, folderStats, labHref } from "../../lib/stores/labs.svelte";
   import { toggleTask } from "../../lib/stores/tasks.svelte";
+  import { createNote, noteHref, notesForCourse } from "../../lib/stores/notes.svelte";
+  import { fileNameFor } from "../../lib/notes";
   import DrugTracker from "./DrugTracker.svelte";
   import GradesModule from "./GradesModule.svelte";
   import { courseEditor } from "./editor.svelte";
@@ -28,6 +30,12 @@
   const labs = $derived(course ? labsFor(course.name) : []);
   const study = $derived(course ? studyFor(course.name) : { week: 0, total: 0 });
   const today = todayKey();
+  const courseNotes = $derived(course ? notesForCourse(course.name) : []);
+  async function newCourseNote() {
+    if (!course) return;
+    const rel = await createNote(fileNameFor(course.name).replace(/\.md$/, ""), `${todayKey()} notes`, "lecture", { course: course.name, date: todayKey() });
+    location.hash = noteHref(rel);
+  }
 
   const ink = $derived(course ? `color-mix(in srgb, ${course.color} 60%, #3b3033)` : "");
   const targetLetter = $derived(course ? letterFor(course.grading.target, course.grading.scale) : null);
@@ -165,7 +173,21 @@
         </section>
 
         <section class="card">
-          <div class="sh"><h2 class="h2">Notes</h2></div>
+          <div class="sh"><h2 class="h2">Course notes</h2><button type="button" class="mini" onclick={newCourseNote}>+ Note</button></div>
+          {#if courseNotes.length}
+            <ul class="cnotes">
+              {#each courseNotes.slice(0, 8) as n (n.rel)}
+                <li><a href={noteHref(n.rel)}><Icon name="pen" size={14} /><span>{n.p.title}</span>{#if n.p.meta.date}<small>{fromKey(String(n.p.meta.date)).toLocaleDateString("en-US", { month: "short", day: "numeric" })}</small>{/if}</a></li>
+              {/each}
+            </ul>
+            {#if courseNotes.length > 8}<a class="more" href="#/study/notes">All {courseNotes.length} notes</a>{/if}
+          {:else}
+            <p class="muted small">Notes with this course set show here. Start one, or use “Take notes” on a class in the calendar.</p>
+          {/if}
+        </section>
+
+        <section class="card">
+          <div class="sh"><h2 class="h2">Scratch pad</h2></div>
           <textarea class="input notes" rows="7" bind:value={notes} oninput={typed} placeholder="Anything about this course: syllabus quirks, what the professor emphasises, group members, links…"></textarea>
         </section>
       </aside>
@@ -504,6 +526,40 @@
   .folder .muted {
     font-weight: 400;
     font-size: 13px;
+  }
+  .cnotes {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 2px;
+  }
+  .cnotes a {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    gap: 8px;
+    align-items: center;
+    min-height: 36px;
+    padding: 0 10px;
+    border-radius: 10px;
+    text-decoration: none;
+    font-size: 14px;
+  }
+  .cnotes a:hover {
+    background: var(--panel);
+  }
+  .cnotes span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .cnotes small {
+    color: var(--text-muted);
+    font-size: 12px;
+  }
+  .more {
+    font-size: 13px;
+    color: var(--text-muted);
   }
   .notes {
     resize: vertical;

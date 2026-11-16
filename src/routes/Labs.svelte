@@ -3,6 +3,7 @@
   import { findFolder, labs, parentRel } from "../lib/stores/labs.svelte";
   import FolderView from "./labs/FolderView.svelte";
   import LabViewer from "./labs/LabViewer.svelte";
+  import StudyNav from "./study/StudyNav.svelte";
 
   const folder = $derived(labs.tree ? findFolder(route.rest) : null);
   const item = $derived.by(() => {
@@ -11,6 +12,7 @@
   });
 </script>
 
+{#if !(item && item.kind === "lab")}<StudyNav />{/if}
 {#if item && item.kind === "lab"}
   {#key item.rel}
     <LabViewer {item} />

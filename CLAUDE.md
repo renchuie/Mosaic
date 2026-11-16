@@ -234,6 +234,55 @@ The app's purpose is an all-in-one uni home base, and the course is what ties th
 - Dashboard has a Courses card (ring with letter, grade, need line per course).
 - All placeholder pages are gone; every sidebar page is real.
 
+## Study tab (decided; being built in phases S1–S6)
+
+Labs became a generic **Study** area, "RemNote but better". Sections: Home, Notes, Cards, PDFs,
+Recall Labs. Decisions she approved:
+- Notes are Markdown files in a Drive folder (default `~/GoogleDrive/Pharmacy School/Study Lab/Notes`,
+  Settings), readable outside the app. Card review history lives in the synced store, keyed by a
+  stable card id written into the note.
+- PDF annotations are saved into the PDF itself after a one-time backup of the original.
+- Imports: Anki and CSV (built with the card library). No AI features.
+- Libraries (npm, no system packages): CodeMirror 6 (notes editor), ts-fsrs (FSRS scheduling),
+  pdfjs-dist (viewing), pdf-lib (editing).
+- Phases: S1 Study tab shell with Recall Labs moved in (DONE); S2 notes (DONE) (editor, [[links]], backlinks,
+  #tags, templates, class notes from calendar events, notes on course pages); S3 cards written in
+  notes (`Q :: A`, `:::` two-way, `{{cloze}}`, list cards) + FSRS review + dashboard "cards due";
+  S4 card library (note types with fields, Drug type, table → cards, CSV/Anki import, image
+  occlusion, exam-aware scheduling/cram); S5 PDF viewer + annotations linked to notes and cards;
+  S6 PDF page editing + Ctrl+K search everywhere.
+- Her own additions to keep: exam-aware scheduling, table → cards for drug comparison tables,
+  class notes linked to calendar events, Top 300 as drug cards feeding the quiz tracker.
+
+## Study S1 + S2 (built): Study tab and notes
+
+- Sidebar "Labs" is now "Study" (`#/study`); Recall Labs keep their `#/labs/...` routes and show
+  the Study tabs (Home, Notes, Recall Labs) on top (`src/routes/study/StudyNav.svelte`). Cards and
+  PDFs tabs get added when S3/S5 land.
+- Notes: Rust `src-tauri/src/notes.rs` (list / read / conflict-safe write with expected mtime /
+  pasted images / mkdir / move / trash into `.trash/`; refuses to create the folder when Drive is
+  unmounted). Note images are served at `/__notes/…` like labs (and by `vite.config.ts` in dev).
+- `src/lib/notes.ts` (pure, node-tested): front matter (course, tags, date, event, unknown keys
+  kept), title = first H1 or file name, [[links]] (alias and #heading forms), #tags, headings,
+  rename links, safe file names, templates (Lecture, Drug monograph with `::` fields, Disease
+  state, Patient case SOAP).
+- Store `src/lib/stores/notes.svelte.ts`: in-memory index cached in `notes-cache.json`, re-reads
+  only changed files, refresh on focus. Renaming a note renames the file, its H1 if it matched,
+  and every [[link]] to it. Clicking a link to a missing note creates it. Class notes:
+  `classNote(eventId, date, …)` keyed by front matter `event: id@date`, in a folder named after
+  the course, lecture template.
+- Editor `src/lib/components/NoteEditor.svelte` (CodeMirror 6): styled Markdown, • bullets,
+  Tab/Shift-Tab, ==highlight==, [[link]] chips that open on click + autocomplete, #tag
+  autocomplete, card syntax highlighted (`::`, `:::`, `{{cloze}}`), pasted images saved to
+  `attachments/` and shown inline. Autosave 700 ms; a conflict shows "Load that version / Keep mine".
+- Notes page: tree with search (title + full text), properties row (course, date, tags), ⋯ move /
+  trash, toolbar, right column with Linked to, Outline, Backlinks, Links (missing ones offer
+  create). Event editor has "Take notes / Open notes"; course pages list Course notes (+ Note);
+  the old course notes pad is now "Scratch pad".
+- Layout gotcha: a container query can't style the element that is the container. NotesView and
+  Calendar wrap themselves (`.nwrap`, `.calwrap`) for that reason.
+- Empty `<input type=date>` shows today's date in WebKitGTK; add class `empty` (greyed) when unset.
+
 ## Other decisions
 
 - Streak: a day counts if she opened a lab or checked off a study block. Activity heatmap feeds it.
