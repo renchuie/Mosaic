@@ -1,0 +1,46 @@
+/* Design tokens. Components use the semantic tokens (bottom half) only,
+   so dark mode later is a second block that redefines them. */
+:root {
+  /* palette */
+  --ink: #111111;
+  --blush: #ffd6e7;
+  --pink: #ff8cb4;
+  --yellow: #ffda5c;
+  --lime: #d6ee5a;
+  --aqua: #adf2e8;
+  --lilac: #cdb4f7;
+  --lemon: #fbfbc0;
+  --cream: #f5ead7;
+  --lavender: #f6f2ff;
+  --ice: #effffd;
+  --slate: #5a5a5a;
+
+  /* semantic */
+  --bg: var(--blush);
+  --surface: #fffdfb;
+  --surface-soft: var(--lavender);
+  --tile: var(--cream);
+  --text: var(--ink);
+  --text-muted: var(--slate);
+  --line: var(--ink);
+  --hairline: rgba(17, 17, 17, 0.12);
+  --sidebar-bg: var(--yellow);
+  --go: var(--lime);
+  --alert: var(--pink);
+  --focus: var(--yellow);
+
+  /* softened shape: thin ink outline, soft shadow, generous radius */
+  --border: 1.5px solid var(--line);
+  --radius: 20px;
+  --radius-sm: 12px;
+  --radius-pill: 999px;
+  --shadow: 0 1px 0 rgba(17, 17, 17, 0.05), 0 10px 24px -14px rgba(17, 17, 17, 0.28);
+  --shadow-lift: 0 2px 0 rgba(17, 17, 17, 0.06), 0 16px 30px -14px rgba(17, 17, 17, 0.34);
+
+  --font-display: "Unbounded", system-ui, sans-serif;
+  --font-label: "Space Mono", ui-monospace, monospace;
+  --font-body: "DM Sans", system-ui, sans-serif;
+
+  --hit: 44px;
+  --gap: 16px;
+}

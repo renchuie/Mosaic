@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Study Desk
+Comment=Personal student dashboard
+Exec=@EXEC@
+Icon=studydesk
+Terminal=false
+Categories=Education;Office;
+StartupWMClass=studydesk

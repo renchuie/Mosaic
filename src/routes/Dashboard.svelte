@@ -1,0 +1,494 @@
+<script lang="ts">
+  import Icon from "../lib/components/Icon.svelte";
+  import LabCard from "../lib/components/LabCard.svelte";
+  import MiniMonth from "../lib/components/MiniMonth.svelte";
+  import { PAIRS, exams, focusBlock, labs, lectures, streak, today, user } from "../lib/sample/data";
+
+  const now = new Date();
+  const DAY = 86_400_000;
+  const startOfDay = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+  const daysUntil = (iso: string) => Math.round((startOfDay(new Date(iso)) - startOfDay(now)) / DAY);
+  const when = (n: number) => (n === 0 ? "Today" : n === 1 ? "Tomorrow" : `${n} days`);
+
+  const upcoming = exams
+    .map((e) => ({ ...e, days: daysUntil(e.date) }))
+    .filter((e) => e.days >= 0)
+    .sort((a, b) => a.days - b.days);
+  const next = upcoming[0];
+
+  let tasks = $state(today.tasks.map((t) => ({ ...t })));
+  const dueLeft = $derived(tasks.filter((t) => !t.done).length);
+  const overdue = $derived(tasks.filter((t) => t.overdue && !t.done).length);
+  const revisit = labs.reduce((n, l) => n + l.missed, 0);
+  const cont = labs[0];
+
+  const hhmm = `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
+  const nowIndex = today.events.findIndex((e) => e.end > hhmm);
+  const fmt = (t: string) => {
+    const [h, m] = t.split(":").map(Number);
+    return `${((h + 11) % 12) + 1}:${String(m).padStart(2, "0")}`;
+  };
+  const dateLine = now.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" });
+</script>
+
+<div class="page">
+  <div class="main">
+    <header class="hello">
+      <p class="label">{dateLine}</p>
+      <h1 class="display">Hi, {user.name}.</h1>
+      <p class="summary">
+        {#if next}<b>{next.title}</b> {next.days <= 1 ? `is ${when(next.days).toLowerCase()}` : `in ${next.days} days`} ·{/if}
+        {dueLeft} due today · {revisit} to revisit
+      </p>
+    </header>
+
+    <section class="stats" aria-label="At a glance">
+      <div class="stat card c-yellow">
+        <span class="label">Next exam</span>
+        <span class="num display">{next ? when(next.days) : "—"}</span>
+        <span class="sub">{next?.title ?? "Nothing scheduled"}</span>
+      </div>
+      <div class="stat card">
+        <span class="label">Due today</span>
+        <span class="num display">{dueLeft}</span>
+        <span class="sub">{overdue > 0 ? `${overdue} overdue` : "On track"}</span>
+      </div>
+      <div class="stat card">
+        <span class="label">To revisit</span>
+        <span class="num display">{revisit}</span>
+        <span class="sub">across {labs.length} labs</span>
+      </div>
+      <div class="stat card">
+        <span class="label">Streak</span>
+        <span class="num display">{streak.days}</span>
+        <span class="sub">days in a row</span>
+      </div>
+    </section>
+
+    <section class="continue card c-lilac">
+      <div>
+        <span class="label">Continue · {cont.lastOpened}</span>
+        <h2 class="display">{cont.title}</h2>
+        <div class="chips">
+          <span class="tag">{cont.sectionsTried} sections tried</span>
+          <span class="tag">Avg best {cont.avgBest}%</span>
+          <span class="tag">Last sim {cont.lastSim}%</span>
+          <span class="tag">Best sim {cont.bestSim}%</span>
+        </div>
+      </div>
+      <a class="btn dark" href="#/labs"><Icon name="play" size={16} /> Open lab</a>
+    </section>
+
+    <section>
+      <div class="sec-head">
+        <h2 class="h2">Lectures</h2>
+        <a class="link" href="#/labs">All labs <Icon name="arrow" size={14} /></a>
+      </div>
+      <div class="lectures">
+        {#each lectures as l, i}
+          <LabCard title={l.title} kicker="Exam 5" progress={l.progress} revisit={l.revisit} pair={PAIRS[i % PAIRS.length]} />
+        {/each}
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="sec-head">
+        <h2 class="h2">Tasks due</h2>
+        <span class="tag">{tasks.length - dueLeft}/{tasks.length}</span>
+      </div>
+      <ul class="tasks">
+        {#each tasks as t}
+          <li class:done={t.done}>
+            <label>
+              <input type="checkbox" bind:checked={t.done} />
+              <span class="box"><Icon name="check" size={14} /></span>
+              <span class="t-text">
+                <span class="t-title">{t.title}</span>
+                <span class="t-course muted">{t.course}</span>
+              </span>
+            </label>
+            <span class="tag" class:c-pink={t.overdue && !t.done}>{t.overdue && !t.done ? "Overdue" : t.due}</span>
+          </li>
+        {/each}
+      </ul>
+    </section>
+  </div>
+
+  <aside class="side">
+    <section class="card">
+      <div class="sec-head">
+        <h2 class="h2">Countdown</h2>
+      </div>
+      <ul class="countdowns">
+        {#each upcoming as e, i}
+          <li class={i === 0 ? "c-pink" : "c-cream"}>
+            <span class="c-days display">{e.days}<small>{e.days === 1 ? "day" : "days"}</small></span>
+            <span class="c-info">
+              <b>{e.title}</b>
+              <span class="muted">{new Date(e.date).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })}</span>
+            </span>
+          </li>
+        {/each}
+      </ul>
+    </section>
+
+    <section class="card focus c-lemon">
+      <span class="label">Current block</span>
+      <h2 class="h2">{focusBlock.title}</h2>
+      <div class="timer display">{focusBlock.elapsed}<small>/ {focusBlock.minutes}:00</small></div>
+      <div class="focus-row">
+        <button class="btn go" type="button"><Icon name="pause" size={16} /> Pause</button>
+        <span class="muted next">Next: {focusBlock.next}</span>
+      </div>
+    </section>
+
+    <section class="card">
+      <MiniMonth marked={exams.map((e) => e.date.slice(0, 10))} />
+    </section>
+
+    <section class="card">
+      <div class="sec-head">
+        <h2 class="h2">Today</h2>
+        <span class="tag">{today.events.length} events</span>
+      </div>
+      <ol class="timeline">
+        {#each today.events as e, i}
+          {#if i === nowIndex}
+            <li class="now" aria-label="Now"><span>{fmt(hhmm)}</span></li>
+          {/if}
+          <li class="ev" class:past={nowIndex === -1 || i < nowIndex}>
+            <span class="time">{fmt(e.start)}</span>
+            <span class="ev-card {e.kind === 'study' ? 'c-lime' : 'c-ice'}">
+              <b>{e.title}</b>
+              <span class="muted">{fmt(e.start)} – {fmt(e.end)}</span>
+            </span>
+          </li>
+        {/each}
+      </ol>
+    </section>
+
+    <section class="card">
+      <div class="sec-head">
+        <h2 class="h2">Quick play</h2>
+      </div>
+      <div class="quick">
+        {#each labs as l}
+          <a class="btn" href="#/labs"><Icon name="play" size={14} /> {l.title}</a>
+        {/each}
+      </div>
+    </section>
+  </aside>
+</div>
+
+<style>
+  .page {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 320px;
+    gap: var(--gap);
+    align-items: start;
+  }
+  .main,
+  .side {
+    display: grid;
+    gap: var(--gap);
+    min-width: 0;
+  }
+  .main {
+    container-type: inline-size;
+  }
+
+  @media (max-width: 1180px) {
+    .page {
+      grid-template-columns: minmax(0, 1fr);
+    }
+    .side {
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      align-items: start;
+    }
+  }
+
+  .hello {
+    padding: 6px 4px 2px;
+  }
+  .hello h1 {
+    font-size: clamp(32px, 4.4vw, 52px);
+    line-height: 1.05;
+    margin: 6px 0 8px;
+  }
+  .hello .label {
+    color: var(--ink);
+  }
+  .summary {
+    font-size: 16px;
+  }
+
+  .stats {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 12px;
+  }
+  @container (max-width: 720px) {
+    .stats {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+  .stat {
+    display: grid;
+    gap: 4px;
+    padding: 14px 16px;
+  }
+  .stat .label {
+    color: var(--ink);
+  }
+  .num {
+    font-size: 21px;
+    line-height: 1.15;
+    font-variant-numeric: tabular-nums;
+  }
+  .sub {
+    font-size: 13.5px;
+    color: var(--text-muted);
+  }
+  .stat.c-yellow .sub {
+    color: var(--ink);
+  }
+
+  .continue {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+  .continue .label {
+    color: var(--ink);
+  }
+  .continue h2 {
+    font-size: 22px;
+    margin: 4px 0 12px;
+  }
+  .chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .sec-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+  .link {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    min-height: var(--hit);
+    font-weight: 700;
+    font-size: 13.5px;
+  }
+  section > .sec-head:has(.link) {
+    margin-bottom: 2px;
+    padding: 0 4px;
+  }
+  .lectures {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 12px;
+  }
+
+  .tasks {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+  }
+  .tasks li {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    border-top: 1.5px solid var(--hairline);
+  }
+  .tasks li:first-child {
+    border-top: 0;
+  }
+  .tasks label {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-height: 52px;
+    flex: 1;
+    min-width: 0;
+    cursor: pointer;
+  }
+  .tasks input {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+  }
+  .box {
+    flex: none;
+    display: grid;
+    place-items: center;
+    width: 24px;
+    height: 24px;
+    border: var(--border);
+    border-radius: 8px;
+    background: var(--surface);
+    color: transparent;
+  }
+  input:checked + .box {
+    background: var(--go);
+    color: var(--ink);
+  }
+  input:focus-visible + .box {
+    outline: 3px solid var(--ink);
+    outline-offset: 2px;
+  }
+  .t-text {
+    display: grid;
+    min-width: 0;
+  }
+  .t-title {
+    font-weight: 500;
+  }
+  .t-course {
+    font-size: 13px;
+  }
+  li.done .t-title {
+    text-decoration: line-through;
+    color: var(--text-muted);
+  }
+
+  .countdowns {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 8px;
+  }
+  .countdowns li {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 12px;
+    border: var(--border);
+    border-radius: var(--radius-sm);
+  }
+  .c-days {
+    display: grid;
+    justify-items: center;
+    min-width: 54px;
+    font-size: 24px;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+  }
+  .c-days small {
+    font-family: var(--font-label);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0;
+    margin-top: 3px;
+  }
+  .c-info {
+    display: grid;
+    font-size: 14px;
+    min-width: 0;
+  }
+  .c-pink .muted {
+    color: var(--ink);
+  }
+
+  .focus .label {
+    color: var(--ink);
+  }
+  .focus h2 {
+    margin-top: 4px;
+  }
+  .timer {
+    font-size: 34px;
+    margin: 6px 0 12px;
+    font-variant-numeric: tabular-nums;
+  }
+  .timer small {
+    font-family: var(--font-label);
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0;
+    margin-left: 8px;
+    color: var(--text-muted);
+  }
+  .focus-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .next {
+    font-size: 13px;
+  }
+
+  .timeline {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 8px;
+  }
+  .ev {
+    display: grid;
+    grid-template-columns: 44px minmax(0, 1fr);
+    gap: 8px;
+    align-items: start;
+  }
+  .time {
+    font-family: var(--font-label);
+    font-size: 11.5px;
+    font-weight: 700;
+    padding-top: 10px;
+    color: var(--text-muted);
+    font-variant-numeric: tabular-nums;
+  }
+  .ev-card {
+    display: grid;
+    padding: 8px 12px;
+    border: var(--border);
+    border-radius: var(--radius-sm);
+    font-size: 14px;
+  }
+  .ev-card .muted {
+    font-size: 12.5px;
+  }
+  .ev.past {
+    opacity: 0.5;
+  }
+  .now {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .now span {
+    font-family: var(--font-label);
+    font-size: 10.5px;
+    font-weight: 700;
+    background: var(--ink);
+    color: #fff;
+    border-radius: var(--radius-pill);
+    padding: 2px 8px;
+  }
+  .now::after {
+    content: "";
+    flex: 1;
+    border-top: 1.5px dashed var(--ink);
+  }
+
+  .quick {
+    display: grid;
+    gap: 8px;
+  }
+  .quick .btn {
+    justify-content: flex-start;
+  }
+</style>
