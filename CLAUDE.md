@@ -298,7 +298,8 @@ Markdown" view, the `<>` chip on the note header).
   columns to resize, double-click it for equal widths. Backspace in an empty column removes it;
   a row left with one column turns back into plain blocks (`ColumnRules` plugin); ⠿ menu
   "Remove columns (keep everything)"; ⠿ menu "Divider line between columns" toggles a thin line
-  down each gap (attr `line`, `"line":true` in the mosaic-cols line; newspaper look, per row). A row is at least 14em tall (room to write, the line runs down) and a click in the empty
+  down each gap (attr `line`, `"line":true` in the mosaic-cols line; newspaper look, per row). With the line the gap is 2 × `--doc-pad`, so each
+  column has the page margin on both sides. A row is at least 14em tall (room to write, the line runs down) and a click in the empty
   space under a column's text puts the cursor at the end of THAT column (`mousedown` on `.b-col`
   in BlockEditor's `handleDOMEvents`). The block handle works for blocks inside columns
   (`blockAt`); numbering, list cards and #tags are worked out per column. Narrow windows
