@@ -86,6 +86,8 @@
   --gap: 24px;
   --card-pad: 24px;
   --main-pad: 34px 38px 42px;
+  --main-pad-t: 34px; /* top and sides of --main-pad, for pages that pad themselves (note page) */
+  --main-pad-x: 38px;
   --shell-pad: 18px;
 
   /* motion: lively, a little bouncy (springs overshoot slightly, then settle) */
@@ -374,6 +376,8 @@
   --gap: 18px;
   --card-pad: 20px;
   --main-pad: 26px 26px 32px;
+  --main-pad-t: 26px;
+  --main-pad-x: 26px;
   --shell-pad: 14px;
   --radius: 26px;
 }
@@ -381,6 +385,8 @@
   --gap: 12px;
   --card-pad: 16px;
   --main-pad: 18px 20px 24px;
+  --main-pad-t: 18px;
+  --main-pad-x: 20px;
   --shell-pad: 10px;
   --radius: 20px;
 }

@@ -345,6 +345,7 @@
   // ---- floating toolbar (at the bottom while she types, or always when pinned with ✎) and the
   // title that moves into the top bar once the header has scrolled away ----
   let scrollEl = $state<HTMLElement>();
+  let barH = $state(64);
   let headHidden = $state(false);
   let typing = $state(false);
   let typingTimer = 0;
@@ -398,12 +399,13 @@
 
 <div class="nwrap" class:full={!!(rel && note)} class:pad={!!rel && !note} bind:clientWidth={width}>
   {#if rel && note}
-    <div class="npage" class:writing={ui.writing} class:typing style="--note-box: {WIDTHS[noteWidth]}; --doc-pad: {noteWidth === 'full' ? '64px' : '40px'}">
-      <div class="topbar">
+    <div class="npage" class:writing={ui.writing} class:typing style="--bar-h: {barH}px; --note-box: {WIDTHS[noteWidth]}; --doc-pad: {noteWidth === 'full' ? '64px' : '40px'}">
+      <div class="topbar" bind:clientHeight={barH}>
+        <StudyNav />
+        <span class="sep"></span>
         <button type="button" class="ico" class:on={sheetL || pinL} title="Notes" aria-label="Notes" onclick={() => openLeft()}><Icon name="note" size={18} /></button>
         <button type="button" class="ico" title="Search notes" aria-label="Search notes" onclick={() => openLeft(true)}><Icon name="search" size={18} /></button>
         <button type="button" class="ico plus" title="New note" aria-label="New note" onclick={() => { newMode = "note"; newFolder = dirOf(rel!); newOpen = true; }}>+</button>
-        <StudyNav compact />
         <div class="where" class:show={headHidden} aria-hidden={!headHidden}>
           {#if meta.icon}<span class="wi">{meta.icon}</span>{/if}<b>{title}</b>{#if meta.course}<span class="wc">· {meta.course}</span>{/if}
         </div>
@@ -563,23 +565,22 @@
     flex-direction: column;
     height: 100%;
     min-height: 0;
-    background: var(--surface);
   }
   .topbar {
     flex: none;
     display: flex;
     align-items: center;
     gap: 4px;
-    min-height: 56px;
-    padding: 8px 14px;
+    /* same place and size as the Study tab bar on every other Study page; sits on the glass */
+    padding: var(--main-pad-t) var(--main-pad-x) 14px;
     box-sizing: border-box;
-    border-bottom: 1px solid var(--hairline);
     overflow-x: auto;
     scrollbar-width: none;
     transition: transform 0.3s var(--spring, ease), opacity 0.2s;
   }
   .topbar :global(.snav) {
-    margin-left: 8px;
+    margin: 0;
+    flex: none;
   }
   .topbar .grow {
     flex: 1;
@@ -663,6 +664,11 @@
     flex: 1;
     min-height: 0;
     display: flex;
+    background: var(--surface);
+    border-top: 1px solid var(--hairline);
+  }
+  .writing .body {
+    border-top: 0;
   }
   /* writing mode: the top bar hides above the page and drops back in when the mouse touches the top */
   .writing .topbar {
@@ -671,6 +677,7 @@
     top: 0;
     left: 0;
     right: 0;
+    padding: 12px 16px;
     background: var(--surface-float, var(--surface));
     box-shadow: var(--shadow-lift);
     transform: translateY(-100%);
@@ -868,7 +875,7 @@
   }
   .scrim {
     position: absolute;
-    inset: 56px 0 0;
+    inset: var(--bar-h, 64px) 0 0;
     z-index: 8;
     border: 0;
     background: none;
@@ -877,7 +884,7 @@
   .sheet {
     position: absolute;
     z-index: 9;
-    top: 64px;
+    top: calc(var(--bar-h, 64px) + 8px);
     bottom: 8px;
     display: flex;
     flex-direction: column;
@@ -1021,6 +1028,11 @@
     height: 100%;
     padding: 30px;
     text-align: center;
+  }
+  @media (max-width: 860px) {
+    .topbar {
+      padding: 20px 18px 12px; /* App's narrow main padding */
+    }
   }
   @container (max-width: 1100px) {
     .seg {
