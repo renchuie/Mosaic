@@ -326,6 +326,9 @@ export const PAGES_CLOSE = /^\s*<!--\s*\/mosaic-pages\s*-->\s*$/;
 export const COLS_OPEN = /^\s*<!--\s*mosaic-cols(?:\s+(\{.*?\}))?\s*-->\s*$/;
 export const COL_SEP = /^\s*<!--\s*mosaic-col\s*-->\s*$/;
 export const COLS_CLOSE = /^\s*<!--\s*\/mosaic-cols\s*-->\s*$/;
+/** Toggle heading (Nov 18): a heading that holds its own blocks; "closed" when folded. */
+export const TOGGLE_OPEN = /^\s*<!--\s*mosaic-toggle(\s+closed)?\s*-->\s*$/;
+export const TOGGLE_CLOSE = /^\s*<!--\s*\/mosaic-toggle\s*-->\s*$/;
 export const TABLE_META = /^\s*<!--\s*mosaic-table\s+(\{.*?\})\s*-->\s*$/;
 /** w: column widths · bg: cell colours · c: flashcard options (cards.ts TableCardOpts) */
 type TableMeta = { w?: (number | null)[]; bg?: Record<string, string>; c?: Record<string, unknown> };
@@ -448,6 +451,22 @@ export function parseBlocks(lines: string[]): PMNode[] {
             }),
           ),
         );
+        structural();
+        i = j;
+        continue;
+      }
+    }
+    // toggle heading: <!--mosaic-toggle[ closed]--> heading + blocks <!--/mosaic-toggle--> (they nest)
+    if ((m = TOGGLE_OPEN.exec(line))) {
+      let j = i + 1;
+      for (let depth = 1; j < lines.length; j++) {
+        if (TOGGLE_OPEN.test(lines[j])) depth++;
+        else if (TOGGLE_CLOSE.test(lines[j]) && --depth === 0) break;
+      }
+      if (j < lines.length) {
+        const kids = parseBlocks(lines.slice(i + 1, j));
+        if (kids[0]?.type !== "heading") kids.unshift(block("heading", { level: 2 }));
+        push(block("toggle", { closed: !!m[1] }, kids));
         structural();
         i = j;
         continue;
@@ -698,6 +717,13 @@ function serializeBlocks(nodes: PMNode[], seen: Set<string>, owners: Owner[], ba
           out.push(...inner);
         });
         out.push("", "<!--/mosaic-pages-->");
+        break;
+      }
+      case "toggle": {
+        out.push(`<!--mosaic-toggle${n.attrs?.closed ? " closed" : ""}-->`, "");
+        const inner = serializeBlocks(n.content ?? [], seen, owners, base + out.length, here);
+        while (inner.length && !inner[inner.length - 1].trim()) inner.pop();
+        out.push(...inner, "", "<!--/mosaic-toggle-->");
         break;
       }
       case "columns": {

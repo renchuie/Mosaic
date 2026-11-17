@@ -76,6 +76,9 @@
     { id: "quote", label: "Quote", icon: "❝", group: "Basic", keys: ">", run: () => editor?.chain().focus().wrapIn("blockquote").run() },
     { id: "table", label: "Table", icon: "▦", group: "Basic", run: () => editor?.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run() },
     { id: "hr", label: "Divider", icon: "―", group: "Basic", keys: "---", run: () => insertAfter({ type: "hr" }) },
+    { id: "tg1", label: "Toggle heading 1", icon: "▸H1", group: "Basic", hint: "a heading that folds what's inside it", run: () => insertToggle(1) },
+    { id: "tg2", label: "Toggle heading 2", icon: "▸H2", group: "Basic", run: () => insertToggle(2) },
+    { id: "tg3", label: "Toggle heading 3", icon: "▸H3", group: "Basic", run: () => insertToggle(3) },
     { id: "cols2", label: "2 columns", icon: "▥", group: "Basic", hint: "or drag a block beside another", run: () => insertColumns(2) },
     { id: "cols3", label: "3 columns", icon: "▥▥", group: "Basic", run: () => insertColumns(3) },
     { id: "code", label: "Code", icon: "</>", group: "Basic", keys: "```", run: () => editor?.chain().focus().setNode("codeBlock").run() },
@@ -181,6 +184,54 @@
     const tr = node.type.spec.code ? state.tr.setBlockType(pos, pos + node.nodeSize, nt, { ...keep, ...attrs }) : state.tr.setNodeMarkup(pos, nt, { ...keep, ...attrs });
     editor.view.dispatch(tr);
     editor.commands.focus();
+  }
+  // ---- toggle headings ----------------------------------------------------------------------
+  /** "/Toggle heading N": the line becomes a toggle's heading (its text kept), ready to type into. */
+  function insertToggle(level: number) {
+    if (!editor) return;
+    const { state } = editor;
+    const rf = state.selection.$from;
+    const node = rf.parent;
+    if (!node.isTextblock || rf.node(rf.depth - 1).type.name === "toggle") return;
+    const pos = rf.before();
+    const heading = state.schema.nodes.heading.create({ level }, node.content);
+    const tg = state.schema.nodes.toggle.create({ closed: false }, [heading]);
+    const tr = state.tr.replaceWith(pos, pos + node.nodeSize, tg);
+    tr.setSelection(TextSelection.create(tr.doc, pos + 2 + node.content.size));
+    editor.view.dispatch(tr.scrollIntoView());
+    editor.commands.focus();
+  }
+  /** ⠿ on a heading → "Make it a toggle": the heading takes its section with it (up to the next
+   *  heading of the same or a higher level, or a divider). */
+  function headingToToggle(pos: number) {
+    if (!editor) return;
+    const { state } = editor;
+    const rp = state.doc.resolve(pos);
+    const parent = rp.parent;
+    const idx = rp.index();
+    const h = parent.child(idx);
+    if (h.type.name !== "heading" || parent.type.name === "toggle") return;
+    const level = Number(h.attrs.level ?? 1);
+    const kids: PMNode[] = [h];
+    let end = pos + h.nodeSize;
+    for (let i = idx + 1; i < parent.childCount; i++) {
+      const n = parent.child(i);
+      if (n.type.name === "hr" || (n.type.name === "heading" && Number(n.attrs.level ?? 1) <= level)) break;
+      if (n.type.name === "columns" || n.type.name === "pages") break; // can't go inside a toggle
+      kids.push(n);
+      end += n.nodeSize;
+    }
+    const tg = state.schema.nodes.toggle.createChecked({ closed: false }, kids);
+    editor.view.dispatch(state.tr.replaceWith(pos, end, tg));
+  }
+  /** "Remove toggle (keep everything)": the heading and its blocks go back on the page. */
+  function unwrapToggle(pos: number) {
+    if (!editor) return;
+    const node = editor.state.doc.nodeAt(pos);
+    if (node?.type.name !== "toggle") return;
+    const kids: PMNode[] = [];
+    node.forEach((b) => kids.push(b));
+    editor.view.dispatch(editor.state.tr.replaceWith(pos, pos + node.nodeSize, kids));
   }
   function insertAfter(json: JNode) {
     if (!editor) return;
@@ -570,7 +621,7 @@
   let handleFor: { left: number; top: number; bottom: number } | null = null;
   let blockMenu = $state<{ pos: number; y: number; x: number | null; type: string; clozes: number; together: boolean; cols: number | null; line: boolean; half: boolean } | null>(null);
   /** Nodes whose children get their own block handle: a column, a side-by-side half. */
-  const HOLDERS = new Set(["column", "pagecol"]);
+  const HOLDERS = new Set(["column", "pagecol", "toggle"]);
   /** The block under the mouse: a top-level block, or a block inside a column or half. */
   function blockAt(x: number, y: number): { pos: number; dom: HTMLElement; node: PMNode } | null {
     if (!editor) return null;
@@ -610,6 +661,8 @@
         if (n && n.type.name !== "column") pos = at;
       }
     }
+    // a toggle's heading is the toggle itself (its handle moves the whole toggle)
+    for (let rq = view.state.doc.resolve(pos); rq.depth > 0 && rq.parent.type.name === "toggle" && rq.index() === 0; rq = view.state.doc.resolve(pos)) pos = rq.before(rq.depth);
     const node = view.state.doc.nodeAt(pos);
     const dom = view.nodeDOM(pos) as HTMLElement | null;
     if (!node || !dom || !(dom instanceof HTMLElement)) return null;
@@ -633,6 +686,16 @@
     const inCol = !!holder?.classList.contains("b-col");
     const inHalf = !!holder?.classList.contains("b-pagecol");
     const later = (inCol || inHalf) && !!holder?.previousElementSibling;
+    // a toggle and the blocks inside one (indented under its heading) get their handle just left of them
+    const isToggle = b.node.type.name === "toggle";
+    const inToggle = !!holder?.classList.contains("b-tbody");
+    if (isToggle || inToggle) {
+      const head = isToggle ? (b.dom.querySelector(".b-tbody > .b-h") as HTMLElement | null) : null;
+      const hr = head?.getBoundingClientRect() ?? br;
+      handle = { y: hr.top - wr.top + Math.min(hr.height, isToggle ? hr.height : lh) / 2, pos: b.pos, h: br.height, x: br.left - wr.left - 52, stack: false };
+      handleFor = { left: br.left, top: br.top, bottom: br.top + Math.max(Math.min(hr.height, lh), 26) };
+      return;
+    }
     handle = { y: br.top - wr.top + Math.min(br.height, lh) / 2, pos: b.pos, h: br.height, x: later ? br.left - wr.left - (inCol ? 30 : 52) : null, stack: later && inCol };
     handleFor = { left: br.left, top: br.top, bottom: br.top + Math.max(Math.min(br.height, lh), 26) };
   }
@@ -700,7 +763,10 @@
       const cp = columnsOf(pos);
       const cols = cp !== null ? state.doc.nodeAt(cp) : null;
       if (cp !== null && cols) editor.view.dispatch(state.tr.setNodeMarkup(cp, undefined, { ...cols.attrs, line: !cols.attrs.line }));
-    } else if (a === "uncols") {
+    } else if (a === "totoggle") headingToToggle(pos);
+    else if (a === "untoggle") unwrapToggle(pos);
+    else if (a === "tgopen") editor.view.dispatch(state.tr.setNodeMarkup(pos, undefined, { ...node.attrs, closed: !node.attrs.closed }));
+    else if (a === "uncols") {
       const cp = columnsOf(pos);
       if (cp !== null) unwrapColumns(cp);
     } else if (a === "unwrap") editor.chain().setTextSelection(pos + 2).lift(node.type.name).run();
@@ -1187,6 +1253,13 @@
       {#if blockMenu.type === "blockquote" || blockMenu.type === "callout"}
         <button type="button" class="mi" onclick={() => blockAction("unwrap")}><span class="ic">¶</span>Back to plain text</button>
         <button type="button" class="mi" onclick={() => { blockMenu = null; styleManager.tab = "callouts"; styleManager.open = true; }}><span class="ic">🎨</span>Edit callout and quote styles…</button>
+      {/if}
+      {#if blockMenu.type === "heading"}
+        <button type="button" class="mi" onclick={() => blockAction("totoggle")}><span class="ic">▸</span>Make it a toggle (takes its section)</button>
+      {/if}
+      {#if blockMenu.type === "toggle"}
+        <button type="button" class="mi" onclick={() => blockAction("tgopen")}><span class="ic">▾</span>Fold or open</button>
+        <button type="button" class="mi" onclick={() => blockAction("untoggle")}><span class="ic">▤</span>Remove toggle (keep everything)</button>
       {/if}
       {#if blockMenu.half}
         <button type="button" class="mi" onclick={() => blockAction("join")}><span class="ic">▤</span>Join halves into one page (left, then right)</button>

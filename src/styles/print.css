@@ -22,7 +22,7 @@
   .printroot .chip.tagin { display: none !important; }
   .printroot td.cc::before { content: none !important; }
   /* controls that only show on hover on screen, the empty half of a side-by-side page's caret */
-  .printroot .cbtns, .printroot .icon.ghost, .printroot .fold, .printroot .b-cfold { display: none !important; }
+  .printroot .cbtns, .printroot .icon.ghost, .printroot .fold, .printroot .b-cfold, .printroot .b-tcaret { display: none !important; }
   .printroot, .printroot * { caret-color: transparent !important; }
   .printroot .is-empty::after, .printroot .is-empty::before { content: none !important; }
   /* a callout's title never cuts off on paper */

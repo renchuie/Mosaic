@@ -394,11 +394,25 @@ Markdown" view, the `<>` chip on the note header).
   `extractCards` + the `srs` records (`cardStatusMap`) and hands `cardStatus` to BlockEditor, whose
   effect dispatches `REFRESH_MARKS` so the dots follow reviews.
 - Folding (Nov 18): a ▾ after a heading (shown on hover) folds everything under it up to the next
-  heading of the same or a higher level, in the same page / half / column; folded it shows
+  heading of the same or a higher level or a `---` divider (her pick "1": a divider ends a
+  section), in the same page / half / column; folded it shows
   "▸ N hidden". A view setting, never in the file: `mosaicFolding` plugin in blocks.ts, keys
   `level|text|nth`, remembered per note per machine in localStorage "mosaic.folds" (BlockEditor
   prop `foldKey` = the note's path). Callouts fold with the ⌄ in their header: attr `fold`, saved
   as Obsidian's `[!kind]-` (folded) / `[!kind]+` (foldable, open).
+- Toggle headings (Nov 18, her pick "3", Notion-style): node `toggle` (group block, content
+  `heading block*`, attr `closed`) = a heading that holds its own blocks. File:
+  `<!--mosaic-toggle-->` (or `<!--mosaic-toggle closed-->`), the heading and blocks,
+  `<!--/mosaic-toggle-->` (they nest; `TOGGLE_OPEN` / `TOGGLE_CLOSE` in mdDoc.ts; other apps show a
+  plain heading; cards inside work as usual). Look: a ▾ caret column (`.b-tcaret`) beside the
+  heading, content indented under the heading text, a faint guide line on hover, folded shows
+  "N hidden". Make one: `/Toggle heading 1–3` (the line becomes its heading) or ⠿ on a heading →
+  "Make it a toggle (takes its section)" (up to the next same/higher heading or divider). Enter in
+  a folded toggle's heading opens it; Enter on an empty last line steps out below; Backspace in an
+  empty toggle heading with nothing inside turns it back into a line (never merges upward); ⠿ →
+  "Fold or open", "Remove toggle (keep everything)". `toggle` is in BlockEditor's `HOLDERS`, so
+  blocks inside get their own handle; a toggle's heading maps to the toggle (handle just left of
+  it, clear of the caret). Node test: scratchpad `tstest/test17.ts`.
 - Nov 18 fixes: the ⠿ menu opens beside the handle that opened it (`blockMenu.x`); the selection
   toolbar slides to stay on the page near an edge; flashcard bullets / numbers line up with plain
   ones (`--cpl`, the left part of the card inset, is 0 for `.b-bullet` / `.b-ordered`).

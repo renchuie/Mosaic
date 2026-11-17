@@ -912,3 +912,80 @@ button.dot[data-color] {
 .mosaic-doc .b-cstat.s-paused {
   background: color-mix(in srgb, var(--text) 25%, transparent);
 }
+
+/* ---- toggle headings (Nov 18): a ▾ beside the heading, the blocks inside indented under the
+   heading text; folded, only the heading shows with "N hidden" under it ---- */
+.mosaic-doc .b-toggle {
+  --th: 1.86em; /* the heading's line height, so the caret sits centred on it */
+  --tm: 1.52em; /* the heading's usual top margin, moved onto the toggle */
+  position: relative;
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr);
+  margin: var(--tm) 0 0.2em;
+}
+/* a faint line down the left while the mouse is over an open toggle: shows what's inside */
+.mosaic-doc .b-toggle:not([data-closed="true"]):hover::before {
+  content: "";
+  position: absolute;
+  left: 11px;
+  top: calc(var(--th) + 2px);
+  bottom: 2px;
+  width: 2px;
+  border-radius: 2px;
+  background: var(--hairline);
+}
+.mosaic-doc .b-toggle[data-level="1"] {
+  --th: 2.28em;
+  --tm: 1.75em;
+}
+.mosaic-doc .b-toggle[data-level="3"],
+.mosaic-doc .b-toggle[data-level="4"] {
+  --th: 1.8em;
+  --tm: 1.03em;
+}
+.mosaic-doc > .b-toggle:first-child {
+  margin-top: 0.2em;
+}
+.mosaic-doc .b-tbody {
+  grid-column: 2;
+  min-width: 0;
+}
+.mosaic-doc .b-tbody > .b-h:first-child {
+  margin-top: 0;
+}
+.mosaic-doc .b-tcaret {
+  grid-column: 1;
+  grid-row: 1;
+  align-self: start;
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: var(--th);
+  padding: 0;
+  border: 0;
+  border-radius: 8px;
+  background: none;
+  color: var(--text-muted);
+  font-size: 15px;
+  cursor: pointer;
+  transition: transform 0.2s var(--spring, ease), color 0.15s, background 0.15s;
+}
+.mosaic-doc .b-tcaret::before {
+  content: "▾";
+}
+.mosaic-doc .b-tcaret:hover {
+  color: var(--text);
+  background: var(--chip);
+}
+.mosaic-doc .b-toggle[data-closed="true"] > .b-tcaret {
+  transform: rotate(-90deg);
+}
+.mosaic-doc .b-toggle[data-closed="true"] > .b-tbody > :not(:first-child) {
+  display: none;
+}
+.mosaic-doc .b-toggle[data-closed="true"]:not([data-count=""])::after {
+  content: attr(data-count);
+  grid-column: 2;
+  font-size: 13px;
+  color: var(--text-muted);
+}

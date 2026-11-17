@@ -105,6 +105,61 @@ const Blockquote = Node.create({
 
 // Callout types (label, icon, colour) live in the block style manager; their look comes from the
 // CSS it generates per kind. The badge shows the kind's own word until a style exists for it.
+// ---- toggle heading (Nov 18, her pick "1 + 3"): a heading that holds its own content and folds
+// it away, Notion-style. Content = the heading first, then any blocks (indented under the heading
+// text). File: <!--mosaic-toggle--> (or <!--mosaic-toggle closed-->), the blocks, <!--/mosaic-toggle-->.
+const Toggle = Node.create({
+  name: "toggle",
+  group: "block",
+  content: "heading block*",
+  defining: true,
+  addAttributes: () => ({ closed: { default: false, rendered: false } }),
+  parseHTML: () => [{ tag: "div.b-toggle" }],
+  renderHTML: () => ["div", { class: "b-toggle" }, 0],
+  addNodeView() {
+    return ({ node, getPos, editor }) => {
+      let cur = node;
+      const dom = document.createElement("div");
+      dom.className = "b-toggle";
+      const caret = document.createElement("button");
+      caret.type = "button";
+      caret.className = "b-tcaret";
+      caret.contentEditable = "false";
+      const body = document.createElement("div");
+      body.className = "b-tbody";
+      dom.append(caret, body);
+      const paint = () => {
+        const closed = !!cur.attrs.closed;
+        dom.dataset.closed = closed ? "true" : "false";
+        dom.dataset.level = String(cur.firstChild?.attrs.level ?? 2);
+        const n = cur.childCount - 1;
+        caret.title = closed ? `Open (${n} ${n === 1 ? "block" : "blocks"} inside)` : "Fold";
+        caret.setAttribute("aria-expanded", String(!closed));
+        caret.setAttribute("aria-label", closed ? "Open the toggle" : "Fold the toggle");
+        dom.dataset.count = closed && n ? `${n} hidden` : "";
+      };
+      paint();
+      caret.addEventListener("mousedown", (e) => e.preventDefault());
+      caret.addEventListener("click", () => {
+        const pos = typeof getPos === "function" ? getPos() : undefined;
+        if (pos === undefined) return;
+        editor.view.dispatch(editor.state.tr.setNodeMarkup(pos, undefined, { ...cur.attrs, closed: !cur.attrs.closed }));
+      });
+      return {
+        dom,
+        contentDOM: body,
+        update: (n: PMNode) => {
+          if (n.type.name !== "toggle") return false;
+          cur = n;
+          paint();
+          return true;
+        },
+        ignoreMutation: (m: { target: Node | globalThis.Node; type: string }) => m.type === "attributes" && m.target === dom,
+      };
+    };
+  },
+});
+
 const Callout = Node.create<{ onMenu: (pos: number, rect: DOMRect) => void }>({
   name: "callout",
   group: "block",
@@ -491,7 +546,7 @@ const ColumnRules = Extension.create({
         view: () => ({
           update(view) {
             view.state.doc.descendants((n, pos) => {
-              if (n.type.name !== "table") return n.type.name === "doc" || n.type.name === "pages" || n.type.name === "pagecol" || n.type.name === "columns" || n.type.name === "column" || n.type.name === "callout" || n.type.name === "blockquote";
+              if (n.type.name !== "table") return n.type.name === "doc" || n.type.name === "pages" || n.type.name === "pagecol" || n.type.name === "columns" || n.type.name === "column" || n.type.name === "toggle" || n.type.name === "callout" || n.type.name === "blockquote";
               const dom = view.nodeDOM(pos) as HTMLElement | null;
               const cols = dom?.querySelectorAll("colgroup > col");
               const row = n.firstChild;
@@ -569,6 +624,23 @@ const ColumnRules = Extension.create({
       Enter: ({ editor }) => {
         const { selection } = editor.state;
         const rf = selection.$from;
+        // toggles: Enter in a folded toggle's heading opens it; Enter on an empty last line steps out
+        if (selection.empty && rf.depth >= 2 && rf.node(rf.depth - 1).type.name === "toggle") {
+          const tg = rf.node(rf.depth - 1);
+          const tgPos = rf.before(rf.depth - 1);
+          if (rf.index(rf.depth - 1) === 0 && tg.attrs.closed) {
+            editor.view.dispatch(editor.state.tr.setNodeMarkup(tgPos, undefined, { ...tg.attrs, closed: false }));
+            return false;
+          }
+          if (rf.parent.type.name === "paragraph" && !rf.parent.content.size && !rf.parent.attrs.indent && rf.index(rf.depth - 1) === tg.childCount - 1 && tg.childCount > 1) {
+            const tr = editor.state.tr.delete(rf.before(), rf.after());
+            const after = tr.mapping.map(tgPos + tg.nodeSize);
+            tr.insert(after, editor.schema.nodes.paragraph.create());
+            tr.setSelection(TextSelection.create(tr.doc, after + 1));
+            editor.view.dispatch(tr.scrollIntoView());
+            return true;
+          }
+        }
         if (!selection.empty || rf.depth < 3 || rf.parent.type.name !== "paragraph" || rf.parent.content.size || rf.parent.attrs.indent) return false;
         const col = rf.node(rf.depth - 1);
         if (col.type.name !== "column" || rf.index(rf.depth - 1) !== col.childCount - 1 || col.childCount < 2) return false;
@@ -585,6 +657,18 @@ const ColumnRules = Extension.create({
       Backspace: ({ editor }) => {
         const { selection } = editor.state;
         const rf = selection.$from;
+        // Backspace in an empty toggle heading with nothing inside: back to a plain empty line
+        if (selection.empty && rf.depth >= 2 && rf.parentOffset === 0 && rf.node(rf.depth - 1).type.name === "toggle" && rf.index(rf.depth - 1) === 0) {
+          const tg = rf.node(rf.depth - 1);
+          const tgPos = rf.before(rf.depth - 1);
+          if (!rf.parent.content.size && tg.childCount === 1) {
+            const tr = editor.state.tr.replaceWith(tgPos, tgPos + tg.nodeSize, editor.schema.nodes.paragraph.create());
+            tr.setSelection(TextSelection.create(tr.doc, tgPos + 1));
+            editor.view.dispatch(tr);
+            return true;
+          }
+          return true; // never merge the heading into the line above by accident
+        }
         if (!selection.empty || rf.depth < 3 || rf.parent.content.size) return false;
         const col = rf.node(rf.depth - 1);
         if (col.type.name !== "column" || col.childCount !== 1) return false;
@@ -1240,6 +1324,14 @@ function foldDecorations(doc: PMNode, folded: Set<string>): DecorationSet {
           return;
         }
       }
+      // a divider ends the section above it (her "1": --- closes a heading's fold)
+      if (name === "hr") {
+        hideAbove = 0;
+        if (open) {
+          finish();
+          open = null;
+        }
+      }
       if (open) open.count++;
       if (hideAbove) hidden.push({ from: pos, to: pos + node.nodeSize });
       else if (name === "columns" || name === "pages") {
@@ -1360,7 +1452,7 @@ function behaviour(opts: EditorOpts) {
 export function mosaicExtensions(opts: EditorOpts) {
   return [
     Doc, Text, Paragraph, Bullet, Ordered, Todo, Heading, Blockquote, Callout.configure({ onMenu: opts.onCalloutMenu }), CodeBlock, Raw, Hr,
-    Image.configure({ imageUrl: opts.imageUrl }), Columns, Column, ColumnRules, Pages, PageHalf, MTable, TableRow, MHeader, MCell,
+    Image.configure({ imageUrl: opts.imageUrl }), Columns, Column, ColumnRules, Toggle, Pages, PageHalf, MTable, TableRow, MHeader, MCell,
     Wikilink, Arrow, InlineImage.configure({ imageUrl: opts.imageUrl }), HardBreak,
     Bold, Italic, Strike, Code, Highlight, Link, Cloze,
     Hidden, Shortcuts, behaviour(opts), folding(opts),
