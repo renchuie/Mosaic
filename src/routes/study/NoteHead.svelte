@@ -19,6 +19,7 @@
 
 <script lang="ts">
   import Icon from "../../lib/components/Icon.svelte";
+  import NoteToolbar from "./NoteToolbar.svelte";
   import type { Meta } from "../../lib/notes";
   import { courseByName, courseNames } from "../../lib/stores/courses.svelte";
   import { allTags, dirOf } from "../../lib/stores/notes.svelte";
@@ -37,6 +38,9 @@
     onmove,
     ondelete,
     ontoggleSource,
+    full = false,
+    onheadstyle,
+    onrun,
     oncoverfile,
     ontheirs,
     onmine,
@@ -54,6 +58,10 @@
     onmove: (folder: string) => void;
     ondelete: () => void;
     ontoggleSource: () => void;
+    /** full header: breadcrumb, big icon, chips and the toolbar on their own row */
+    full?: boolean;
+    onheadstyle: (full: boolean) => void;
+    onrun: (cmd: string, arg?: string) => void;
     oncoverfile: (file: File) => void;
     ontheirs: () => void;
     onmine: () => void;
@@ -86,25 +94,7 @@
 
 <svelte:window onkeydown={(e) => e.key === "Escape" && pick && (pick = null)} />
 
-<header class="nh" class:hascover={!!cover}>
-  {#if cover}
-    <div class="cover" style={coverStyle}>
-      <div class="cbtns">
-        <button type="button" onclick={() => (pick = pick === "cover" ? null : "cover")}><Icon name="image" size={14} /> Change cover</button>
-        <button type="button" onclick={shuffleCover} title="Another cover">↻</button>
-      </div>
-    </div>
-  {/if}
-
-  <div class="inner">
-    <div class="titlerow">
-      {#if icon}
-        <button type="button" class="icon" class:over={!!cover} title="Change icon" onclick={() => (pick = pick === "icon" ? null : "icon")}>{icon}</button>
-      {:else}
-        <button type="button" class="icon ghost" title="Add an icon" aria-label="Add an icon" onclick={() => (pick = "icon")}><Icon name="smile" size={18} /></button>
-      {/if}
-      <input class="title" bind:value={title} aria-label="Note title" title="{dirOf(rel) || 'Notes'} / {title}" spellcheck="false" onblur={onrename} onkeydown={(e) => e.key === "Enter" && e.currentTarget.blur()} />
-
+{#snippet chipRow()}
     <div class="chips">
       <div class="mwrap">
         <button type="button" class="chip course" style={course ? `--c: ${course[1].color}` : ""} aria-haspopup="listbox" aria-expanded={pick === "course"}
@@ -144,6 +134,11 @@
             <label>Move to
               <select value={dirOf(rel)} onchange={(e) => { onmove(e.currentTarget.value); pick = null; }}>{#each dirs as d}<option value={d}>{d || "Notes (top level)"}</option>{/each}</select>
             </label>
+            <div class="hs" role="group" aria-label="Header style">
+              <span>Header</span>
+              <button type="button" class:on={!full} aria-pressed={!full} onclick={() => { onheadstyle(false); pick = null; }}>Compact</button>
+              <button type="button" class:on={full} aria-pressed={full} onclick={() => { onheadstyle(true); pick = null; }}>Full</button>
+            </div>
             {#if icon}<button type="button" class="mi" onclick={() => { onmeta({ icon: undefined }); pick = null; }}>Remove icon</button>{/if}
             {#if cover}
               <button type="button" class="mi" onclick={() => { pick = "cover"; }}>Change cover…</button>
@@ -160,7 +155,38 @@
         {/if}
       </div>
     </div>
+{/snippet}
+
+<header class="nh" class:hascover={!!cover} class:full>
+  {#if cover}
+    <div class="cover" style={coverStyle}>
+      <div class="cbtns">
+        <button type="button" onclick={() => (pick = pick === "cover" ? null : "cover")}><Icon name="image" size={14} /> Change cover</button>
+        <button type="button" onclick={shuffleCover} title="Another cover">↻</button>
+      </div>
     </div>
+  {/if}
+
+  <div class="inner">
+    {#if full}
+      <div class="crumbs">{["Notes", ...(dirOf(rel) ? dirOf(rel).split("/") : [])].join(" › ")}</div>
+    {/if}
+    <div class="titlerow">
+      {#if icon}
+        <button type="button" class="icon" class:over={!!cover} title="Change icon" onclick={() => (pick = pick === "icon" ? null : "icon")}>{icon}</button>
+      {:else}
+        <button type="button" class="icon ghost" title="Add an icon" aria-label="Add an icon" onclick={() => (pick = "icon")}><Icon name="smile" size={18} /></button>
+      {/if}
+      <input class="title" bind:value={title} aria-label="Note title" title="{dirOf(rel) || 'Notes'} / {title}" spellcheck="false" onblur={onrename} onkeydown={(e) => e.key === "Enter" && e.currentTarget.blur()} />
+
+      {#if !full}{@render chipRow()}{/if}
+    </div>
+    {#if full}
+      <div class="metarow">
+        {@render chipRow()}
+        {#if !source}<NoteToolbar {onrun} />{/if}
+      </div>
+    {/if}
 
     {#if status === "conflict"}
       <div class="conflict" role="alert">
@@ -320,6 +346,67 @@
   }
   .title:focus {
     outline: none;
+  }
+  /* full header (her other favourite): breadcrumb, big icon and title, then chips + toolbar */
+  .full .inner {
+    padding-top: 26px;
+    gap: 10px;
+  }
+  .crumbs {
+    font-size: 12.5px;
+    color: var(--text-muted);
+  }
+  .full .titlerow {
+    flex-wrap: nowrap;
+    gap: 14px;
+  }
+  .full .icon:not(.ghost) {
+    width: 60px;
+    height: 60px;
+    border-radius: 18px;
+    font-size: 30px;
+  }
+  .full .icon.over {
+    margin-top: -46px;
+  }
+  .full .title {
+    font-size: 30px;
+  }
+  .metarow {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px 14px;
+  }
+  .hs {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 3px 3px 10px;
+    border-radius: 12px;
+    background: var(--panel);
+    font-size: 12.5px;
+    color: var(--text-muted);
+  }
+  .hs span {
+    flex: 1;
+  }
+  .hs button {
+    min-height: 30px;
+    padding: 0 10px;
+    border: 0;
+    border-radius: 9px;
+    background: none;
+    font: inherit;
+    font-weight: 600;
+    color: var(--text-muted);
+    cursor: pointer;
+  }
+  .hs button.on {
+    background: var(--surface);
+    color: var(--text);
+    box-shadow: var(--shadow);
   }
   .chips {
     display: flex;

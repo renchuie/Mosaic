@@ -261,12 +261,12 @@
   }
 
   // ---- panels ----------------------------------------------------------------------------------
-  type Saved = { pinL: boolean; pinR: Panel | null; tools: boolean };
+  type Saved = { pinL: boolean; pinR: Panel | null; tools: boolean; fullHead: boolean };
   const loadPanels = (): Saved => {
-    const base: Saved = { pinL: false, pinR: null, tools: false };
+    const base: Saved = { pinL: false, pinR: null, tools: false, fullHead: false };
     try {
       const v = JSON.parse(localStorage.getItem("mosaic.notePanels") ?? "{}");
-      return { pinL: !!v.pinL, pinR: v.pinR ?? null, tools: !!v.tools };
+      return { pinL: !!v.pinL, pinR: v.pinR ?? null, tools: !!v.tools, fullHead: !!v.fullHead };
     } catch {
       return base;
     }
@@ -447,13 +447,14 @@
         {/if}
 
         <section class="center">
-          {#if (typing || panels.tools) && !source}
+          {#if ((typing && (!panels.fullHead || headHidden)) || panels.tools) && !source}
             <div class="floatbar"><NoteToolbar floating onrun={(c, a) => blocks?.run(c, a)} /></div>
           {/if}
           <div class="scroll" bind:this={scrollEl} onscroll={checkHead}>
             <NoteHead {rel} {meta} bind:title {status} {errorText} {source} {dirs}
               coverUrl={(s) => imageUrl(rel!, s)}
               onmeta={setMeta} onrename={doRename} onmove={doMove} ondelete={doDelete} ontoggleSource={toggleSource}
+              full={panels.fullHead} onheadstyle={(f) => (panels.fullHead = f)} onrun={(c, a) => blocks?.run(c, a)}
               oncoverfile={coverFile} ontheirs={takeTheirs} onmine={() => flush(true)} />
             <div class="edwrap" class:src={source}>
               {#key `${loadedRel}#${version}`}

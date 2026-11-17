@@ -217,7 +217,9 @@ Markdown" view, the `<>` chip on the note header).
   nothing; CSS var `--note-box` sizes `.mosaic-doc`, the header and the references), ✎ (keep the
   formatting toolbar showing), the right panel icons and writing mode. The header is one line:
   icon, title, chips, `<>` and ⋯ (add / change cover lives in ⋯; a faint icon button appears on
-  hover); covers are a 76px band. The formatting toolbar only floats at the bottom (while typing,
+  hover); covers are a 76px band. ⋯ → Header: Compact (default) / **Full** (her other favourite:
+  breadcrumb, 60px icon, big title, then chips + the toolbar in the header, which then floats only
+  once the title has scrolled away); `fullHead` in "mosaic.notePanels". The formatting toolbar only floats at the bottom (while typing,
   or always when ✎ is on). A panel icon slides its panel over the note as a sheet (click away /
   Esc); 📌 pins it beside the note as a column (pins need room: left > 1000px, right > 960px or
   1240px with both). **Writing mode** (button or Ctrl+\; `ui.writing` in
@@ -225,7 +227,7 @@ Markdown" view, the `<>` chip on the note header).
   the top bar hides; touching the left edge brings the rail back, the window's top edge brings
   the top bar back (App's `.redge` / `.tedge`, NotesView reads `.shell:has(.tedge:hover)`); pills
   show where she is; Esc the editor didn't use, Ctrl+\ or the pill leaves; leaving the note page
-  ends it. `localStorage` "mosaic.notePanels" {pinL, pinR, tools} per machine.
+  ends it. `localStorage` "mosaic.notePanels" {pinL, pinR, tools, fullHead} per machine.
 - Browser preview exposes `window.__notes` (sample notes only) so UI tests can read saved text.
 - After her first test round (Nov 16): cloze "retyping" (typing over or erasing a whole cloze keeps
   typing inside it until the cursor moves, → or Esc; plugin in the Cloze mark); images are flow
