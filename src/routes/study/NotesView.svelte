@@ -575,6 +575,7 @@
     min-height: 56px;
     padding: 8px 14px;
     box-sizing: border-box;
+    border-bottom: 1px solid var(--hairline); /* inside the 56px, like StudyNav's .sbar */
     overflow-x: auto;
     scrollbar-width: none;
     transition: transform 0.3s var(--spring, ease), opacity 0.2s;
@@ -666,10 +667,6 @@
     min-height: 0;
     display: flex;
     background: var(--surface);
-    border-top: 1px solid var(--hairline);
-  }
-  .writing .body {
-    border-top: 0;
   }
   /* writing mode: the top bar hides above the page and drops back in when the mouse touches the top */
   .writing .topbar {
