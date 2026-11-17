@@ -1003,7 +1003,8 @@ const Shortcuts = Extension.create({
         find: /^---$/,
         handler: ({ state, range }) => {
           const $s = state.doc.resolve(range.from);
-          if ($s.parent.type.name !== "paragraph" || $s.parent.textContent !== "--") return null;
+          // Tiptap may already have put the typed "-" in the line before the rule runs
+          if ($s.parent.type.name !== "paragraph" || !/^---?$/.test($s.parent.textContent)) return null;
           const tr = state.tr.replaceWith($s.before(), $s.after(), [n.hr.create(), n.paragraph.create()]);
           tr.setSelection(TextSelection.create(tr.doc, $s.before() + 2));
         },

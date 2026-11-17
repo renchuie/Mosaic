@@ -227,7 +227,10 @@ Markdown" view, the `<>` chip on the note header).
   [[ ]], web link); block handle (+ and ⠿: drag to move,
   click for turn into / move / duplicate / delete); table bar (rows, columns, Flashcards toggle).
   Paste: images saved to attachments, rich HTML via `htmlToMd`, Markdown-looking text parsed;
-  copying gives Markdown text. Svelte rejects `$`-prefixed locals: name ProseMirror `$from` `rf`.
+  copying gives Markdown text. Svelte rejects `$`-prefixed locals: name ProseMirror `$from` `rf`. Tiptap's input rules may insert the typed
+  character BEFORE a rule's handler runs (`createRuleTransaction`), so a handler must not assume the
+  last typed character is missing (the `---` divider rule broke on that, fixed Nov 18; a Playwright
+  check of every typing shortcut passes).
 - Page `src/routes/study/NotesView.svelte` with `NoteHead.svelte` (cover: front matter `cover:`
   preset name from `COVERS` or an image path; `icon:` emoji; title shown once: a leading
   `# Title` matching the file name is taken off the editor and written back on save; course /
