@@ -85,7 +85,7 @@ export const linkKey = (s: string) => s.trim().replace(/\.md$/i, "").split("/").
 export function plainText(s: string): string {
   return s
     .replace(/<!--sd:\w+-->/g, "")
-    .replace(/<!--\s*\/?mosaic-cols?\b[^>]*-->/g, "")
+    .replace(/<!--\s*\/?mosaic-(?:cols?|pages?)\b[^>]*-->/g, "")
     .replace(/!\[[^\]]*\]\([^)]*\)/g, "")
     .replace(/\[\[([^\]|#]+)(?:#[^\]|]*)?(?:\|([^\]]+))?\]\]/g, (_m, a, b) => (b ?? a).replace(/\.md$/i, ""))
     .replace(/\[([^\]]+)\]\([^)]*\)/g, "$1")

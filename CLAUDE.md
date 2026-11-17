@@ -288,8 +288,14 @@ Markdown" view, the `<>` chip on the note header).
   colour (`bg` attr = a highlight colour word, rendered with `data-color` → `--hl`). Widths and
   colours are saved in one hidden line right above the table:
   `<!--mosaic-table {"w":[160,null],"bg":{"row,col":"rose"}}-->` (`TABLE_META`; cards.ts skips it
-  when reading `:: table`). Table bar: rows / columns, 🎨 Colour (applies to all selected cells),
-  ↔ Auto widths, Flashcards. Enter inside a cell adds a line (Tab moves to the next cell).
+  when reading `:: table`). Since Nov 18 tables work like Google Docs: `table-layout: fixed`, so
+  columns without a width share the page width equally (new tables are equal); dragging sets one
+  column; table bar "⇔ Even out" clears the widths of the selected columns (CellSelection; all
+  columns with just the cursor), so they share what's left. A plugin view in `ColumnRules` clears
+  stale `<col>` widths, because Tiptap's table view never removes one when a width is cleared.
+  🎨 Colour sets / clears EVERY selected cell (`setCellsBg`; Tiptap's setCellAttribute bailed when
+  the anchor cell already matched). Selected cells get an outlined overlay (`.selectedCell::after`)
+  that shows on coloured cells too. Table bar: rows / columns, 🎨 Colour, ⇔ Even out, Flashcards. Enter inside a cell adds a line (Tab moves to the next cell).
 - Columns (Nov 17, Notion-style column blocks): nodes `columns` (attr `w` = widths in percent,
   null = equal; only at the top level: doc content is `(block | columns)+`) and `column`
   (`block+`, isolating). In the file: `<!--mosaic-cols {"w":[60,40]}-->`, `<!--mosaic-col-->`
@@ -310,6 +316,19 @@ Markdown" view, the `<>` chip on the note header).
   in BlockEditor's `handleDOMEvents`). The block handle works for blocks inside columns
   (`blockAt`); numbering, list cards and #tags are worked out per column. Narrow windows
   (< 640px) stack the columns. Node test: scratchpad `tstest/test15.ts`.
+- Side by side (Nov 18, her "two notes in one" ask): a note-level layout, Full width only (button
+  with the two-panel icon in the top bar, shown only in Full). Nodes `pages` (content `pagecol
+  pagecol`, top level only) and `pagecol` (`(block | columns)+`, so column blocks work inside a
+  half). File: `<!--mosaic-pages-->` left `<!--mosaic-page-->` right `<!--/mosaic-pages-->`
+  (`PAGES_OPEN` / `PAGE_SEP` / `PAGES_CLOSE` in mdDoc.ts; node test scratchpad `tstest/test16.ts`).
+  `togglePages()` in BlockEditor: on = everything so far in the left half, right half empty; off =
+  left then right on one page. NotesView puts `data-width` on `.npage`; editor.css shows two halves
+  with a line down the middle only under `[data-width="full"]`, stacked (with a line between) in
+  Readable / Wide. Blocks in the right half get the handle 52px left of them; a click in a half's
+  empty space writes at its end.
+- Nov 18 fixes: the ⠿ menu opens beside the handle that opened it (`blockMenu.x`); the selection
+  toolbar slides to stay on the page near an edge; flashcard bullets / numbers line up with plain
+  ones (`--cpl`, the left part of the card inset, is 0 for `.b-bullet` / `.b-ordered`).
 - Saving on leave (bug found Nov 16: leaving a note within the 700 ms autosave lost the last
   edit): BlockEditor keeps a `dirty` flag and hands its Markdown to `onleave` in `onDestroy`;
   NotesView's `leaveFor(rel)` rebuilds the file from the saved front matter + title and saves it a

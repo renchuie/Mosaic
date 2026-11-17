@@ -256,3 +256,7 @@ Add things here as they come up (date, page, what happened). Each one is either 
 - Nov 17 · She'll share Mosaic with friends next semester; they're all on Windows. Planned as its
   own track ("Sharing with friends"), after the Study tab and the Planner are complete. Also
   wants it fast and light on laptops: performance pass + Battery saver switch, logged there too.
+- Nov 18 · Real note-taking round (Bipolar notes): ⠿ menu in the wrong place for column blocks,
+  selection toolbar cut off at the edge, flashcard bullets out of line, table "no colour" not
+  clearing a mixed selection, selected coloured cells invisible, table widths confusing (now
+  Google Docs style with Even out), and a new "side by side" layout for Full width. All done now.

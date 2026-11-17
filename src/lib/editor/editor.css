@@ -27,17 +27,17 @@
 .mosaic-doc .b-li {
   position: relative;
   min-height: 1.7em;
-  padding: 1px var(--cp, 0px) 1px calc(var(--ind, 0) * 1.6em + var(--cp, 0px));
+  padding: 1px var(--cp, 0px) 1px calc(var(--ind, 0) * 1.6em + var(--cpl, var(--cp, 0px)));
 }
 /* (Nov 17) a flashcard line's tint starts at the text edge like callouts and tables do; it used to
    reach --cp out into the margin, which looked off next to them */
 .mosaic-doc .b-li {
-  padding-left: calc(var(--ind, 0) * 1.6em + 1.6em + var(--cp, 0px));
+  padding-left: calc(var(--ind, 0) * 1.6em + 1.6em + var(--cpl, var(--cp, 0px)));
 }
 .mosaic-doc .b-bullet::before {
   content: "";
   position: absolute;
-  left: calc(var(--ind, 0) * 1.6em + 0.55em + var(--cp, 0px));
+  left: calc(var(--ind, 0) * 1.6em + 0.55em + var(--cpl, var(--cp, 0px)));
   top: calc(0.85em - 3px);
   width: 6px;
   height: 6px;
@@ -53,7 +53,7 @@
 .mosaic-doc .b-ordered::before {
   content: attr(data-n);
   position: absolute;
-  left: calc(var(--ind, 0) * 1.6em + var(--cp, 0px));
+  left: calc(var(--ind, 0) * 1.6em + var(--cpl, var(--cp, 0px)));
   width: 1.4em;
   text-align: right;
   color: var(--text-muted);
@@ -61,7 +61,7 @@
 }
 .mosaic-doc .b-todo {
   display: flex;
-  padding-left: calc(var(--ind, 0) * 1.6em + var(--cp, 0px));
+  padding-left: calc(var(--ind, 0) * 1.6em + var(--cpl, var(--cp, 0px)));
   gap: 0;
 }
 .mosaic-doc .b-todo .tick {
@@ -101,7 +101,7 @@
   content: attr(data-placeholder);
   position: absolute;
   top: 1px;
-  left: calc(var(--ind, 0) * 1.6em + var(--cp, 0px));
+  left: calc(var(--ind, 0) * 1.6em + var(--cpl, var(--cp, 0px)));
   color: color-mix(in srgb, var(--text-muted) 70%, transparent);
   pointer-events: none;
   white-space: nowrap;
@@ -109,7 +109,7 @@
   max-width: 100%;
 }
 .mosaic-doc .b-li.is-empty::after {
-  left: calc(var(--ind, 0) * 1.6em + 1.6em + var(--cp, 0px));
+  left: calc(var(--ind, 0) * 1.6em + 1.6em + var(--cpl, var(--cp, 0px)));
 }
 .mosaic-doc .b-h.is-empty::after {
   left: 0;
@@ -270,6 +270,12 @@ button.dot[data-color] {
   margin-block: 3px;
   border-radius: 10px;
   background: var(--card-bg, linear-gradient(90deg, color-mix(in srgb, var(--rose) 16%, transparent), transparent 85%));
+}
+/* bullets and numbers on a flashcard line stay in line with plain bullets: no left inset (the
+   bullet already sits inside the tint); plain-text and to-do cards keep the inset */
+.mosaic-doc .b-bullet,
+.mosaic-doc .b-ordered {
+  --cpl: 0px;
 }
 .mosaic-doc .b-p:has(> .b-arrow[data-two="true"]),
 .mosaic-doc .b-li:has(> .b-arrow[data-two="true"]) {
@@ -456,7 +462,9 @@ button.dot[data-color] {
   margin: 10px 0;
   overflow-x: auto;
 }
+/* Google Docs style: columns share the width equally unless she has sized them (fixed layout) */
 .mosaic-doc table {
+  table-layout: fixed;
   border-collapse: separate;
   border-spacing: 0;
   width: 100%;
@@ -511,10 +519,7 @@ button.dot[data-color] {
   background: var(--hl, #f9de8c);
 }
 /* column resizing: drag the right edge of a column */
-/* columns she has sized keep their width; others share the rest */
-.mosaic-doc table:has(col[style*="width"]) {
-  table-layout: fixed;
-}
+/* columns she has sized keep their width; the others share the rest equally (table-layout above) */
 .mosaic-doc th,
 .mosaic-doc td {
   position: relative;
@@ -542,8 +547,15 @@ button.dot[data-color] {
 .mosaic-doc .cards {
   position: relative;
 }
-.mosaic-doc .selectedCell {
-  background: color-mix(in srgb, var(--lavender) 25%, transparent);
+/* selected cells: a tint and an outline drawn ON TOP of the cell, so they show on coloured cells too */
+.mosaic-doc .selectedCell::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background: color-mix(in srgb, var(--lavender) 30%, transparent);
+  box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--lavender) 70%, var(--link-ink, #5b45b3));
+  pointer-events: none;
 }
 
 /* ---- feedback ---- */
@@ -682,6 +694,43 @@ button.dot[data-color] {
   width: 2px;
   left: 7px;
   background: var(--lavender, #c9b8f0);
+}
+/* ---- side by side: two halves in Full width (NotesView sets data-width), stacked otherwise ---- */
+.mosaic-doc .b-pages {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  margin: 4px 0;
+}
+.mosaic-doc .b-pagecol {
+  min-width: 0;
+  min-height: 6em;
+  cursor: text;
+}
+.mosaic-doc .b-pagecol + .b-pagecol {
+  margin-top: 18px;
+  padding-top: 18px;
+  border-top: 1px solid color-mix(in srgb, var(--text-muted) 30%, transparent);
+}
+[data-width="full"] .mosaic-doc .b-pages {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  column-gap: calc(var(--doc-pad, 40px) * 2);
+  min-height: 60vh;
+}
+[data-width="full"] .mosaic-doc .b-pagecol + .b-pagecol {
+  position: relative;
+  margin-top: 0;
+  padding-top: 0;
+  border-top: 0;
+}
+/* the line down the middle, in the gap */
+[data-width="full"] .mosaic-doc .b-pagecol + .b-pagecol::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: calc(var(--doc-pad, 40px) * -1);
+  width: 1px;
+  background: color-mix(in srgb, var(--text-muted) 30%, transparent);
 }
 /* a narrow window stacks the columns */
 @container (max-width: 640px) {

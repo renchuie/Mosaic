@@ -37,15 +37,16 @@ const Hidden = Extension.create({
   addGlobalAttributes() {
     return [
       { types: ["paragraph", "heading", "bullet", "ordered", "todo", "table"], attributes: { sid: hidden() } },
-      { types: ["paragraph", "heading", "bullet", "ordered", "todo", "table", "blockquote", "callout", "codeBlock", "raw", "hr", "image", "columns"], attributes: { tight: hidden(false) } },
+      { types: ["paragraph", "heading", "bullet", "ordered", "todo", "table", "blockquote", "callout", "codeBlock", "raw", "hr", "image", "columns", "pages"], attributes: { tight: hidden(false) } },
     ];
   },
 });
 
 // ---- blocks ----------------------------------------------------------------------------------
 
-// columns only sit at the top level (never inside a callout, a table or another column)
-const Doc = Node.create({ name: "doc", topNode: true, content: "(block | columns)+" });
+// columns sit at the top level or in a side-by-side half (never inside a callout, a table or
+// another column); side-by-side halves only at the top level
+const Doc = Node.create({ name: "doc", topNode: true, content: "(block | columns | pages)+" });
 const Text = Node.create({ name: "text", group: "inline" });
 
 const Paragraph = Node.create({
@@ -393,6 +394,24 @@ const Columns = Node.create({
   },
 });
 
+// ---- side by side (Nov 17): the note as two independent halves, "two notes in one" ----------
+// In the file: <!--mosaic-pages--> left half <!--mosaic-page--> right half <!--/mosaic-pages-->.
+// Shown as two halves in Full width only (NotesView puts data-width on the page); stacked otherwise.
+const PageHalf = Node.create({
+  name: "pagecol",
+  content: "(block | columns)+",
+  isolating: true,
+  parseHTML: () => [{ tag: "div.b-pagecol" }],
+  renderHTML: () => ["div", { class: "b-pagecol" }, 0],
+});
+const Pages = Node.create({
+  name: "pages",
+  content: "pagecol pagecol",
+  defining: true,
+  parseHTML: () => [{ tag: "div.b-pages" }],
+  renderHTML: () => ["div", { class: "b-pages" }, 0],
+});
+
 /** Columns never stay with one column: a single column turns back into plain blocks. */
 const columnsKey = new PluginKey("mosaicColumns");
 const ColumnRules = Extension.create({
@@ -401,12 +420,40 @@ const ColumnRules = Extension.create({
     return [
       new Plugin({
         key: columnsKey,
+        // Tiptap's table view keeps an old column width on screen when a column's saved width is
+        // removed (Even out, undo of a resize): clear widths of columns that no longer have one
+        view: () => ({
+          update(view) {
+            view.state.doc.descendants((n, pos) => {
+              if (n.type.name !== "table") return n.type.name === "doc" || n.type.name === "pages" || n.type.name === "pagecol" || n.type.name === "columns" || n.type.name === "column" || n.type.name === "callout" || n.type.name === "blockquote";
+              const dom = view.nodeDOM(pos) as HTMLElement | null;
+              const cols = dom?.querySelectorAll("colgroup > col");
+              const row = n.firstChild;
+              if (!cols || !row) return false;
+              let i = 0;
+              row.forEach((cell) => {
+                const span = Number(cell.attrs.colspan ?? 1) || 1;
+                for (let j = 0; j < span; j++, i++) {
+                  const c = cols[i] as HTMLElement | undefined;
+                  const w = Array.isArray(cell.attrs.colwidth) ? cell.attrs.colwidth[j] : null;
+                  if (c && !w && c.style.width) c.style.width = "";
+                }
+              });
+              return false;
+            });
+          },
+        }),
         appendTransaction(trs, _old, state) {
           if (!trs.some((t) => t.docChanged)) return null;
           const tr = state.tr;
           const at: { pos: number; node: PMNode }[] = [];
-          state.doc.forEach((n, pos) => {
-            if (n.type.name === "columns" && n.childCount < 2) at.push({ pos, node: n });
+          // columns at the top level or inside a side-by-side half
+          state.doc.descendants((n, pos) => {
+            if (n.type.name === "columns") {
+              if (n.childCount < 2) at.push({ pos, node: n });
+              return false;
+            }
+            return n.type.name === "pages" || n.type.name === "pagecol";
           });
           if (!at.length) return null;
           for (const { pos, node } of at.reverse()) tr.replaceWith(pos, pos + node.nodeSize, node.firstChild ? node.firstChild.content : state.schema.nodes.paragraph.create());
@@ -911,7 +958,7 @@ function decorations(doc: PMNode): DecorationSet {
         }
       } else counters.length = 0;
       if (name === "blockquote" || name === "callout") walk(node, pos + 1);
-      if (name === "columns") {
+      if (name === "columns" || name === "pages") {
         // each column is its own little page (numbering, list cards, tags)
         let cp = pos + 1;
         node.forEach((col) => {
@@ -1005,7 +1052,7 @@ function behaviour(opts: EditorOpts) {
 export function mosaicExtensions(opts: EditorOpts) {
   return [
     Doc, Text, Paragraph, Bullet, Ordered, Todo, Heading, Blockquote, Callout.configure({ onMenu: opts.onCalloutMenu }), CodeBlock, Raw, Hr,
-    Image.configure({ imageUrl: opts.imageUrl }), Columns, Column, ColumnRules, MTable, TableRow, MHeader, MCell,
+    Image.configure({ imageUrl: opts.imageUrl }), Columns, Column, ColumnRules, Pages, PageHalf, MTable, TableRow, MHeader, MCell,
     Wikilink, Arrow, InlineImage.configure({ imageUrl: opts.imageUrl }), HardBreak,
     Bold, Italic, Strike, Code, Highlight, Link, Cloze,
     Hidden, Shortcuts, behaviour(opts),

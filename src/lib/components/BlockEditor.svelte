@@ -9,6 +9,7 @@
   import { onDestroy, onMount, untrack } from "svelte";
   import { Editor } from "@tiptap/core";
   import { NodeSelection, TextSelection } from "@tiptap/pm/state";
+  import { CellSelection } from "@tiptap/pm/tables";
   import { getMarkRange } from "@tiptap/core";
   import type { Node as PMNode } from "@tiptap/pm/model";
   import { mosaicExtensions, setPaletteSource, FLOW, MAX_COLUMNS } from "../editor/blocks";
@@ -189,7 +190,10 @@
   function insertColumns(n: number) {
     if (!editor || inColumn()) return;
     const { $from: rf } = editor.state.selection;
-    const top = rf.before(1);
+    // the block the cursor is in, at the level where columns can go (the page or a half)
+    let d = 1;
+    for (let k = rf.depth; k > 0; k--) if (rf.node(k - 1).type.name === "doc" || rf.node(k - 1).type.name === "pagecol") { d = k; break; }
+    const top = rf.before(d);
     const node = editor.state.doc.nodeAt(top);
     if (!node) return;
     const json = { type: "columns", content: Array.from({ length: n }, () => ({ type: "column", content: [{ type: "paragraph" }] })) };
@@ -223,7 +227,7 @@
   function sideTarget(e: DragEvent): Side | null {
     if (!editor) return null;
     const b = blockAt(e.clientX, e.clientY);
-    if (!b || b.node.type.name === "columns") return null;
+    if (!b || b.node.type.name === "columns" || b.node.type.name === "pages") return null;
     const r = b.dom.getBoundingClientRect();
     const side = e.clientX > r.right - 70 ? "right" : e.clientX < r.left + 14 ? "left" : null;
     if (!side) return null;
@@ -426,6 +430,15 @@
 
   // ---- selection toolbar ---------------------------------------------------------------------
   let bubble = $state<{ x: number; y: number } | null>(null);
+  let bubbleEl = $state<HTMLDivElement>();
+  // the toolbar is centred over the selection; near an edge it slides over so all of it shows
+  $effect(() => {
+    if (!bubble || !bubbleEl || !wrap) return;
+    const half = bubbleEl.offsetWidth / 2;
+    const max = wrap.clientWidth - half - 6;
+    const x = Math.max(half + 6, Math.min(bubble.x, max));
+    if (Math.abs(x - bubble.x) > 1) bubble = { ...bubble, x };
+  });
   let linkInput = $state<string | null>(null);
   let mouseDown = false;
   function placeBubble() {
@@ -470,12 +483,14 @@
   }
 
   // ---- block handle ------------------------------------------------------------------------
-  let handle = $state<{ y: number; pos: number; h: number; x: number | null } | null>(null);
+  let handle = $state<{ y: number; pos: number; h: number; x: number | null; stack?: boolean } | null>(null);
   /** the block the handle belongs to, in screen coordinates (to keep the handle while the mouse
    *  travels from the line to it, e.g. across the gap left of a column) */
   let handleFor: { left: number; top: number; bottom: number } | null = null;
-  let blockMenu = $state<{ pos: number; y: number; type: string; clozes: number; together: boolean; cols: number | null; line: boolean } | null>(null);
-  /** The block under the mouse: a top-level block, or a block inside a column. */
+  let blockMenu = $state<{ pos: number; y: number; x: number | null; type: string; clozes: number; together: boolean; cols: number | null; line: boolean } | null>(null);
+  /** Nodes whose children get their own block handle: a column, a side-by-side half. */
+  const HOLDERS = new Set(["column", "pagecol"]);
+  /** The block under the mouse: a top-level block, or a block inside a column or half. */
   function blockAt(x: number, y: number): { pos: number; dom: HTMLElement; node: PMNode } | null {
     if (!editor) return null;
     const view = editor.view;
@@ -491,20 +506,25 @@
       if (!n) return null;
       pos = at;
       // between the blocks of a column row: the block at the inside position, if it's in a column
-      if (n.type.name === "columns" && hit.inside >= 0 && hit.pos !== at) {
+      if ((n.type.name === "columns" || n.type.name === "pages") && hit.inside >= 0 && hit.pos !== at) {
         const inner = view.state.doc.resolve(hit.pos);
-        for (let d = inner.depth; d > 0; d--) if (inner.node(d - 1).type.name === "column") pos = inner.before(d);
+        for (let d = inner.depth; d > 0; d--) {
+          if (HOLDERS.has(inner.node(d - 1).type.name)) {
+            pos = inner.before(d);
+            break;
+          }
+        }
       }
     } else {
       pos = rp.before(1);
       for (let d = rp.depth; d > 0; d--) {
-        if (rp.node(d - 1).type.name === "column") {
+        if (HOLDERS.has(rp.node(d - 1).type.name)) {
           pos = rp.before(d);
           break;
         }
       }
-      // inside a column itself (not in one of its blocks)
-      if (rp.node(rp.depth).type.name === "column" && rp.depth >= 2) {
+      // inside a column / half itself (not in one of its blocks)
+      if (HOLDERS.has(rp.node(rp.depth).type.name) && rp.depth >= 1) {
         const n = view.state.doc.nodeAt(at);
         if (n && n.type.name !== "column") pos = at;
       }
@@ -525,10 +545,12 @@
     const wr = wrap.getBoundingClientRect();
     const br = b.dom.getBoundingClientRect();
     const lh = parseFloat(getComputedStyle(b.dom).lineHeight) || 26;
-    // a block in a column (other than the first) gets its handle just left of that column
-    const inCol = columnsOf(b.pos) !== null && b.node.type.name !== "columns";
-    const first = inCol && !(b.dom.closest(".b-col")?.previousElementSibling);
-    handle = { y: br.top - wr.top + Math.min(br.height, lh) / 2, pos: b.pos, h: br.height, x: inCol && !first ? br.left - wr.left - 30 : null };
+    // a block in a later column (stacked handle) or in the right half gets its handle just left of it
+    const holder = b.dom.parentElement;
+    const inCol = !!holder?.classList.contains("b-col");
+    const inHalf = !!holder?.classList.contains("b-pagecol");
+    const later = (inCol || inHalf) && !!holder?.previousElementSibling;
+    handle = { y: br.top - wr.top + Math.min(br.height, lh) / 2, pos: b.pos, h: br.height, x: later ? br.left - wr.left - (inCol ? 30 : 52) : null, stack: later && inCol };
     handleFor = { left: br.left, top: br.top, bottom: br.top + Math.max(Math.min(br.height, lh), 26) };
   }
   let dragging = false;
@@ -560,7 +582,9 @@
     const node = editor.state.doc.nodeAt(handle.pos);
     if (!node) return;
     const rs = clozeRanges(handle.pos);
-    blockMenu = { pos: handle.pos, y: handle.y, type: node.type.name, clozes: rs.length, together: rs.length > 1 && rs.every((r) => r.n !== null && r.n === rs[0].n), cols: columnsOf(handle.pos), line: false };
+    // x: beside the handle that opened it (a column's handle), else the usual spot left of the page
+    const mx = handle.x !== null ? Math.max(0, Math.min(handle.x, wrap.clientWidth - 238)) : null;
+    blockMenu = { pos: handle.pos, y: handle.y, x: mx, type: node.type.name, clozes: rs.length, together: rs.length > 1 && rs.every((r) => r.n !== null && r.n === rs[0].n), cols: columnsOf(handle.pos), line: false };
     if (blockMenu.cols !== null) blockMenu.line = !!editor.state.doc.nodeAt(blockMenu.cols)?.attrs.line;
   }
   function blockAction(a: string) {
@@ -607,21 +631,67 @@
   $effect(() => {
     if (!tableBar) cellPick = false;
   });
-  /** Forget dragged column widths of the table the cursor is in. */
-  function resetWidths() {
-    if (!editor || !tableBar) return;
+  /** The cells of the table the cursor is in, with their row and column. */
+  function tableCells(): { pos: number; node: PMNode; row: number; col: number }[] {
+    if (!editor || !tableBar) return [];
     const pos = tableBar.pos;
     const table = editor.state.doc.nodeAt(pos);
-    if (!table) return;
-    const tr = editor.state.tr;
-    table.descendants((c, off) => {
-      if (c.type.name === "tableCell" || c.type.name === "tableHeader") {
-        if (c.attrs.colwidth) tr.setNodeMarkup(pos + 1 + off, undefined, { ...c.attrs, colwidth: null });
-        return false;
-      }
-      return true;
+    if (!table) return [];
+    const out: { pos: number; node: PMNode; row: number; col: number }[] = [];
+    let rp = pos + 1;
+    table.forEach((row, _o, r) => {
+      let cp = rp + 1;
+      row.forEach((cell, _o2, c) => {
+        out.push({ pos: cp, node: cell, row: r, col: c });
+        cp += cell.nodeSize;
+      });
+      rp += row.nodeSize;
     });
-    editor.view.dispatch(tr);
+    return out;
+  }
+  /** Positions of the selected cells (all dragged-across cells, or the one with the cursor). */
+  function selectedCellPositions(): Set<number> {
+    const set = new Set<number>();
+    if (!editor) return set;
+    const sel = editor.state.selection;
+    if (sel instanceof CellSelection) sel.forEachCell((_n, p) => set.add(p));
+    else {
+      const rf = sel.$from;
+      for (let d = rf.depth; d > 0; d--) {
+        const n = rf.node(d).type.name;
+        if (n === "tableCell" || n === "tableHeader") {
+          set.add(rf.before(d));
+          break;
+        }
+      }
+    }
+    return set;
+  }
+  /** Colour (or clear, with null) EVERY selected cell, whatever colour each had before. */
+  function setCellsBg(bg: string | null) {
+    if (!editor) return;
+    const tr = editor.state.tr;
+    const sel = selectedCellPositions();
+    for (const c of tableCells()) if (sel.has(c.pos) && (c.node.attrs.bg ?? null) !== bg) tr.setNodeMarkup(c.pos, undefined, { ...c.node.attrs, bg });
+    if (tr.docChanged) editor.view.dispatch(tr);
+    editor.commands.focus();
+  }
+  /** Even out (like Google Docs' "distribute columns"): the selected columns, or every column when
+   *  only the cursor is in the table, share the space left equally. Columns she sized and didn't
+   *  select keep their width. */
+  function evenOut() {
+    if (!editor || !tableBar) return;
+    const cells = tableCells();
+    const sel = editor.state.selection;
+    let cols: Set<number>;
+    if (sel instanceof CellSelection) {
+      const picked = selectedCellPositions();
+      cols = new Set(cells.filter((c) => picked.has(c.pos)).map((c) => c.col));
+    } else cols = new Set(cells.map((c) => c.col));
+    const tr = editor.state.tr;
+    for (const c of cells) if (cols.has(c.col) && c.node.attrs.colwidth) tr.setNodeMarkup(c.pos, undefined, { ...c.node.attrs, colwidth: null });
+    if (tr.docChanged) editor.view.dispatch(tr);
+    editor.commands.focus();
   }
 
   // ---- callouts and quotes ------------------------------------------------------------------------
@@ -702,7 +772,7 @@
           // a click in the empty space under a column's text writes on in THAT column (newspaper)
           mousedown: (view, e) => {
             const t = e.target as HTMLElement;
-            if (e.button !== 0 || !t.classList?.contains("b-col")) return false;
+            if (e.button !== 0 || !(t.classList?.contains("b-col") || t.classList?.contains("b-pagecol"))) return false;
             const at = view.posAtDOM(t, 0);
             const rp = view.state.doc.resolve(at);
             const end = rp.end(rp.depth);
@@ -886,6 +956,35 @@
       it?.run();
     }
   }
+  /** Side by side: is the note split into two halves? */
+  export function hasPages(): boolean {
+    let found = false;
+    editor?.state.doc.forEach((n) => void (n.type.name === "pages" && (found = true)));
+    return found;
+  }
+  /** Side by side on: everything so far goes in the left half, the right half starts empty.
+   *  Off: the left half, then the right half, back on one page. */
+  export function togglePages() {
+    if (!editor) return;
+    const { state, schema } = editor;
+    let at = -1;
+    state.doc.forEach((n, pos) => void (n.type.name === "pages" && at < 0 && (at = pos)));
+    const tr = state.tr;
+    if (at >= 0) {
+      const pages = state.doc.nodeAt(at)!;
+      const kids: PMNode[] = [];
+      pages.forEach((half) => half.forEach((b) => kids.push(b)));
+      tr.replaceWith(at, at + pages.nodeSize, kids);
+    } else {
+      const all: PMNode[] = [];
+      state.doc.forEach((n) => all.push(n));
+      const left = schema.nodes.pagecol.create(null, all);
+      const right = schema.nodes.pagecol.create(null, schema.nodes.paragraph.create());
+      tr.replaceWith(0, state.doc.content.size, schema.nodes.pages.create(null, [left, right]));
+    }
+    editor.view.dispatch(tr.scrollIntoView());
+    editor.commands.focus();
+  }
   export function focus() {
     editor?.commands.focus();
   }
@@ -900,7 +999,7 @@
   {#if sideDrop}<div class="sidedrop" style="left: {sideDrop.x}px; top: {sideDrop.y}px; height: {sideDrop.h}px" aria-hidden="true"></div>{/if}
   {#if handle && !blockMenu}
     <!-- in a column after the first, + and ⠿ stack so the handle fits in the gap (and clears the divider line) -->
-    <div class="handle" class:stack={handle.x !== null} style="top: {handle.y}px{handle.x !== null ? `; left: ${handle.x}px` : ''}">
+    <div class="handle" class:stack={!!handle.stack} style="top: {handle.y}px{handle.x !== null ? `; left: ${handle.x}px` : ''}">
       <button type="button" class="hb" title="Add a block below" aria-label="Add a block below" onmousedown={(e) => e.preventDefault()} onclick={plus}>+</button>
       <button type="button" class="hb grip" title="Drag to move · click for options" aria-label="Block options" draggable="true"
         ondragstart={dragStart} ondragend={() => { dragging = false; sideDrop = null; }} onclick={openBlockMenu}>⠿</button>
@@ -909,7 +1008,7 @@
 
   {#if blockMenu}
     <button type="button" class="scrim" aria-label="Close" onclick={() => (blockMenu = null)}></button>
-    <div class="menu bmenu" style="top: {blockMenu.y + 14}px" role="menu" data-type={blockMenu.type}>
+    <div class="menu bmenu" style="top: {blockMenu.y + 14}px{blockMenu.x !== null ? `; left: ${blockMenu.x}px` : ''}" role="menu" data-type={blockMenu.type}>
       {#if FLOW.includes(blockMenu.type) || blockMenu.type === "heading" || blockMenu.type === "codeBlock"}
         <div class="mh">Turn into</div>
         <div class="turn">
@@ -947,7 +1046,7 @@
   {/if}
 
   {#if bubble && !menu}
-    <div class="bubble" style="left: {bubble.x}px; top: {bubble.y}px" role="toolbar" tabindex="-1" aria-label="Format selection" onmousedown={(e) => { if (!(e.target as HTMLElement).closest("input")) e.preventDefault(); }}>
+    <div class="bubble" bind:this={bubbleEl} style="left: {bubble.x}px; top: {bubble.y}px" role="toolbar" tabindex="-1" aria-label="Format selection" onmousedown={(e) => { if (!(e.target as HTMLElement).closest("input")) e.preventDefault(); }}>
       {#if linkInput !== null}
         <!-- svelte-ignore a11y_autofocus -->
         <input class="lin" autofocus placeholder="Paste a web link, Enter" bind:value={linkInput}
@@ -1015,14 +1114,14 @@
         {#if cellPick}
           <span class="cpop" role="menu">
             {#each hlColors() as [k, c] (k)}
-              <button type="button" class="dot" style="background: {c.color}" title={c.label} aria-label={c.label} onclick={() => { editor?.chain().focus().setCellAttribute("bg", k).run(); cellPick = false; }}></button>
+              <button type="button" class="dot" style="background: {c.color}" title={c.label} aria-label={c.label} onclick={() => { setCellsBg(k); cellPick = false; }}></button>
             {/each}
-            <button type="button" class="dot none" title="No colour" aria-label="No colour" onclick={() => { editor?.chain().focus().setCellAttribute("bg", null).run(); cellPick = false; }}></button>
+            <button type="button" class="dot none" title="No colour" aria-label="No colour" onclick={() => { setCellsBg(null); cellPick = false; }}></button>
           </span>
         {/if}
       </span>
       {#if tableBar.sized}
-        <button type="button" title="Let the columns size themselves again" onclick={resetWidths}>↔ Auto widths</button>
+        <button type="button" title="Even out: the selected columns (drag across their cells) share the space equally; with nothing selected, all columns do. Columns you sized and didn't select keep their width." onclick={evenOut}>⇔ Even out</button>
       {/if}
       <span class="sep"></span>
       <button type="button" class="study" class:on={tableBar.cards} onclick={() => editor?.chain().focus().updateAttributes("table", { cards: !tableBar.cards }).run()}>{tableBar.cards ? "✓ " : ""}Flashcards</button>

@@ -344,6 +344,12 @@
   // ---- floating toolbar (at the bottom while she types, or always when pinned with ✎) and the
   // title that moves into the top bar once the header has scrolled away ----
   let scrollEl = $state<HTMLElement>();
+  /** side by side (two halves, Full width only); read from the note when it opens */
+  let sideBySide = $state(false);
+  $effect(() => {
+    void version;
+    sideBySide = /<!--\s*mosaic-pages\s*-->/.test(body);
+  });
   let barH = $state(64);
   let headHidden = $state(false);
   let typing = $state(false);
@@ -398,7 +404,7 @@
 
 <div class="nwrap full" bind:clientWidth={width}>
   {#if rel && note}
-    <div class="npage" class:writing={ui.writing} class:typing style="--bar-h: {barH}px; --note-box: {WIDTHS[noteWidth]}; --doc-pad: {noteWidth === 'full' ? '64px' : '40px'}">
+    <div class="npage" class:writing={ui.writing} class:typing data-width={noteWidth} style="--bar-h: {barH}px; --note-box: {WIDTHS[noteWidth]}; --doc-pad: {noteWidth === 'full' ? '64px' : '40px'}">
       <div class="topbar" bind:clientHeight={barH}>
         <StudyNav bar={false} />
         <span class="sep"></span>
@@ -417,6 +423,10 @@
             <button type="button" class:on={noteWidth === w} aria-pressed={noteWidth === w} title={WIDTH_TIPS[w]} onclick={() => setWidth(w)}>{w[0].toUpperCase() + w.slice(1)}</button>
           {/each}
         </div>
+        {#if noteWidth === "full" && !source}
+          <button type="button" class="ico" class:on={sideBySide} title={sideBySide ? "Side by side: on (click to put both halves back on one page)" : "Side by side: two notes in one, written separately"} aria-label="Side by side" aria-pressed={sideBySide}
+            onclick={() => { blocks?.togglePages(); sideBySide = !!blocks?.hasPages(); }}><Icon name="columns" size={18} /></button>
+        {/if}
         {#if !source}
           <button type="button" class="ico" class:on={panels.tools} title={panels.tools ? "Toolbar: always showing" : "Toolbar: only while typing (click to keep it showing)"} aria-label="Formatting toolbar" aria-pressed={panels.tools} onclick={() => (panels.tools = !panels.tools)}><Icon name="pen" size={17} /></button>
         {/if}
