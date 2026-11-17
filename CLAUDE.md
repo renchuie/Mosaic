@@ -682,6 +682,15 @@ Recall Labs. Decisions she approved:
   sentence); list answers as big coloured bullets; big Again / Hard / Good / Easy buttons and a
   full-width "Show answer" bar; progress bar in the top row. The preview's sample notes include
   `Therapeutics IV/Bipolar.md` with one of each card type for trying it.
+- List cards in review (Nov 18, her design on artifact "List Card Retry"): one numbered "?" per item
+  and an "N items" pill; after Show answer each item is a button (or Shift + its number) to mark it
+  missed. Any miss disables Good / Easy and suggests Hard (Again when over half were missed). The
+  rating is graded as usual, then the card comes back RETRY_GAP (5) cards later (sooner when
+  nothing else is left) as "↻ Retry · N missed": only the missed items hidden, the rest faded with
+  "✓ you had this", and a Continue button (practice, no schedule change). Still-missed items come
+  back again; once they're all got, "↻ Whole list again" asks everything and is a real rating, where
+  Good needs a clean run. Session state only (`retries`, `retryNow`, `seen` in ReviewSession); a
+  card waiting for a retry is kept out of the normal queue; Undo drops its retries. Works in cram.
 - Wired in: Cards tab badge, dashboard Flashcards card, Study Home card, course page "N to review",
   study plan suggestion "Review N flashcards" (block `href`), heatmap (+½ per review), streak
   (`markStudyDay("reviews")`).
