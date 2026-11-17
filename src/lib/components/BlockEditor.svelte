@@ -691,6 +691,18 @@
         attributes: { class: "mosaic-doc", spellcheck: "true" },
         handleDrop: (_v, e, _slice, moved) => moved && dropBeside(e as DragEvent),
         handleDOMEvents: {
+          // a click in the empty space under a column's text writes on in THAT column (newspaper)
+          mousedown: (view, e) => {
+            const t = e.target as HTMLElement;
+            if (e.button !== 0 || !t.classList?.contains("b-col")) return false;
+            const at = view.posAtDOM(t, 0);
+            const rp = view.state.doc.resolve(at);
+            const end = rp.end(rp.depth);
+            e.preventDefault();
+            view.focus();
+            view.dispatch(view.state.tr.setSelection(TextSelection.near(view.state.doc.resolve(end), -1)).scrollIntoView());
+            return true;
+          },
           dragover: (_v, e) => {
             showSide(e as DragEvent);
             return false;

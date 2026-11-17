@@ -615,8 +615,14 @@ button.dot[data-color] {
   grid-auto-flow: column;
   gap: 32px;
 }
+/* columns run down the page like a newspaper: room to write from the start, and the empty space
+   under a shorter column is part of it (a click there writes on at the end of that column) */
+.mosaic-doc .b-cols {
+  min-height: 14em;
+}
 .mosaic-doc .b-col {
   min-width: 0;
+  cursor: text;
 }
 .mosaic-doc .b-colgrips {
   position: absolute;
@@ -673,6 +679,7 @@ button.dot[data-color] {
     grid-auto-flow: row;
     grid-template-columns: minmax(0, 1fr) !important;
     gap: 6px;
+    min-height: 0;
   }
   .mosaic-doc .b-colgrips {
     display: none;
