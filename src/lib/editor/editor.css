@@ -711,19 +711,19 @@ button.dot[data-color] {
   padding-top: 18px;
   border-top: 1px solid color-mix(in srgb, var(--text-muted) 30%, transparent);
 }
-[data-width="full"] .mosaic-doc .b-pages {
+[data-width="full"]:not([data-split="stacked"]) .mosaic-doc .b-pages {
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   column-gap: calc(var(--doc-pad, 40px) * 2);
   min-height: 60vh;
 }
-[data-width="full"] .mosaic-doc .b-pagecol + .b-pagecol {
+[data-width="full"]:not([data-split="stacked"]) .mosaic-doc .b-pagecol + .b-pagecol {
   position: relative;
   margin-top: 0;
   padding-top: 0;
   border-top: 0;
 }
 /* the line down the middle, in the gap */
-[data-width="full"] .mosaic-doc .b-pagecol + .b-pagecol::before {
+[data-width="full"]:not([data-split="stacked"]) .mosaic-doc .b-pagecol + .b-pagecol::before {
   content: "";
   position: absolute;
   top: 0;

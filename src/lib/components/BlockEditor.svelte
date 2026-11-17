@@ -487,7 +487,7 @@
   /** the block the handle belongs to, in screen coordinates (to keep the handle while the mouse
    *  travels from the line to it, e.g. across the gap left of a column) */
   let handleFor: { left: number; top: number; bottom: number } | null = null;
-  let blockMenu = $state<{ pos: number; y: number; x: number | null; type: string; clozes: number; together: boolean; cols: number | null; line: boolean } | null>(null);
+  let blockMenu = $state<{ pos: number; y: number; x: number | null; type: string; clozes: number; together: boolean; cols: number | null; line: boolean; half: boolean } | null>(null);
   /** Nodes whose children get their own block handle: a column, a side-by-side half. */
   const HOLDERS = new Set(["column", "pagecol"]);
   /** The block under the mouse: a top-level block, or a block inside a column or half. */
@@ -532,6 +532,8 @@
     const node = view.state.doc.nodeAt(pos);
     const dom = view.nodeDOM(pos) as HTMLElement | null;
     if (!node || !dom || !(dom instanceof HTMLElement)) return null;
+    // the two halves of a side-by-side note are the page, not a block: no handle for them
+    if (node.type.name === "pages" || node.type.name === "pagecol") return null;
     return { pos, dom, node };
   }
   function onMove(e: MouseEvent) {
@@ -584,7 +586,8 @@
     const rs = clozeRanges(handle.pos);
     // x: beside the handle that opened it (a column's handle), else the usual spot left of the page
     const mx = handle.x !== null ? Math.max(0, Math.min(handle.x, wrap.clientWidth - 238)) : null;
-    blockMenu = { pos: handle.pos, y: handle.y, x: mx, type: node.type.name, clozes: rs.length, together: rs.length > 1 && rs.every((r) => r.n !== null && r.n === rs[0].n), cols: columnsOf(handle.pos), line: false };
+    blockMenu = { pos: handle.pos, y: handle.y, x: mx, type: node.type.name, clozes: rs.length, together: rs.length > 1 && rs.every((r) => r.n !== null && r.n === rs[0].n), cols: columnsOf(handle.pos), line: false, half: false };
+    { const rp = editor.state.doc.resolve(handle.pos); for (let d = rp.depth; d > 0; d--) if (rp.node(d).type.name === "pagecol") blockMenu.half = true; }
     if (blockMenu.cols !== null) blockMenu.line = !!editor.state.doc.nodeAt(blockMenu.cols)?.attrs.line;
   }
   function blockAction(a: string) {
@@ -611,6 +614,7 @@
         editor.view.dispatch(tr);
       }
     } else if (a === "cards") editor.view.dispatch(state.tr.setNodeMarkup(pos, undefined, { ...node.attrs, cards: !node.attrs.cards }));
+    else if (a === "join") togglePages();
     else if (a === "colline") {
       const cp = columnsOf(pos);
       const cols = cp !== null ? state.doc.nodeAt(cp) : null;
@@ -772,7 +776,26 @@
           // a click in the empty space under a column's text writes on in THAT column (newspaper)
           mousedown: (view, e) => {
             const t = e.target as HTMLElement;
-            if (e.button !== 0 || !(t.classList?.contains("b-col") || t.classList?.contains("b-pagecol"))) return false;
+            if (e.button !== 0) return false;
+            // below everything, when the last thing is a row of columns: a new full-width line there
+            const holderBelow = t === view.dom ? view.state.doc : null;
+            const halfBelow = t.classList?.contains("b-pagecol") ? t : null;
+            if (holderBelow || halfBelow) {
+              const at = holderBelow ? -1 : view.posAtDOM(t, 0);
+              const parent = holderBelow ?? view.state.doc.resolve(at).parent;
+              const last = parent.lastChild;
+              const lastDom = last && (t.lastElementChild as HTMLElement | null);
+              if (last && last.type.name === "columns" && lastDom && e.clientY > lastDom.getBoundingClientRect().bottom) {
+                const end = holderBelow ? view.state.doc.content.size : view.state.doc.resolve(at).end();
+                const tr = view.state.tr.insert(end, view.state.schema.nodes.paragraph.create());
+                tr.setSelection(TextSelection.create(tr.doc, end + 1));
+                e.preventDefault();
+                view.focus();
+                view.dispatch(tr.scrollIntoView());
+                return true;
+              }
+            }
+            if (!(t.classList?.contains("b-col") || t.classList?.contains("b-pagecol"))) return false;
             const at = view.posAtDOM(t, 0);
             const rp = view.state.doc.resolve(at);
             const end = rp.end(rp.depth);
@@ -1033,6 +1056,9 @@
       {#if blockMenu.type === "blockquote" || blockMenu.type === "callout"}
         <button type="button" class="mi" onclick={() => blockAction("unwrap")}><span class="ic">¶</span>Back to plain text</button>
         <button type="button" class="mi" onclick={() => { blockMenu = null; styleManager.tab = "callouts"; styleManager.open = true; }}><span class="ic">🎨</span>Edit callout and quote styles…</button>
+      {/if}
+      {#if blockMenu.half}
+        <button type="button" class="mi" onclick={() => blockAction("join")}><span class="ic">▤</span>Join halves into one page (left, then right)</button>
       {/if}
       {#if blockMenu.cols !== null}
         <button type="button" class="mi" role="menuitemcheckbox" aria-checked={blockMenu.line} onclick={() => blockAction("colline")}><span class="ic">{blockMenu.line ? "✓" : "│"}</span>Divider line between columns</button>
@@ -1470,6 +1496,7 @@
   }
   .sw {
     display: inline-flex;
+    align-items: center;
     gap: 3px;
     padding: 0 4px;
   }

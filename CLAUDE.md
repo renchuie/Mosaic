@@ -305,7 +305,9 @@ Markdown" view, the `<>` chip on the note header).
   them with `/2 columns`, `/3 columns`, or by dragging a block (⠿) to the right / left edge of
   another block (a lavender bar shows; the dragged and the target block take their indented lines
   along; dropping beside a block already in columns adds a column, max 4). Drag the gap between
-  columns to resize, double-click it for equal widths. Backspace in an empty column removes it;
+  columns to resize, double-click it for equal widths. Enter on an empty last line of a column steps out
+  to a full-width line below the row; a click below a row of columns that ends the note (or a half)
+  starts one there. Backspace in an empty column removes it;
   a row left with one column turns back into plain blocks (`ColumnRules` plugin); ⠿ menu
   "Remove columns (keep everything)"; ⠿ menu "Divider line between columns" toggles a thin line
   down each gap (attr `line`, `"line":true` in the mosaic-cols line; newspaper look, per row). The gap is always 2 × `--doc-pad` (with or without the
@@ -321,10 +323,13 @@ Markdown" view, the `<>` chip on the note header).
   pagecol`, top level only) and `pagecol` (`(block | columns)+`, so column blocks work inside a
   half). File: `<!--mosaic-pages-->` left `<!--mosaic-page-->` right `<!--/mosaic-pages-->`
   (`PAGES_OPEN` / `PAGE_SEP` / `PAGES_CLOSE` in mdDoc.ts; node test scratchpad `tstest/test16.ts`).
-  `togglePages()` in BlockEditor: on = everything so far in the left half, right half empty; off =
-  left then right on one page. NotesView puts `data-width` on `.npage`; editor.css shows two halves
-  with a line down the middle only under `[data-width="full"]`, stacked (with a line between) in
-  Readable / Wide. Blocks in the right half get the handle 52px left of them; a click in a half's
+  The top-bar button makes the halves the first time (`togglePages()`: everything so far in the
+  left half, right half empty); after that it only switches the view between side by side and one
+  half above the other (front matter `split: stacked`, `data-split` on `.npage`) and never moves
+  text. Joining is a deliberate ⠿ menu item on a block in a half, "Join halves into one page"
+  (left, then right). NotesView puts `data-width` on `.npage`; editor.css shows two halves with a
+  line down the middle only under `[data-width="full"]:not([data-split="stacked"])`, stacked
+  (with a line between) otherwise. The halves themselves get no block handle. Blocks in the right half get the handle 52px left of them; a click in a half's
   empty space writes at its end.
 - Nov 18 fixes: the ⠿ menu opens beside the handle that opened it (`blockMenu.x`); the selection
   toolbar slides to stay on the page near an edge; flashcard bullets / numbers line up with plain

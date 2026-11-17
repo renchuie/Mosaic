@@ -464,6 +464,23 @@ const ColumnRules = Extension.create({
   },
   addKeyboardShortcuts() {
     return {
+      // Enter on an empty last line of a column steps out of the columns: a full-width line below
+      // the row (like Enter on an empty bullet steps out of a list)
+      Enter: ({ editor }) => {
+        const { selection } = editor.state;
+        const rf = selection.$from;
+        if (!selection.empty || rf.depth < 3 || rf.parent.type.name !== "paragraph" || rf.parent.content.size || rf.parent.attrs.indent) return false;
+        const col = rf.node(rf.depth - 1);
+        if (col.type.name !== "column" || rf.index(rf.depth - 1) !== col.childCount - 1 || col.childCount < 2) return false;
+        const rowPos = rf.before(rf.depth - 2);
+        const row = rf.node(rf.depth - 2);
+        const tr = editor.state.tr.delete(rf.before(), rf.after());
+        const after = tr.mapping.map(rowPos + row.nodeSize);
+        tr.insert(after, editor.schema.nodes.paragraph.create());
+        tr.setSelection(TextSelection.create(tr.doc, after + 1));
+        editor.view.dispatch(tr.scrollIntoView());
+        return true;
+      },
       // Backspace in the empty last line of an empty column removes the column
       Backspace: ({ editor }) => {
         const { selection } = editor.state;
