@@ -409,7 +409,7 @@ Markdown" view, the `<>` chip on the note header).
   `<!--/mosaic-toggle-->` (they nest; `TOGGLE_OPEN` / `TOGGLE_CLOSE` in mdDoc.ts; other apps show a
   plain heading; cards inside work as usual). Look: a ▾ caret column (`.b-tcaret`) beside the
   heading, content indented under the heading text, a faint guide line on hover, folded shows
-  "N hidden". Make one: `/Toggle heading 1–3` (the line becomes its heading) or ⠿ on a heading →
+  "N hidden". Make one: `/thead1`, `/thead2`, `/thead3` (or "/toggle"; the line becomes its heading) or ⠿ on a heading →
   "Make it a toggle (takes its section)" (up to the next same/higher heading or divider). Enter in
   a folded toggle's heading opens it; Enter on an empty last line steps out below; Backspace in an
   empty toggle heading with nothing inside turns it back into a line (never merges upward); ⠿ →

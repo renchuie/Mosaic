@@ -76,9 +76,9 @@
     { id: "quote", label: "Quote", icon: "❝", group: "Basic", keys: ">", run: () => editor?.chain().focus().wrapIn("blockquote").run() },
     { id: "table", label: "Table", icon: "▦", group: "Basic", run: () => editor?.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run() },
     { id: "hr", label: "Divider", icon: "―", group: "Basic", keys: "---", run: () => insertAfter({ type: "hr" }) },
-    { id: "tg1", label: "Toggle heading 1", icon: "▸H1", group: "Basic", hint: "a heading that folds what's inside it", run: () => insertToggle(1) },
-    { id: "tg2", label: "Toggle heading 2", icon: "▸H2", group: "Basic", run: () => insertToggle(2) },
-    { id: "tg3", label: "Toggle heading 3", icon: "▸H3", group: "Basic", run: () => insertToggle(3) },
+    { id: "thead1", label: "Toggle heading 1", keys: "/thead1", icon: "▸H1", group: "Basic", hint: "a heading that folds what's inside it", run: () => insertToggle(1) },
+    { id: "thead2", label: "Toggle heading 2", keys: "/thead2", icon: "▸H2", group: "Basic", run: () => insertToggle(2) },
+    { id: "thead3", label: "Toggle heading 3", keys: "/thead3", icon: "▸H3", group: "Basic", run: () => insertToggle(3) },
     { id: "cols2", label: "2 columns", icon: "▥", group: "Basic", hint: "or drag a block beside another", run: () => insertColumns(2) },
     { id: "cols3", label: "3 columns", icon: "▥▥", group: "Basic", run: () => insertColumns(3) },
     { id: "code", label: "Code", icon: "</>", group: "Basic", keys: "```", run: () => editor?.chain().focus().setNode("codeBlock").run() },
@@ -105,7 +105,8 @@
       const inCol = inColumn();
       const hits = slashItems().filter((i) => !(inCol && i.id.startsWith("cols"))).filter((i) => !q || i.label.toLowerCase().includes(q) || i.id.startsWith(q) || (i.group ?? "").toLowerCase().startsWith(q));
       // names that start with what she typed come first ("list" → List flashcard before Bullet list)
-      if (q) hits.sort((a, b) => Number(!a.label.toLowerCase().startsWith(q)) - Number(!b.label.toLowerCase().startsWith(q)));
+      const first = (i: MenuItem) => i.id.startsWith(q) || i.label.toLowerCase().startsWith(q);
+      if (q) hits.sort((a, b) => Number(!first(a)) - Number(!first(b)));
       return hits.slice(0, 30);
     }
     if (menu.kind === "link") {
