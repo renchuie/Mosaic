@@ -337,6 +337,17 @@ button.dot[data-color] {
   vertical-align: middle;
   border-radius: 4px;
 }
+/* a picture pasted into a table cell fills the cell's width instead of staying text-sized */
+.mosaic-doc td .b-iimg,
+.mosaic-doc th .b-iimg {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  max-height: none;
+  height: auto;
+  margin: 4px 0;
+  border-radius: 8px;
+}
 .mosaic-doc .ProseMirror-selectednode.b-link,
 .mosaic-doc .ProseMirror-selectednode.b-arrow {
   outline: 2px solid color-mix(in srgb, var(--lavender) 90%, var(--link-ink));
