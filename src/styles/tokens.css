@@ -209,7 +209,15 @@
 
 /* ---- Neutral: solid paper-like panels, hairline edges, one quiet accent ------------------ */
 :root[data-family="neutral"] {
-  --backdrop: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.3 0 0 0 0 0.25 0 0 0 0 0.2 0 0 0 .06 0'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E"), var(--t-bg);
+  --backdrop: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.3 0 0 0 0 0.25 0 0 0 0 0.2 0 0 0 .06 0'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E"),
+    radial-gradient(42% 52% at 6% 8%, var(--t-b1, transparent) 0%, transparent 70%),
+    radial-gradient(46% 56% at 94% 6%, var(--t-b2, transparent) 0%, transparent 70%),
+    radial-gradient(50% 50% at 82% 92%, var(--t-b3, transparent) 0%, transparent 70%),
+    radial-gradient(40% 46% at 12% 96%, var(--t-b2, transparent) 0%, transparent 70%),
+    var(--t-bg);
+  /* the page sheet in Window "Curve" / "Glass rail": the panel colour, so the blooms only show
+     beside the rail */
+  --sheet: var(--t-panel);
   --panel: var(--t-panel);
   --surface: var(--t-surface);
   --surface-float: var(--t-surface);
@@ -242,16 +250,49 @@
   --spot-track: color-mix(in srgb, var(--t-text) 9%, transparent);
   --spot-btn: var(--primary);
   --on-spot-btn: var(--on-primary);
+  /* hero cards (tasks progress, cards due): light like the Glass themes, not a dark block */
+  --hero: linear-gradient(135deg, color-mix(in srgb, var(--t-accent) 18%, var(--t-surface)), var(--t-surface) 70%);
+  --on-hero: var(--t-text);
 }
+/* Linen, Stone and Oat each get their own earthy palette in place of Mosaic's pastels, and
+   blooms in those hues (Nov 18, her "the neutrals need more pizzazz") */
 :root[data-theme="linen"] {
+  --t-b1: #ecd0c1; --t-b2: #ebdcbc; --t-b3: #d8dfcb;
+  --rose: #d9a28c; --rose-deep: #c07a5f; --rose-soft: #f4e3da;
+  --peach: #e2b58e; --peach-soft: #f7eadc;
+  --butter: #e6cf94; --butter-soft: #f7efd6;
+  --lavender: #c7aebb; --periwinkle: #8f7486;
+  --alert-ink: #a5543c; --go-ink: #5f7352;
+  --g-rose: linear-gradient(140deg, #f7ebe4, #efd6c9); --g-peach: linear-gradient(140deg, #f9f0e6, #f1dcc6);
+  --g-sage: linear-gradient(140deg, #eef1e8, #dde4d2); --g-butter: linear-gradient(140deg, #faf4e2, #f0e2b9);
+  --g-sunset: linear-gradient(120deg, #f4e1d6, #f3e8c9);
   --t-bg: #ede7df; --t-panel: #f7f3ee; --t-surface: #fffdfa; --t-line: #e8e0d5; --t-text: #2e2925; --t-muted: #7f766e;
   --t-accent: #b5876a; --t-hl: #f2e2b6; --sage-deep: #8a9a7e; --sage: #b8c4ad; --sage-soft: #e6ebdf;
 }
 :root[data-theme="stone"] {
+  --t-b1: #d3e0d9; --t-b2: #d9dde6; --t-b3: #e4d9d2;
+  --rose: #cfa3a3; --rose-deep: #b07878; --rose-soft: #f1e4e3;
+  --peach: #cfae92; --peach-soft: #f3eae2;
+  --sage: #a9beb4; --sage-deep: #6f8a80; --sage-soft: #e3ebe7;
+  --butter: #d9d4a3; --butter-soft: #f1efdc;
+  --lavender: #b3bdd0; --periwinkle: #66789a;
+  --alert-ink: #965757; --go-ink: #4f6a60;
+  --g-rose: linear-gradient(140deg, #f6eeed, #ead7d6); --g-peach: linear-gradient(140deg, #f7f1ec, #ebddd1);
+  --g-sage: linear-gradient(140deg, #eef3f0, #d9e5df); --g-butter: linear-gradient(140deg, #f6f5ea, #e6e3c4);
+  --g-sunset: linear-gradient(120deg, #e3ebe7, #e5e8ef);
   --t-bg: #e7e7e3; --t-panel: #f3f3f0; --t-surface: #ffffff; --t-line: #e2e2dd; --t-text: #24262a; --t-muted: #6f7279;
   --t-accent: #6f8a80; --t-hl: #e3ead6;
 }
 :root[data-theme="oat"] {
+  --t-b1: #dde3ee; --t-b2: #f0e0c4; --t-b3: #ead3c8;
+  --peach: #dcb37c; --peach-soft: #f5e8d2;
+  --sage: #9cb8a9; --sage-deep: #5f8a77; --sage-soft: #e2ede7;
+  --butter: #e8cf7e; --butter-soft: #f6eecb;
+  --lavender: #a9b7cf; --periwinkle: #5b7499;
+  --alert-ink: #9c513a; --go-ink: #47705e;
+  --g-rose: linear-gradient(140deg, #f8ede7, #efd6ca); --g-peach: linear-gradient(140deg, #faf2e4, #f1dfbf);
+  --g-sage: linear-gradient(140deg, #eef4f0, #d9e8df); --g-butter: linear-gradient(140deg, #faf5e1, #f0e2ad);
+  --g-sunset: linear-gradient(120deg, #e3e8f1, #f4e6cc);
   --t-bg: #ece5d8; --t-panel: #f8f3ea; --t-surface: #fffdf7; --t-line: #e7dfd0; --t-text: #1f2430; --t-muted: #6c7180;
   --t-accent: #6e86a6; --t-hl: #f1e4bc; --rose-deep: #c07a62; --rose: #e2b19f; --rose-soft: #f6e3da;
 }

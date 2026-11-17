@@ -82,7 +82,11 @@ below disagrees.
   one-hue Glass themes remap the pastel palette and `--g-*` to shades of their hue; Mosaic's
   `--g-*` are pale washes; waves are faint. Glass = colour blooms on `--backdrop`, translucent white
   `--panel` / `--surface`, a thin bright `--edge` (the one exception to "no outlines") and
-  `--blur`. **Only the big layers blur** (main panel, rail, dialogs, menus); cards are plain
+  `--blur`. Neutral (Nov 18, her "neutrals need more pizzazz / leftover colours"): Linen, Stone and
+  Oat remap the whole pastel palette and `--g-*` to their own earthy colours (Linen clay / straw /
+  olive, Stone dusty rose / sage / slate, Oat brick / ochre / denim), have soft blooms under the
+  paper noise (`--t-b1..3`, shown beside the rail in Curve), and a light `--hero` (no dark blocks).
+  **Only the big layers blur** (main panel, rail, dialogs, menus); cards are plain
   translucent white on the already-blurred panel. Backdrop blur is costly to repaint in WebKitGTK,
   so don't add `backdrop-filter` to cards or list items. Anything floating (dialogs, `div.menu`,
   `div.pop`, `div.selmenu`) gets the nearly opaque `--surface-float` from base.css. Inputs use
