@@ -139,6 +139,9 @@ function hash(s: string): string {
 function kindOf(ls: Line[], k: number): "card" | "cloze" | "list" | "table" | "desc" | null {
   const l = ls[k];
   if (TABLE_RE.test(l.text)) return tableAfter(ls, k) ? "table" : null;
+  // a table row is never a card line of its own (Nov 18 bug: "A :: B" typed in a cell made the whole
+  // row a card and its id became an extra column); tables make cards through ▾ Flashcards only
+  if (/^\s*\|/.test(l.text)) return null;
   const c = splitCard(l.text);
   if (c?.desc) return c.back || children(ls, k).length ? "desc" : null;
   if (c) {

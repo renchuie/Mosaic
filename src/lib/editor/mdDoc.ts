@@ -311,7 +311,8 @@ const TABLE_SEP = /^\s*\|?\s*:?-{1,}:?\s*(\|\s*:?-{1,}:?\s*)*\|?\s*$/;
 const width = (ws: string) => ws.replace(/\t/g, "  ").length;
 
 function splitRow(row: string): string[] {
-  let r = row.trim();
+  // a card id once appended to a table row (Nov 18 bug) is not a cell
+  let r = row.trim().replace(/\s*<!--sd:[a-z0-9]{4,}-->\s*$/, "");
   if (r.startsWith("|")) r = r.slice(1);
   if (r.endsWith("|") && !r.endsWith("\\|")) r = r.slice(0, -1);
   return r.split(/(?<!\\)\|/).map((c) => c.trim());
@@ -559,8 +560,15 @@ export function parseBlocks(lines: string[]): PMNode[] {
       for (; j < lines.length && /^\s*\|/.test(lines[j]); j++) rows.push(lines[j]);
       const head = splitRow(rows[0]);
       const aligns = splitRow(lines[t + 1]);
-      const body = rows.slice(1).map(splitRow);
-      const n = Math.max(head.length, ...body.map((r) => r.length));
+      let body = rows.slice(1).map(splitRow);
+      let n = Math.max(head.length, ...body.map((r) => r.length));
+      // repair (Nov 18 bug): a last column that only ever held stray card ids goes away
+      const SID_ONLY = /^<!--sd:[a-z0-9]{4,}-->$/;
+      if (n > 1 && body.some((r) => SID_ONLY.test(r[n - 1] ?? "")) && [head, ...body].every((r) => !(r[n - 1] ?? "") || SID_ONLY.test(r[n - 1]))) {
+        n--;
+        head.length = Math.min(head.length, n);
+        body = body.map((r) => r.slice(0, n));
+      }
       const pad = (r: string[]) => Array.from({ length: n }, (_, k) => r[k] ?? "");
       const at = (r: number, c: number) => ({
         colwidth: typeof meta?.w?.[c] === "number" ? [meta!.w![c]] : null,

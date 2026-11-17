@@ -769,6 +769,10 @@ Recall Labs. Decisions she approved:
 - Image occlusion (`OcclusionEditor.svelte`, `OcclusionView.svelte`): paste or pick an image
   (saved to the notes folder `attachments/card-…`), draw boxes; one card per box, "hide all" or
   "hide one" mode. Card title is the Header field.
+- A table row is never a card line (Nov 18 bug: `A :: B` typed in a cell made the row a card and its
+  `<!--sd-->` id became an extra column): `kindOf` in cards.ts skips `|` lines, the arrow input rule
+  doesn't fire in cells, and `splitRow` / the table parser in mdDoc.ts drop a stray trailing id and a
+  last column that only held ids (repair; node test scratchpad `tstest/test18.ts`).
 - Table cards in notes: a Markdown table with `:: table` on the line above makes one card per filled
   cell (row header + column header → cell), key `id:t<hash(row|col)>`, so drug comparison tables work.
   Since Nov 18 the table bar's "▾ Flashcards · N" menu (on / off = the `:: table` line) has options,

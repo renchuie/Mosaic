@@ -1084,6 +1084,8 @@ const Shortcuts = Extension.create({
           let has = false;
           $s.parent.forEach((c) => (has ||= c.type.name === "arrow"));
           if (has || $s.parent.type.spec.code) return null;
+          // not inside a table cell: tables make cards through ▾ Flashcards, a row can't hold a card id
+          for (let d = $s.depth; d > 0; d--) if (/^table(Cell|Header)$/.test($s.node(d).type.name)) return null;
           const back = match[1] === "<::" || match[1] === "<-";
           state.tr.replaceWith(range.from, range.to, n.arrow.create({ two: match[1] === ":::", back, desc: match[1] === ";;" }));
         },
