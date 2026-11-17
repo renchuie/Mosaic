@@ -265,7 +265,13 @@ Add things here as they come up (date, page, what happened). Each one is either 
   (her pick: deck list as home, each deck opens its own page with the deck tree; Add card form with
   Ctrl+Enter and kept fields; Browse table with filters and bulk actions). Note cards stay as a
   "From your notes" group in the same queue. Big build: proposed for **week 3** (Study for real),
-  after the week 1–2 focus. Open questions: Type it / Test / Match modes, Stats page, .apkg import.
+  after the week 1–2 focus. She wants all the extras too (Nov 18): Type it / Test / Match study
+  modes (practice only, the schedule changes only in Review), a Stats page (calendar heatmap,
+  retention, hardest cards), Anki .apkg import that keeps review history, export to Anki / CSV,
+  deck option presets (incl. bury siblings) and sharing a deck as one file. Proposed order: week 3
+  the core (deck list + deck page, Add card, Browse, deck options); the extras right after, as
+  their own phase (they fit the "Sharing with friends" track, since friends coming from Anki or
+  Quizlet need the import).
 - Nov 18 · Editor todo list (she said yes to all; editor fixes count as daily use since she's
   writing real Ther IV notes in it):
   1. Tables shake-down: she tests (lists / cards in cells, tables in columns and halves, pasting
