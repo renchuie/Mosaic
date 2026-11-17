@@ -430,14 +430,16 @@ export function parseBlocks(lines: string[]): PMNode[] {
           else parts[parts.length - 1].push(lines[k]);
         }
         let w: number[] | null = null;
+        let lineOn = false;
         try {
           const meta = m[1] ? JSON.parse(m[1]) : null;
           if (Array.isArray(meta?.w) && meta.w.length === parts.length && meta.w.every((x: unknown) => typeof x === "number" && x > 0)) w = meta.w;
+          lineOn = meta?.line === true;
         } catch {}
         push(
           block(
             "columns",
-            { w },
+            { w, line: lineOn },
             parts.map((pl) => {
               const kids = parseBlocks(pl);
               return { type: "column", content: kids.length ? kids : [block("paragraph", { indent: 0, sid: null })] };
@@ -654,7 +656,10 @@ function serializeBlocks(nodes: PMNode[], seen: Set<string>, owners: Owner[], ba
         break;
       case "columns": {
         const w = Array.isArray(n.attrs?.w) && (n.attrs.w as number[]).length === (n.content?.length ?? 0) ? (n.attrs.w as number[]) : null;
-        out.push(`<!--mosaic-cols${w ? " " + JSON.stringify({ w }) : ""}-->`);
+        const meta: { w?: number[]; line?: true } = {};
+        if (w) meta.w = w;
+        if (n.attrs?.line) meta.line = true;
+        out.push(`<!--mosaic-cols${Object.keys(meta).length ? " " + JSON.stringify(meta) : ""}-->`);
         (n.content ?? []).forEach((col, ci) => {
           if (ci) out.push("", "<!--mosaic-col-->");
           out.push("");

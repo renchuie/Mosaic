@@ -471,7 +471,7 @@
 
   // ---- block handle ------------------------------------------------------------------------
   let handle = $state<{ y: number; pos: number; h: number; x: number | null } | null>(null);
-  let blockMenu = $state<{ pos: number; y: number; type: string; clozes: number; together: boolean; cols: number | null } | null>(null);
+  let blockMenu = $state<{ pos: number; y: number; type: string; clozes: number; together: boolean; cols: number | null; line: boolean } | null>(null);
   /** The block under the mouse: a top-level block, or a block inside a column. */
   function blockAt(x: number, y: number): { pos: number; dom: HTMLElement; node: PMNode } | null {
     if (!editor) return null;
@@ -552,7 +552,8 @@
     const node = editor.state.doc.nodeAt(handle.pos);
     if (!node) return;
     const rs = clozeRanges(handle.pos);
-    blockMenu = { pos: handle.pos, y: handle.y, type: node.type.name, clozes: rs.length, together: rs.length > 1 && rs.every((r) => r.n !== null && r.n === rs[0].n), cols: columnsOf(handle.pos) };
+    blockMenu = { pos: handle.pos, y: handle.y, type: node.type.name, clozes: rs.length, together: rs.length > 1 && rs.every((r) => r.n !== null && r.n === rs[0].n), cols: columnsOf(handle.pos), line: false };
+    if (blockMenu.cols !== null) blockMenu.line = !!editor.state.doc.nodeAt(blockMenu.cols)?.attrs.line;
   }
   function blockAction(a: string) {
     if (!editor || !blockMenu) return;
@@ -578,7 +579,11 @@
         editor.view.dispatch(tr);
       }
     } else if (a === "cards") editor.view.dispatch(state.tr.setNodeMarkup(pos, undefined, { ...node.attrs, cards: !node.attrs.cards }));
-    else if (a === "uncols") {
+    else if (a === "colline") {
+      const cp = columnsOf(pos);
+      const cols = cp !== null ? state.doc.nodeAt(cp) : null;
+      if (cp !== null && cols) editor.view.dispatch(state.tr.setNodeMarkup(cp, undefined, { ...cols.attrs, line: !cols.attrs.line }));
+    } else if (a === "uncols") {
       const cp = columnsOf(pos);
       if (cp !== null) unwrapColumns(cp);
     } else if (a === "unwrap") editor.chain().setTextSelection(pos + 2).lift(node.type.name).run();
@@ -910,6 +915,7 @@
         <button type="button" class="mi" onclick={() => { blockMenu = null; styleManager.tab = "callouts"; styleManager.open = true; }}><span class="ic">🎨</span>Edit callout and quote styles…</button>
       {/if}
       {#if blockMenu.cols !== null}
+        <button type="button" class="mi" role="menuitemcheckbox" aria-checked={blockMenu.line} onclick={() => blockAction("colline")}><span class="ic">{blockMenu.line ? "✓" : "│"}</span>Divider line between columns</button>
         <button type="button" class="mi" onclick={() => blockAction("uncols")}><span class="ic">▤</span>Remove columns (keep everything)</button>
       {/if}
       <button type="button" class="mi" onclick={() => blockAction("up")}><span class="ic">↑</span>Move up</button>

@@ -297,7 +297,8 @@ Markdown" view, the `<>` chip on the note header).
   along; dropping beside a block already in columns adds a column, max 4). Drag the gap between
   columns to resize, double-click it for equal widths. Backspace in an empty column removes it;
   a row left with one column turns back into plain blocks (`ColumnRules` plugin); ⠿ menu
-  "Remove columns (keep everything)". The block handle works for blocks inside columns
+  "Remove columns (keep everything)"; ⠿ menu "Divider line between columns" toggles a thin line
+  down each gap (attr `line`, `"line":true` in the mosaic-cols line; newspaper look, per row). The block handle works for blocks inside columns
   (`blockAt`); numbering, list cards and #tags are worked out per column. Narrow windows
   (< 640px) stack the columns. Node test: scratchpad `tstest/test15.ts`.
 - Saving on leave (bug found Nov 16: leaving a note within the 700 ms autosave lost the last

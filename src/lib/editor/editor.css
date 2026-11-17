@@ -652,6 +652,21 @@ button.dot[data-color] {
   opacity: 1;
   background: var(--lavender, #c9b8f0);
 }
+/* divider line (⠿ menu → Divider line): always shown, a little darker on hover / drag */
+.mosaic-doc .b-colsbox.lined .b-colgrip::after {
+  opacity: 1;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  left: 7.5px;
+  background: color-mix(in srgb, var(--text-muted) 35%, transparent);
+}
+.mosaic-doc .b-colsbox.lined .b-colgrip:hover::after,
+.mosaic-doc .b-colsbox.lined .b-colgrip.on::after {
+  width: 2px;
+  left: 7px;
+  background: var(--lavender, #c9b8f0);
+}
 /* a narrow window stacks the columns */
 @container (max-width: 640px) {
   .mosaic-doc .b-cols {

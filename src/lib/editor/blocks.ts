@@ -295,7 +295,8 @@ const Columns = Node.create({
   name: "columns",
   content: "column+",
   defining: true,
-  addAttributes: () => ({ w: hidden(null) }),
+  // line: a thin divider line down the middle of each gap (newspaper look)
+  addAttributes: () => ({ w: hidden(null), line: hidden(false) }),
   parseHTML: () => [{ tag: "div.b-cols" }],
   renderHTML: () => ["div", { class: "b-colsbox" }, ["div", { class: "b-cols" }, 0]],
   addNodeView() {
@@ -326,6 +327,7 @@ const Columns = Node.create({
       };
       const paint = () => {
         setTemplate(widths());
+        dom.classList.toggle("lined", !!cur.attrs.line);
         while (grips.children.length > cur.childCount - 1) grips.lastChild!.remove();
         while (grips.children.length < cur.childCount - 1) {
           const g = document.createElement("span");
