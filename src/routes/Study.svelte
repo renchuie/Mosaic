@@ -29,7 +29,7 @@
   const libItem = $derived(route.rest.startsWith("cards/library/") ? route.rest.slice("cards/library/".length) : null);
 </script>
 
-<div class="study" class:fill={notesPages}>
+<div class="study" class:fill={notesPages || !!scope}>
   {#if !scope && !notesPages}<StudyNav />{/if}
   {#if scope}
     {#key route.rest}<ReviewSession {scope} {cram} />{/key}

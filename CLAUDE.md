@@ -668,7 +668,12 @@ Recall Labs. Decisions she approved:
   jumps to the line (`notes.jump`), summary at the end. Nov 18 redesign (her "nothing small like RemNote", canvas board
   "Flashcards in review"): text sizes "C · Calm" (her pick Nov 18 on artifact "Flashcard text sizes": questions 25px, answers
   21px, 22 / 19 in narrow windows; `--qs` / `--as` on `.card`; lists and table values use the answer
-  size, labels 0.6 × answer, questions over ~90 characters 80%, one size for every card type), the card
+  size, labels 0.6 × answer, questions over ~90 characters 80%, one size for every card type). Layout (Nov 18, her ask): the review fills the panel (App `main.fit`,
+  Study `.fill`): progress bar pinned on top, rate buttons pinned at the bottom in one fixed 92px row
+  (Show answer is the same height, so nothing moves), and the card centred in `.stage` between them,
+  growing both ways (scrolls inside only if taller than the space). Settings → Appearance →
+  Flashcard review → Card text: Left (default) / Centred (`settings.cardAlign`, class `centred`;
+  list and row answers stay left-aligned inside a centred block), the card
   as wide as the review area (max 1000px); each card type has a colour (`--t`: → rose-deep,
   ⇄ lavender (`NoteCard.two` marks both cards of a ⇄ line, "1 of 2 / 2 of 2"), ← peach, cloze
   butter, list sage-deep, table link-ink, image rose, library lavender/rose mix) shown as a corner

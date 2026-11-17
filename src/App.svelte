@@ -26,12 +26,14 @@
   const notesPages = $derived(route.page === "study" && /^notes(\/|$)/.test(route.rest));
   const notePage = $derived(route.page === "study" && route.rest.startsWith("notes/"));
   const writing = $derived(ui.writing && notePage);
+  // the review screen fills the panel: progress on top, card centred, rating buttons at the bottom
+  const fit = $derived(route.page === "study" && /^cards\/(review|cram)/.test(route.rest));
 </script>
 
 <div class="shell" class:writing>
   {#if writing}<div class="redge" aria-hidden="true"></div><div class="tedge" aria-hidden="true"></div>{/if}
   <Sidebar />
-  <main class:flush={viewer || notesPages}>
+  <main class:flush={viewer || notesPages} class:fit>
     {#key pageKey}
     <div class="view" in:fly={arrive}>
     {#if route.page === "dashboard"}
@@ -86,6 +88,11 @@
   main.flush {
     padding: 0;
     overflow: hidden;
+  }
+  main.fit .view {
+    height: 100%;
+    min-height: 0;
+    grid-template-rows: minmax(0, 1fr);
   }
   main.flush .view {
     height: 100%;

@@ -13,6 +13,7 @@
   import OcclusionView from "../../lib/components/OcclusionView.svelte";
   import { allCards, cramQueue, cramReviewed, ensureIds, grade, LEARN_AHEAD, preview, queue, RATINGS, statusOf, undo, type CardRef, type Scope } from "../../lib/stores/srs.svelte";
   import { get } from "../../lib/stores/synced.svelte";
+  import { settings } from "../../lib/stores/settings.svelte";
   import type { SrsRec } from "../../lib/stores/srs.svelte";
 
   /** cram: go through every card in scope without changing the schedule */
@@ -170,7 +171,7 @@
   const course = $derived(current?.course ? courseByName(current.course) : undefined);
 </script>
 
-<div class="review" style={course ? `--c: ${course[1].color}` : ""}>
+<div class="review" class:centred={settings.cardAlign === "center"} style={course ? `--c: ${course[1].color}` : ""}>
   <header class="top">
     <a class="btn quiet sm" href="#/study/cards"><Icon name="back" size={15} /> Cards</a>
     <span class="scope">{label}</span>
@@ -183,8 +184,10 @@
   </header>
 
   {#if !ready}
-    <p class="muted center">Getting your cards ready…</p>
+    <div class="stage"><p class="muted center">Getting your cards ready…</p></div>
   {:else if current}
+    <!-- the card sits in the middle and grows both ways; the bars above and below never move -->
+    <div class="stage">
     {#key current.card.key}
     <article class="card" class:shown style="--t: {look.tone}" data-kind={current.card.kind}>
       <div class="head">
@@ -240,6 +243,7 @@
       </div>
     </article>
     {/key}
+    </div>
 
     <div class="actions">
       {#if !shown}
@@ -256,6 +260,7 @@
       <button type="button" class="undo" onclick={doUndo} disabled={!done}>Undo <kbd>Z</kbd></button>
     </div>
   {:else}
+    <div class="stage">
     <section class="card finished">
       <span class="big">🎉</span>
       <h2 class="display">{done ? "Session done" : "Nothing due here"}</h2>
@@ -266,6 +271,7 @@
       {/if}
       <a class="btn primary" href="#/study/cards">Back to cards</a>
     </section>
+    </div>
   {/if}
 </div>
 
@@ -274,11 +280,22 @@
      type (--t), the course and section on top, the answer under a labelled divider */
   .review {
     display: grid;
+    grid-template-rows: auto minmax(0, 1fr) auto;
+    height: 100%;
     gap: 20px;
     max-width: 1000px;
     width: 100%;
     margin: 0 auto;
     container-type: inline-size;
+  }
+  /* the middle: the card centred, scrolling inside only if it's taller than the space */
+  .stage {
+    display: grid;
+    align-content: center;
+    min-height: 0;
+    overflow-y: auto;
+    padding: 12px 4px 20px;
+    margin: -12px -4px -20px;
   }
   .top {
     display: flex;
@@ -341,7 +358,6 @@
     position: relative;
     display: grid;
     gap: 20px;
-    min-height: 270px; /* so Show answer and the rate buttons don't jump much */
     align-content: start;
     padding: 30px 40px 26px 44px;
     border-radius: 30px;
@@ -652,14 +668,16 @@
   .foot a:hover {
     text-decoration: underline;
   }
+  /* one fixed-height row for Show answer and the rate buttons, so nothing moves when it switches */
   .actions {
     display: grid;
+    grid-template-rows: 92px auto;
     justify-items: center;
     gap: 10px;
   }
   .show {
     width: 100%;
-    min-height: 62px;
+    height: 100%;
     border: 0;
     border-radius: 22px;
     background: linear-gradient(135deg, var(--primary, var(--text)), color-mix(in srgb, var(--primary, var(--text)) 75%, var(--lavender)));
@@ -688,12 +706,13 @@
     grid-template-columns: repeat(4, minmax(0, 1fr));
     gap: 14px;
     width: 100%;
+    height: 100%;
   }
   .rate {
     display: grid;
     justify-items: center;
     gap: 2px;
-    min-height: 84px;
+    align-content: center;
     padding: 10px;
     border: 0;
     border-radius: 22px;
@@ -743,6 +762,24 @@
   }
   .undo kbd {
     background: var(--chip);
+  }
+  /* Settings → Appearance → Flashcard review → Card text: Centred */
+  .review.centred .q,
+  .review.centred .a,
+  .review.centred .divider + .a {
+    text-align: center;
+  }
+  .review.centred .q :global(ul),
+  .review.centred .a :global(ul),
+  .review.centred .kv {
+    justify-content: center;
+    text-align: left;
+  }
+  .review.centred .mini {
+    margin-inline: auto;
+  }
+  .review.centred .path {
+    justify-content: center;
   }
   .finished {
     justify-items: center;

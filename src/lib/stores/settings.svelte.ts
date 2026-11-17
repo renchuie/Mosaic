@@ -28,6 +28,8 @@ export type Settings = {
   cardBg: boolean;
   arrowColor: string;
   clozeColor: string;
+  /** review screen: card text left-aligned (default) or centred */
+  cardAlign?: "left" | "center";
 };
 
 /** Arrow pill colours: [one way, both ways, card tint one way, card tint both ways].

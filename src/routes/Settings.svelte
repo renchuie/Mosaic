@@ -112,6 +112,14 @@
         {/each}
       </div>
     </div>
+    <h3 class="sub">Flashcard review</h3>
+    <div class="field">
+      <span class="label" id="calign-l">Card text</span>
+      <div class="seg" role="radiogroup" aria-labelledby="calign-l">
+        <button type="button" role="radio" aria-checked={settings.cardAlign !== "center"} class:on={settings.cardAlign !== "center"} onclick={() => saveSettings({ cardAlign: "left" })}>Left</button>
+        <button type="button" role="radio" aria-checked={settings.cardAlign === "center"} class:on={settings.cardAlign === "center"} onclick={() => saveSettings({ cardAlign: "center" })}>Centred</button>
+      </div>
+    </div>
     <h3 class="sub">Flashcards in notes</h3>
     <div class="field">
       <span class="label" id="cardbg-l">Card lines</span>
