@@ -519,6 +519,7 @@
     if ((e.target as HTMLElement).closest?.(".handle")) return;
     // on the way from a line to its handle (the strip just left of the line): keep it
     if (handle && handleFor && e.clientY >= handleFor.top - 4 && e.clientY <= handleFor.bottom + 4 && e.clientX < handleFor.left + 8 && e.clientX > handleFor.left - 64) return;
+    // (the stacked handle in a column sits 6–30px left of the text, inside that zone)
     const b = blockAt(e.clientX, e.clientY);
     if (!b) return;
     const wr = wrap.getBoundingClientRect();
@@ -527,7 +528,7 @@
     // a block in a column (other than the first) gets its handle just left of that column
     const inCol = columnsOf(b.pos) !== null && b.node.type.name !== "columns";
     const first = inCol && !(b.dom.closest(".b-col")?.previousElementSibling);
-    handle = { y: br.top - wr.top + Math.min(br.height, lh) / 2, pos: b.pos, h: br.height, x: inCol && !first ? br.left - wr.left - 52 : null };
+    handle = { y: br.top - wr.top + Math.min(br.height, lh) / 2, pos: b.pos, h: br.height, x: inCol && !first ? br.left - wr.left - 30 : null };
     handleFor = { left: br.left, top: br.top, bottom: br.top + Math.max(Math.min(br.height, lh), 26) };
   }
   let dragging = false;
@@ -898,7 +899,8 @@
 
   {#if sideDrop}<div class="sidedrop" style="left: {sideDrop.x}px; top: {sideDrop.y}px; height: {sideDrop.h}px" aria-hidden="true"></div>{/if}
   {#if handle && !blockMenu}
-    <div class="handle" style="top: {handle.y}px{handle.x !== null ? `; left: ${handle.x}px` : ''}">
+    <!-- in a column after the first, + and ⠿ stack so the handle fits in the gap (and clears the divider line) -->
+    <div class="handle" class:stack={handle.x !== null} style="top: {handle.y}px{handle.x !== null ? `; left: ${handle.x}px` : ''}">
       <button type="button" class="hb" title="Add a block below" aria-label="Add a block below" onmousedown={(e) => e.preventDefault()} onclick={plus}>+</button>
       <button type="button" class="hb grip" title="Drag to move · click for options" aria-label="Block options" draggable="true"
         ondragstart={dragStart} ondragend={() => { dragging = false; sideDrop = null; }} onclick={openBlockMenu}>⠿</button>
@@ -1049,6 +1051,13 @@
   }
   .bhost {
     min-height: 100%;
+  }
+  .handle.stack {
+    flex-direction: column;
+    gap: 0;
+  }
+  .handle.stack .hb {
+    height: 22px;
   }
   .sidedrop {
     position: absolute;
