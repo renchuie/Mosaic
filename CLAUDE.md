@@ -378,7 +378,9 @@ Markdown" view, the `<>` chip on the note header).
 - Print / save as PDF (Nov 18): note ⋯ → "Print or save as PDF…" calls `window.print()` (the GTK
   print dialog; "Print to File" gives a PDF). `src/styles/print.css` keeps only `.printroot` (the
   note's `.scroll`): everything that neither holds it nor sits inside it is hidden, the frames
-  around it lose height / overflow / glass, and handles, dots, menus, refs and empty chips go.
+  around it lose height / overflow / glass, and handles, dots, menus, refs, empty chips, the cover
+  buttons, the empty icon button, line hints and the caret go; callout titles print from a hidden
+  `.b-ctitle-print` span (the title input can't wrap).
   Columns and side by side keep their layout; folded parts stay folded. A dark theme prints as
   Mosaic (NotesView `printNote`, restored on `afterprint`). Checked with Playwright `page.pdf`.
 - Picking up where she left off (Nov 18, her ask): the open note is `ui.lastNote` (`setLastNote` in

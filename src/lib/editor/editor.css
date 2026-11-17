@@ -417,6 +417,9 @@ button.dot[data-color] {
 .mosaic-doc .b-ctitle:focus {
   outline: none;
 }
+.mosaic-doc .b-ctitle-print {
+  display: none;
+}
 .mosaic-doc .b-code,
 .mosaic-doc .b-raw {
   margin: 8px 0;

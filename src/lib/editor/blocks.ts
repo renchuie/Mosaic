@@ -135,7 +135,10 @@ const Callout = Node.create<{ onMenu: (pos: number, rect: DOMRect) => void }>({
       fold.type = "button";
       fold.className = "b-cfold";
       fold.setAttribute("aria-label", "Fold the callout");
-      head.append(badge, title, fold);
+      // the same title as plain text, shown only on paper (an input can't wrap onto a second line)
+      const ptitle = document.createElement("span");
+      ptitle.className = "b-ctitle-print";
+      head.append(badge, title, ptitle, fold);
       const body = document.createElement("div");
       body.className = "b-cbody";
       dom.append(head, body);
@@ -144,6 +147,7 @@ const Callout = Node.create<{ onMenu: (pos: number, rect: DOMRect) => void }>({
         dom.dataset.kind = kind;
         badge.dataset.label = kind.charAt(0).toUpperCase() + kind.slice(1).replace(/[-_]/g, " ");
         if (document.activeElement !== title) title.value = cur.attrs.title ?? "";
+        ptitle.textContent = cur.attrs.title ?? "";
         dom.dataset.fold = cur.attrs.fold === "-" ? "closed" : cur.attrs.fold === "+" ? "open" : "";
         fold.title = cur.attrs.fold === "-" ? "Unfold" : "Fold to the title";
         fold.setAttribute("aria-expanded", String(cur.attrs.fold !== "-"));
@@ -161,6 +165,7 @@ const Callout = Node.create<{ onMenu: (pos: number, rect: DOMRect) => void }>({
       });
       fold.addEventListener("mousedown", (e) => e.preventDefault());
       fold.addEventListener("click", () => set({ fold: cur.attrs.fold === "-" ? "+" : "-" }));
+      title.addEventListener("input", () => (ptitle.textContent = title.value));
       title.addEventListener("change", () => set({ title: title.value }));
       title.addEventListener("keydown", (e) => {
         if (e.key === "Enter" || e.key === "ArrowDown") {
