@@ -168,13 +168,17 @@
   {/if}
 
   <div class="inner">
+    {#if cover && icon}
+      <!-- with a cover the icon sits on the cover's edge, on its own line, and the title lines up below -->
+      <button type="button" class="icon over" title="Change icon" onclick={() => (pick = pick === "icon" ? null : "icon")}>{icon}</button>
+    {/if}
     {#if full}
       <div class="crumbs">{["Notes", ...(dirOf(rel) ? dirOf(rel).split("/") : [])].join(" › ")}</div>
     {/if}
     <div class="titlerow">
-      {#if icon}
-        <button type="button" class="icon" class:over={!!cover} title="Change icon" onclick={() => (pick = pick === "icon" ? null : "icon")}>{icon}</button>
-      {:else}
+      {#if icon && !cover}
+        <button type="button" class="icon" title="Change icon" onclick={() => (pick = pick === "icon" ? null : "icon")}>{icon}</button>
+      {:else if !icon}
         <button type="button" class="icon ghost" title="Add an icon" aria-label="Add an icon" onclick={() => (pick = "icon")}><Icon name="smile" size={18} /></button>
       {/if}
       <input class="title" bind:value={title} aria-label="Note title" title="{dirOf(rel) || 'Notes'} / {title}" spellcheck="false" onblur={onrename} onkeydown={(e) => e.key === "Enter" && e.currentTarget.blur()} />
@@ -309,8 +313,10 @@
     transform: rotate(-6deg) scale(1.06);
   }
   .icon.over {
-    align-self: flex-start;
-    margin-top: -36px;
+    position: relative;
+    z-index: 1;
+    justify-self: start;
+    margin: -46px 0 -2px;
   }
   .icon.ghost {
     position: absolute;
@@ -367,7 +373,7 @@
     font-size: 30px;
   }
   .full .icon.over {
-    margin-top: -46px;
+    margin: -56px 0 -2px;
   }
   .full .title {
     font-size: 30px;
@@ -609,7 +615,7 @@
     width: 340px;
   }
   .hascover .emoji {
-    top: 120px;
+    top: 96px;
   }
   .grid {
     display: grid;
