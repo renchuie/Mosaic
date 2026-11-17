@@ -342,6 +342,11 @@ Markdown" view, the `<>` chip on the note header).
   Steps are worked out at the first press and rebuilt on the current doc each time (autosave can
   tidy the doc in between). Ctrl+Shift+A always selects the whole note. Blocks in the right half get the handle 52px left of them; a click in a half's
   empty space writes at its end.
+- Pasting into a spot that can't hold every block (Nov 18, `fitPaste` / `pasteSpot` in BlockEditor):
+  in a table cell headings become text, quotes / callouts give their lines, a table gives one
+  "a · b" line per row, code gives a line per line, dividers / images are dropped (a pasted image
+  FILE goes in as an inline image); in a column, pasted columns / side by side open up into their
+  blocks. Plain text with `<!--mosaic-` lines counts as Markdown.
 - Card status dots (Nov 18): every card line (block with a `sid`) ends with a small dot from the
   decoration plugin (`.b-cstat s-<status>`, hover = tip): rose due, peach learning, lavender new,
   sage known well (interval ≥ 21 d), grey later / paused. NotesView works it out per line id from

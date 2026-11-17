@@ -267,10 +267,12 @@ Add things here as they come up (date, page, what happened). Each one is either 
   2. Concept and descriptor cards (RemNote style). **Done Nov 18** (option A: bold term + :::).
   3. Reverse card ← (`A <:: Q`). **Done Nov 18.**
   4. Images in the editor: test pass (paste, resize, under bullets, columns, halves, cells, drag).
+     **Done Nov 18** (an image pasted in a table cell now goes inline instead of breaking the table).
   5. Fold headings (collapse everything under a heading). **Done Nov 18.**
-  6. Card status in the note (dot per card line, hover = next due). DONE Nov 18
+  6. Card status in the note (dot per card line, hover = next due). **Done Nov 18.**
   7. Ctrl+K search everywhere (week 3 already).
-  8. Paste check into columns / halves / tables.
+  8. Paste check into columns / halves / tables. **Done Nov 18** (blocks pasted into a cell become
+     lines in that cell instead of splitting the table; columns pasted in a column open up).
   9. Print / export a note to PDF, keeping columns and side by side.
   10. Collapsible callouts (`> [!note]-`). **Done Nov 18.**
   11. Table flashcards fleshed out (her ask). **Done Nov 18** (▾ Flashcards menu: each cell / each

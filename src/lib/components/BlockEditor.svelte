@@ -335,6 +335,47 @@
     editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).updateAttributes("table", { cards: true }).run();
   }
   let fileInput: HTMLInputElement;
+  // ---- pasting into a place that can't hold every block ---------------------------------------
+  /** Where the cursor is, for reshaping pasted blocks. */
+  function pasteSpot(): "cell" | "column" | "half" | "top" {
+    const rf = editor!.state.selection.$from;
+    for (let d = rf.depth; d > 0; d--) {
+      const t = rf.node(d).type.name;
+      if (t === "tableCell" || t === "tableHeader") return "cell";
+      if (t === "column") return "column";
+      if (t === "pagecol") return "half";
+    }
+    return "top";
+  }
+  const CELL_OK = new Set(["paragraph", "bullet", "ordered", "todo"]);
+  /** Pasted blocks reshaped to fit the spot: a table cell holds only text and list lines (headings
+   *  become text, quotes and callouts give their lines, a table gives one line per row); a column
+   *  can't hold another row of columns and nothing holds a second side by side, so those give
+   *  their blocks in reading order. */
+  function fitPaste(nodes: JNode[], spot: ReturnType<typeof pasteSpot>): JNode[] {
+    const out: JNode[] = [];
+    for (const n of nodes) {
+      if (n.type === "pages" || (n.type === "columns" && (spot === "column" || spot === "cell"))) {
+        for (const part of n.content ?? []) out.push(...fitPaste(part.content ?? [], spot));
+      } else if (spot !== "cell") out.push(n);
+      else if (CELL_OK.has(n.type)) out.push({ ...n, attrs: { ...n.attrs, indent: 0 } });
+      else if (n.type === "heading") out.push({ type: "paragraph", content: n.content });
+      else if (n.type === "blockquote" || n.type === "callout") out.push(...fitPaste(n.content ?? [], spot));
+      else if (n.type === "table") {
+        for (const row of n.content ?? []) {
+          const parts = (row.content ?? []).map((c) => (c.content ?? []).flatMap((b) => b.content ?? [])).filter((p) => p.length);
+          if (parts.length) out.push({ type: "paragraph", content: parts.flatMap((p, i) => (i ? [{ type: "text", text: " · " }, ...p] : p)) });
+        }
+      } else if (n.content?.every((c) => c.type === "text")) {
+        // code and raw blocks: one line of text per line
+        const txt = n.content.map((c) => c.text ?? "").join("");
+        for (const line of txt.split("\n")) out.push(line ? { type: "paragraph", content: [{ type: "text", text: line }] } : { type: "paragraph" });
+      }
+      // dividers and images have no place in a cell
+    }
+    return out;
+  }
+
   function pickImage() {
     fileInput.value = "";
     fileInput.click();
@@ -352,6 +393,11 @@
   function putImage(src: string) {
     if (!editor) return;
     const { state } = editor;
+    // a table cell holds only lines of text: the picture goes into the line, inline
+    if (pasteSpot() === "cell") {
+      editor.chain().focus().insertContent({ type: "inlineImage", attrs: { src, alt: "" } }).run();
+      return;
+    }
     const rf = state.selection.$from;
     const node = rf.parent;
     const indent = node.attrs.indent ?? 0;
@@ -925,10 +971,11 @@
           if (/data-pm-slice/.test(html)) return false;
           let md = "";
           if (html && richHtml(html)) md = htmlToMd(html);
-          else if (/^(#{1,6}\s|[-*+]\s|\d+[.)]\s|>\s|\|.*\|)|\*\*|\[\[|\{\{|\s::\s|==\S|<mark\b/im.test(plain)) md = plain;
+          else if (/^(#{1,6}\s|[-*+]\s|\d+[.)]\s|>\s|\|.*\|)|\*\*|\[\[|\{\{|\s::\s|==\S|<mark\b|<!--\s*mosaic-/im.test(plain)) md = plain;
           if (!md) return false;
-          const doc = mdToDoc(md);
-          editor?.chain().focus().insertContent(doc.content ?? []).run();
+          const blocks = fitPaste(mdToDoc(md).content ?? [], pasteSpot());
+          if (!blocks.length) return false;
+          editor?.chain().focus().insertContent(blocks).run();
           return true;
         },
         clipboardTextSerializer: (slice) => {
