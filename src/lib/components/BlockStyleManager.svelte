@@ -3,7 +3,7 @@
   // icon, colour, order, hide (built-in) or delete (her own); quotes: bar colour, tint, italic.
   import { PALETTE } from "../calendar";
   import {
-    CALLOUT_ICONS, MAX_PALETTE, activePaletteId, blockStylesCss, calloutTypes, deleteCallout, deleteHlColor, deletePalette, hlColor, hlColors,
+    CALLOUT_ICONS, MAX_PALETTE, activePaletteId, themeHighlights, themeName, blockStylesCss, calloutTypes, deleteCallout, deleteHlColor, deletePalette, hlColor, hlColors,
     isBuiltinCallout, isBuiltinHl, isBuiltinPalette, moveCallout, palettes, quoteStyle, saveCallout, saveHlColor, savePalette, saveQuote,
     setActivePalette, styleManager, type CalloutType, type HlPalette,
   } from "../stores/blockStyles.svelte";
@@ -161,8 +161,18 @@
 
     <section>
       <h3>Palettes</h3>
-      <p class="muted small">The palette you use fills the highlight dots on the toolbars, in order, and the shortcuts <b>Ctrl+Shift+1…{MAX_PALETTE}</b> (<b>Ctrl+Shift+0</b> removes a highlight).</p>
+      <p class="muted small">Pick the set of highlighters you want on the toolbars. Its colours fill the highlight dots in order and the shortcuts <b>Ctrl+Shift+1…{MAX_PALETTE}</b> (<b>Ctrl+Shift+0</b> removes a highlight). The first one always matches your theme.</p>
       <ul>
+        <li>
+          <div class="pline">
+            <label class="use"><input type="radio" name="hl-palette" checked={activePaletteId() === "theme"} onchange={() => setActivePalette("theme")} /> <span class="sr">Use the {themeName()} highlighters</span></label>
+            <span class="pal fixed">
+              <span class="sw">{#each themeHighlights() as c}<i style="background: {hlColor(c)?.color ?? '#eee'}" title={hlColor(c)?.label}></i>{/each}</span>
+              <b>{themeName()} highlighters</b><small class="muted">matches your theme</small>
+            </span>
+            {#if activePaletteId() === "theme"}<span class="inuse">In use</span>{/if}
+          </div>
+        </li>
         {#each palettes() as [id, p] (id)}
           <li>
             <div class="pline">
@@ -529,6 +539,13 @@
     height: 1px;
     overflow: hidden;
     clip-path: inset(50%);
+  }
+  .pal.fixed {
+    cursor: default;
+    gap: 10px;
+  }
+  .pal.fixed small {
+    font-size: 12px;
   }
   .pal {
     display: flex;

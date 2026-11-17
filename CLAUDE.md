@@ -304,6 +304,12 @@ Markdown" view, the `<>` chip on the note header).
   record `hlActive`. The active palette fills the toolbar / selection-bar dots and Ctrl+Shift+1…9
   (`setPaletteSource` in blocks.ts); Ctrl+Shift+0 and the struck dot remove a highlight. In files:
   yellow = `==…==`, others `<mark class="word">`. Only hex colours reach the CSS.
+  Theme highlighters (Nov 18, her ask): every theme has its own six (`THEME_HL` in the store;
+  words `<theme>-<name>`, Mosaic's are the built-in words; Dark themes use their official
+  accents). Palette id `"theme"` (the default for `hlActive`) = the current theme's six; the
+  style manager lists only the current theme's set, first, as "<Theme> highlighters". They're code,
+  not synced records, and ALL themes' words stay in the generated CSS, so a highlight keeps its
+  colour after a theme switch. `hlColor()` falls back to them.
 - Tables (Nov 16): cells hold `(paragraph | bullet | ordered | todo)+`, written in the cell joined by
   `<br>` (`- item`, `1. item`, `- [ ] item`; `cellBlocks` / `cellMd` in mdDoc.ts), so table cards
   get list answers. Columns resize by dragging (Tiptap `resizable`, cell `colwidth`); cells take a
