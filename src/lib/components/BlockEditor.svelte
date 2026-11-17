@@ -106,7 +106,9 @@
     if (sel >= items.length) sel = 0;
   });
 
-  function detectMenu() {
+  /** Open / update the "/", [[ and # menus. A menu only OPENS while she types (clicking into an
+   *  existing #tag or link must not offer to replace it); moving the cursor keeps or closes it. */
+  function detectMenu(typed = true) {
     if (!editor) return;
     const { state, view } = editor;
     const { $from: rf, empty } = state.selection;
@@ -120,7 +122,11 @@
     else if ((m = /(?:^|\s)\/([\w -]{0,24})$/.exec(before)) && !/\s{2}|^\s/.test(m[1])) [kind, len, q] = ["slash", m[1].length + 1, m[1]];
     else if ((m = /(?:^|\s)#([\w/-]{1,30})$/.exec(before))) [kind, len, q] = ["tag", m[1].length, m[1]];
     if (!kind) return closeMenu();
+    // the cursor is in the middle of a word (e.g. inside "#high-yield"): no menu
+    const after = rf.parent.textBetween(rf.parentOffset, Math.min(rf.parent.content.size, rf.parentOffset + 1), undefined, "￼");
+    if (kind !== "link" && /[\w/-]/.test(after)) return closeMenu();
     const from = rf.pos - len;
+    if (!typed && !(menu && menu.kind === kind && menu.from === from)) return closeMenu();
     const c = view.coordsAtPos(from);
     const up = c.bottom + 320 > window.innerHeight;
     if (!menu || menu.kind !== kind || menu.from !== from) sel = 0;
@@ -741,7 +747,7 @@
         queueMicrotask(() => {
           if (closing || !editor || editor.isDestroyed) return;
           tick++;
-          detectMenu();
+          detectMenu(changed);
           placeBubble();
           if (changed) onchange();
         });
