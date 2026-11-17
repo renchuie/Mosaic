@@ -682,6 +682,11 @@ Recall Labs. Decisions she approved:
   sentence); list answers as big coloured bullets; big Again / Hard / Good / Easy buttons and a
   full-width "Show answer" bar; progress bar in the top row. The preview's sample notes include
   `Therapeutics IV/Bipolar.md` with one of each card type for trying it.
+- Scratchpad (Nov 18, her ask: she knows the concept but not the lecture's exact words, and
+  recalling out loud lags): "✎ Scratchpad" in the review top bar or Settings → Flashcard review
+  (`settings.cardScratch`). On: a textarea under the question (focused), Show answer stays
+  disabled until she writes something (Ctrl+Enter compares; "I don't know, show me" skips), then a
+  lavender "You wrote" box sits above the answer with "rate the idea, not the wording". Not saved.
 - List cards in review (Nov 18, her design on artifact "List Card Retry"): one numbered "?" per item
   and an "N items" pill; after Show answer each item is a button (or Shift + its number) to mark it
   missed. Any miss disables Good / Easy and suggests Hard (Again when over half were missed). The

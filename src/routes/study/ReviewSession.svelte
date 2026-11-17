@@ -13,7 +13,7 @@
   import OcclusionView from "../../lib/components/OcclusionView.svelte";
   import { allCards, cramQueue, cramReviewed, ensureIds, grade, LEARN_AHEAD, preview, queue, RATINGS, statusOf, undo, type CardRef, type Scope } from "../../lib/stores/srs.svelte";
   import { get } from "../../lib/stores/synced.svelte";
-  import { settings } from "../../lib/stores/settings.svelte";
+  import { settings, saveSettings } from "../../lib/stores/settings.svelte";
   import type { SrsRec } from "../../lib/stores/srs.svelte";
 
   /** cram: go through every card in scope without changing the schedule */
@@ -91,6 +91,7 @@
   /** Next card: one that's due now, else the soonest learning card (learn ahead). */
   function next() {
     shown = false;
+    scratch = "";
     missed = [];
     retryNow = null;
     const now = Date.now();
@@ -118,8 +119,20 @@
     intervals = current ? (cram ? { 1: "again soon", 2: "done", 3: "done", 4: "done" } : preview(k)) : {};
   }
 
-  function reveal() {
-    if (current && !shown) shown = true;
+  // ---- scratchpad (Nov 18, her ask): write what you remember first, then compare and rate
+  // yourself on the idea rather than the lecture's exact words. Not saved anywhere. ----
+  let scratch = $state("");
+  const scratchOn = $derived(!!settings.cardScratch);
+  const mustWrite = $derived(scratchOn && !scratch.trim());
+  function focusIt(el: HTMLTextAreaElement) {
+    requestAnimationFrame(() => el.focus());
+  }
+  function reveal(skip = false) {
+    if (!current || shown) return;
+    if (mustWrite && !skip) return;
+    if (skip && !scratch.trim()) scratch = "";
+    shown = true;
+    (document.activeElement as HTMLElement | null)?.blur?.();
   }
 
   function rate(g: number) {
@@ -256,6 +269,7 @@
     <a class="btn quiet sm" href="#/study/cards"><Icon name="back" size={15} /> Cards</a>
     <span class="scope">{label}</span>
     <span class="prog" aria-hidden="true"><i style="width: {progress}%"></i></span>
+    <button type="button" class="btn quiet sm scrbtn" class:on={scratchOn} aria-pressed={scratchOn} title="Scratchpad: write what you remember before the answer shows" onclick={() => saveSettings({ cardScratch: !scratchOn })}>✎ Scratchpad</button>
     <span class="left" aria-label="Cards left">
       <span class="n-new" title="New">{left.n}</span>
       <span class="n-learn" title="Learning">{left.l}</span>
@@ -331,6 +345,19 @@
           </p>
         {/if}
       {/if}
+      {#if scratchOn && !shown}
+        <div class="scratch">
+          <textarea use:focusIt bind:value={scratch} rows="3" placeholder="Write what you remember, in your own words…" aria-label="Your answer"
+            onkeydown={(e) => { if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) { e.preventDefault(); reveal(); } }}></textarea>
+          <div class="scrrow"><span>Ctrl+Enter to compare</span><button type="button" class="idk" onclick={() => reveal(true)}>I don't know, show me</button></div>
+        </div>
+      {:else if scratchOn && shown}
+        <div class="mine">
+          <span class="mlbl">You wrote</span>
+          {#if scratch.trim()}<p>{scratch.trim()}</p>{:else}<p class="none">Nothing: you chose "I don't know".</p>{/if}
+          <span class="mtip">Rate the idea, not the wording: got the concept → Good, part of it → Hard.</span>
+        </div>
+      {/if}
       {#if shown && !inPlace && !isList && !current.card.grid && current.card.back.trim()}
         <div class="divider">Answer</div>
         <div class="a" class:list={current.card.kind === "list" || /^\s*- /m.test(current.card.back)}>
@@ -353,7 +380,7 @@
 
     <div class="actions">
       {#if !shown}
-        <button type="button" class="show" onclick={reveal}>Show answer <kbd>Space</kbd></button>
+        <button type="button" class="show" disabled={mustWrite} onclick={() => reveal()}>{#if mustWrite}Write your answer first{:else}Show answer <kbd>{scratchOn ? "Ctrl+Enter" : "Space"}</kbd>{/if}</button>
       {:else if practice}
         <button type="button" class="show" onclick={cont}>Continue <kbd>Space</kbd></button>
       {:else}
@@ -876,6 +903,85 @@
   }
   .undo kbd {
     background: var(--chip);
+  }
+  /* scratchpad */
+  .scrbtn.on {
+    background: var(--text);
+    color: var(--surface);
+  }
+  .scratch {
+    display: grid;
+    gap: 6px;
+  }
+  .scratch textarea {
+    width: 100%;
+    box-sizing: border-box;
+    min-height: 96px;
+    padding: 14px 16px;
+    border: 0;
+    border-radius: 16px;
+    background: var(--field);
+    box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--lavender) 55%, transparent);
+    color: var(--text);
+    font: inherit;
+    font-size: calc(var(--as) * 0.86);
+    line-height: 1.45;
+    resize: vertical;
+  }
+  .scratch textarea:focus {
+    outline: none;
+    box-shadow: inset 0 0 0 2px var(--lavender);
+  }
+  .scrrow {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    font-size: 13px;
+    color: var(--text-muted);
+  }
+  .idk {
+    border: 0;
+    background: none;
+    padding: 0;
+    color: var(--link-ink);
+    font: inherit;
+    cursor: pointer;
+  }
+  .mine {
+    display: grid;
+    gap: 4px;
+    padding: 12px 16px;
+    border-radius: 16px;
+    background: color-mix(in srgb, var(--lavender) 14%, transparent);
+    text-align: left;
+  }
+  .mine p {
+    margin: 0;
+    font-size: calc(var(--as) * 0.86);
+    font-weight: 500;
+    line-height: 1.45;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+  }
+  .mine .none {
+    color: var(--text-muted);
+    font-style: italic;
+  }
+  .mlbl {
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: color-mix(in srgb, var(--lavender) 50%, var(--text));
+  }
+  .mtip {
+    font-size: 12.5px;
+    color: var(--text-muted);
+  }
+  .show:disabled {
+    opacity: 0.55;
+    cursor: default;
+    transform: none;
   }
   /* list cards: a numbered "?" per item; after Show answer each item is a button to mark it missed */
   .lcount {

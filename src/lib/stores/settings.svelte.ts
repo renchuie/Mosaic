@@ -30,6 +30,8 @@ export type Settings = {
   clozeColor: string;
   /** review screen: card text left-aligned (default) or centred */
   cardAlign?: "left" | "center";
+  /** review screen: write your answer in a scratchpad before the card can be turned over */
+  cardScratch?: boolean;
 };
 
 /** Arrow pill colours: [one way, both ways, card tint one way, card tint both ways].

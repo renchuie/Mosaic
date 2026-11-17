@@ -120,6 +120,13 @@
         <button type="button" role="radio" aria-checked={settings.cardAlign === "center"} class:on={settings.cardAlign === "center"} onclick={() => saveSettings({ cardAlign: "center" })}>Centred</button>
       </div>
     </div>
+    <div class="field">
+      <span class="label" id="cscratch-l">Scratchpad</span>
+      <div class="seg" role="radiogroup" aria-labelledby="cscratch-l">
+        <button type="button" role="radio" aria-checked={!settings.cardScratch} class:on={!settings.cardScratch} onclick={() => saveSettings({ cardScratch: false })}>Off</button>
+        <button type="button" role="radio" aria-checked={!!settings.cardScratch} class:on={!!settings.cardScratch} onclick={() => saveSettings({ cardScratch: true })}>Write before I see the answer</button>
+      </div>
+    </div>
     <h3 class="sub">Flashcards in notes</h3>
     <div class="field">
       <span class="label" id="cardbg-l">Card lines</span>
