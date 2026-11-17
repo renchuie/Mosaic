@@ -337,16 +337,41 @@ button.dot[data-color] {
   vertical-align: middle;
   border-radius: 4px;
 }
-/* a picture pasted into a table cell fills the cell's width instead of staying text-sized */
+/* a picture inside a line: text-sized in running text; in a table cell it starts at a moderate size
+   (at most the cell's width and 200px tall) and the corner grip sets its own width */
+.mosaic-doc .b-iimgbox {
+  position: relative;
+  display: inline-block;
+  vertical-align: middle;
+  max-width: 100%;
+}
+.mosaic-doc .b-iimgbox .b-iimg {
+  display: block;
+}
+.mosaic-doc td .b-iimgbox,
+.mosaic-doc th .b-iimgbox {
+  display: block;
+  width: fit-content;
+  margin: 4px 0;
+}
 .mosaic-doc td .b-iimg,
 .mosaic-doc th .b-iimg {
-  display: block;
-  width: 100%;
   max-width: 100%;
-  max-height: none;
+  max-height: 200px;
   height: auto;
-  margin: 4px 0;
   border-radius: 8px;
+}
+.mosaic-doc td .b-iimgbox.sized .b-iimg,
+.mosaic-doc th .b-iimgbox.sized .b-iimg {
+  width: 100%;
+  max-height: none;
+}
+.mosaic-doc .b-iimgbox .b-imggrip {
+  display: none;
+}
+.mosaic-doc td .b-iimgbox .b-imggrip,
+.mosaic-doc th .b-iimgbox .b-imggrip {
+  display: block;
 }
 .mosaic-doc .ProseMirror-selectednode.b-link,
 .mosaic-doc .ProseMirror-selectednode.b-arrow {
@@ -504,6 +529,7 @@ button.dot[data-color] {
   touch-action: none;
 }
 .mosaic-doc .b-img:hover .b-imggrip,
+.mosaic-doc .b-iimgbox:hover .b-imggrip,
 .mosaic-doc .ProseMirror-selectednode .b-imggrip {
   opacity: 1;
 }

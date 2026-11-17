@@ -772,9 +772,69 @@ const InlineImage = Node.create<{ imageUrl: (s: string) => string }>({
   inline: true,
   atom: true,
   addOptions: () => ({ imageUrl: (s: string) => s }),
-  addAttributes: () => ({ src: { default: "" }, alt: { default: "" } }),
+  addAttributes: () => ({ src: { default: "" }, alt: { default: "" }, width: { default: null, rendered: false } }),
   renderHTML({ node }) {
     return ["img", { class: "b-iimg", src: this.options.imageUrl(node.attrs.src), alt: node.attrs.alt }];
+  },
+  addNodeView() {
+    // a picture inside a line (mostly table cells, Nov 18): a corner grip resizes it (saved as
+    // ![|width](src)), double-click the grip to fit the cell
+    return ({ node, getPos, editor }) => {
+      let cur = node;
+      const dom = document.createElement("span");
+      dom.className = "b-iimgbox";
+      dom.contentEditable = "false";
+      const img = document.createElement("img");
+      img.className = "b-iimg";
+      const grip = document.createElement("span");
+      grip.className = "b-imggrip";
+      grip.title = "Drag to resize · double-click to fit";
+      dom.append(img, grip);
+      const paint = () => {
+        img.src = this.options.imageUrl(cur.attrs.src);
+        img.alt = cur.attrs.alt ?? "";
+        dom.style.width = cur.attrs.width ? `${cur.attrs.width}px` : "";
+        dom.classList.toggle("sized", !!cur.attrs.width);
+      };
+      paint();
+      const set = (attrs: Record<string, unknown>) => {
+        const pos = typeof getPos === "function" ? getPos() : undefined;
+        if (pos !== undefined) editor.view.dispatch(editor.state.tr.setNodeMarkup(pos, undefined, { ...cur.attrs, ...attrs }));
+      };
+      grip.addEventListener("pointerdown", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const startX = e.clientX;
+        const startW = dom.getBoundingClientRect().width;
+        const max = (dom.closest("td, th, p, li") as HTMLElement | null)?.getBoundingClientRect().width ?? 2000;
+        grip.setPointerCapture(e.pointerId);
+        const move = (ev: PointerEvent) => {
+          dom.style.width = `${Math.round(Math.max(40, Math.min(max, startW + ev.clientX - startX)))}px`;
+          dom.classList.add("sized");
+        };
+        const up = () => {
+          grip.removeEventListener("pointermove", move);
+          set({ width: Math.round(dom.getBoundingClientRect().width) });
+        };
+        grip.addEventListener("pointermove", move);
+        grip.addEventListener("pointerup", up, { once: true });
+      });
+      grip.addEventListener("dblclick", (e) => {
+        e.preventDefault();
+        set({ width: null });
+      });
+      return {
+        dom,
+        update: (n: PMNode) => {
+          if (n.type !== cur.type) return false;
+          cur = n;
+          paint();
+          return true;
+        },
+        stopEvent: (e: Event) => grip.contains(e.target as HTMLElement),
+        ignoreMutation: () => true,
+      };
+    };
   },
 });
 

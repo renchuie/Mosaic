@@ -376,7 +376,7 @@ Markdown" view, the `<>` chip on the note header).
 - Pasting into a spot that can't hold every block (Nov 18, `fitPaste` / `pasteSpot` in BlockEditor):
   in a table cell headings become text, quotes / callouts give their lines, a table gives one
   "a · b" line per row, code gives a line per line, dividers / images are dropped (a pasted image
-  FILE goes in as an inline image, shown at the cell's full width); in a column, pasted columns / side by side open up into their
+  FILE goes in as an inline image: in a cell it starts at most the cell's width and 200px tall, and its corner grip resizes it, saved as `![|width](src)` like block images, double-click the grip to fit); in a column, pasted columns / side by side open up into their
   blocks. Plain text with `<!--mosaic-` lines counts as Markdown.
 - Print / save as PDF (Nov 18): note ⋯ → "Print or save as PDF…" calls `window.print()` (the GTK
   print dialog; "Print to File" gives a PDF). `src/styles/print.css` keeps only `.printroot` (the

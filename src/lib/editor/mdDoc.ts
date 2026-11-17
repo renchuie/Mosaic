@@ -118,7 +118,8 @@ export function parseInline(s: string, marks: PMMark[] = [], ctx: Ctx = { arrow:
     }
     if (c === "!" && (m = /^!\[([^\]\n]*)\]\(([^)\s]+)\)/.exec(rest))) {
       flush();
-      out.push(withMarks({ type: "inlineImage", attrs: { src: m[2], alt: m[1] } }, marks));
+      const wm = /^(.*)\|(\d{2,4})$/.exec(m[1]);
+      out.push(withMarks({ type: "inlineImage", attrs: { src: m[2], alt: wm ? wm[1] : m[1], width: wm ? Number(wm[2]) : null } }, marks));
       i += m[0].length;
       continue;
     }
@@ -266,7 +267,7 @@ export function serializeInline(nodes: PMNode[] = [], cell = false): string {
       const sep = n.attrs?.desc ? ";;" : n.attrs?.back ? "<::" : n.attrs?.two ? ":::" : "::";
       body = idx === nodesMerged.length - 1 ? ` ${sep}` : ` ${sep} `;
     }
-    else if (n.type === "inlineImage") body = `![${n.attrs?.alt ?? ""}](${n.attrs?.src ?? ""})`;
+    else if (n.type === "inlineImage") body = imageMd(n.attrs);
     else if (n.type === "hardBreak") body = "<br>";
     let k = 0;
     while (k < stack.length && k < want.length && sameMark(stack[k].m, want[k])) k++;
