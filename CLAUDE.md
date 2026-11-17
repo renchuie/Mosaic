@@ -342,6 +342,12 @@ Markdown" view, the `<>` chip on the note header).
   Steps are worked out at the first press and rebuilt on the current doc each time (autosave can
   tidy the doc in between). Ctrl+Shift+A always selects the whole note. Blocks in the right half get the handle 52px left of them; a click in a half's
   empty space writes at its end.
+- Folding (Nov 18): a ▾ after a heading (shown on hover) folds everything under it up to the next
+  heading of the same or a higher level, in the same page / half / column; folded it shows
+  "▸ N hidden". A view setting, never in the file: `mosaicFolding` plugin in blocks.ts, keys
+  `level|text|nth`, remembered per note per machine in localStorage "mosaic.folds" (BlockEditor
+  prop `foldKey` = the note's path). Callouts fold with the ⌄ in their header: attr `fold`, saved
+  as Obsidian's `[!kind]-` (folded) / `[!kind]+` (foldable, open).
 - Nov 18 fixes: the ⠿ menu opens beside the handle that opened it (`blockMenu.x`); the selection
   toolbar slides to stay on the page near an edge; flashcard bullets / numbers line up with plain
   ones (`--cpl`, the left part of the card inset, is 0 for `.b-bullet` / `.b-ordered`).

@@ -16,6 +16,8 @@ export type EditorOpts = {
   imageUrl: (src: string) => string;
   onOpenLink: (target: string) => void;
   onOpenUrl: (href: string) => void;
+  /** remembers which headings are folded (per note, per machine); none = not remembered */
+  foldKey?: string;
 };
 
 export const FLOW = ["paragraph", "bullet", "ordered", "todo"];
@@ -123,7 +125,12 @@ const Callout = Node.create<{ onMenu: (pos: number, rect: DOMRect) => void }>({
       title.className = "b-ctitle";
       title.placeholder = "Title";
       title.setAttribute("aria-label", "Callout title");
-      head.append(badge, title);
+      // fold (Nov 18): ⌄ collapses the callout to its title; saved as [!kind]- (Obsidian's folding)
+      const fold = document.createElement("button");
+      fold.type = "button";
+      fold.className = "b-cfold";
+      fold.setAttribute("aria-label", "Fold the callout");
+      head.append(badge, title, fold);
       const body = document.createElement("div");
       body.className = "b-cbody";
       dom.append(head, body);
@@ -132,6 +139,9 @@ const Callout = Node.create<{ onMenu: (pos: number, rect: DOMRect) => void }>({
         dom.dataset.kind = kind;
         badge.dataset.label = kind.charAt(0).toUpperCase() + kind.slice(1).replace(/[-_]/g, " ");
         if (document.activeElement !== title) title.value = cur.attrs.title ?? "";
+        dom.dataset.fold = cur.attrs.fold === "-" ? "closed" : cur.attrs.fold === "+" ? "open" : "";
+        fold.title = cur.attrs.fold === "-" ? "Unfold" : "Fold to the title";
+        fold.setAttribute("aria-expanded", String(cur.attrs.fold !== "-"));
       };
       paint();
       const set = (attrs: Record<string, unknown>) => {
@@ -144,6 +154,8 @@ const Callout = Node.create<{ onMenu: (pos: number, rect: DOMRect) => void }>({
         const pos = typeof getPos === "function" ? getPos() : undefined;
         if (pos !== undefined) this.options.onMenu(pos, badge.getBoundingClientRect());
       });
+      fold.addEventListener("mousedown", (e) => e.preventDefault());
+      fold.addEventListener("click", () => set({ fold: cur.attrs.fold === "-" ? "+" : "-" }));
       title.addEventListener("change", () => set({ title: title.value }));
       title.addEventListener("keydown", (e) => {
         if (e.key === "Enter" || e.key === "ArrowDown") {
@@ -1135,6 +1147,128 @@ function decorations(doc: PMNode): DecorationSet {
   return DecorationSet.create(doc, out);
 }
 
+// ---- folding headings (Nov 18) ------------------------------------------------------------
+// A ▾ at the end of a heading folds everything under it (up to the next heading of the same or a
+// higher level, in the same page / half / column). It's a view setting, not part of the file:
+// remembered per note and per machine in localStorage "mosaic.folds".
+const foldKey = new PluginKey<Set<string>>("mosaicFold");
+const FOLDS_LS = "mosaic.folds";
+function readFolds(k?: string): Set<string> {
+  if (!k) return new Set();
+  try {
+    return new Set((JSON.parse(localStorage.getItem(FOLDS_LS) ?? "{}")[k] ?? []) as string[]);
+  } catch {
+    return new Set();
+  }
+}
+function saveFolds(k: string | undefined, s: Set<string>) {
+  if (!k) return;
+  try {
+    const all = JSON.parse(localStorage.getItem(FOLDS_LS) ?? "{}");
+    if (s.size) all[k] = [...s];
+    else delete all[k];
+    localStorage.setItem(FOLDS_LS, JSON.stringify(all));
+  } catch {}
+}
+function foldDecorations(doc: PMNode, folded: Set<string>): DecorationSet {
+  const out: Decoration[] = [];
+  const seen = new Map<string, number>();
+  const walk = (parent: PMNode, start: number) => {
+    let pos = start;
+    let hideAbove = 0; // while > 0: blocks are under a folded heading of this level
+    const hidden: { from: number; to: number }[] = [];
+    let open: { key: string; at: number; level: number; count: number; folded: boolean } | null = null;
+    const finish = () => {
+      if (!open) return;
+      const o = open;
+      out.push(
+        Decoration.widget(o.at, () => {
+          const b = document.createElement("button");
+          b.type = "button";
+          b.className = "b-fold" + (o.folded ? " on" : "");
+          b.dataset.fold = o.key;
+          b.textContent = o.folded ? `▸ ${o.count} hidden` : "▾";
+          b.title = o.folded ? "Unfold" : "Fold everything under this heading";
+          b.contentEditable = "false";
+          return b;
+        }, { side: 1, key: `${o.key}:${o.folded}:${o.count}`, ignoreSelection: true }),
+      );
+    };
+    parent.forEach((node) => {
+      const name = node.type.name;
+      if (name === "heading") {
+        const level = Number(node.attrs.level ?? 1);
+        if (hideAbove && level <= hideAbove) hideAbove = 0;
+        if (open && level <= open.level) {
+          finish();
+          open = null;
+        }
+        if (!hideAbove) {
+          if (open) finish();
+          const base = `${level}|${node.textContent.trim()}`;
+          const n = seen.get(base) ?? 0;
+          seen.set(base, n + 1);
+          const key = `${base}|${n}`;
+          open = { key, at: pos + node.nodeSize - 1, level, count: 0, folded: folded.has(key) };
+          if (open.folded) hideAbove = level;
+          pos += node.nodeSize;
+          return;
+        }
+      }
+      if (open) open.count++;
+      if (hideAbove) hidden.push({ from: pos, to: pos + node.nodeSize });
+      else if (name === "columns" || name === "pages") {
+        let cp = pos + 1;
+        node.forEach((col) => {
+          walk(col, cp + 1);
+          cp += col.nodeSize;
+        });
+      }
+      pos += node.nodeSize;
+    });
+    finish();
+    for (const h of hidden) out.push(Decoration.node(h.from, h.to, { class: "b-folded" }));
+  };
+  walk(doc, 0);
+  return DecorationSet.create(doc, out);
+}
+function folding(opts: EditorOpts) {
+  return Extension.create({
+    name: "mosaicFolding",
+    addProseMirrorPlugins() {
+      return [
+        new Plugin<Set<string>>({
+          key: foldKey,
+          state: {
+            init: () => readFolds(opts.foldKey),
+            apply: (tr, prev) => {
+              const t = tr.getMeta(foldKey) as string | undefined;
+              if (!t) return prev;
+              const next = new Set(prev);
+              if (next.has(t)) next.delete(t);
+              else next.add(t);
+              saveFolds(opts.foldKey, next);
+              return next;
+            },
+          },
+          props: {
+            decorations: (state) => foldDecorations(state.doc, foldKey.getState(state) ?? new Set()),
+            handleDOMEvents: {
+              mousedown: (view, e) => {
+                const b = (e.target as HTMLElement).closest?.<HTMLElement>(".b-fold");
+                if (!b) return false;
+                e.preventDefault();
+                view.dispatch(view.state.tr.setMeta(foldKey, b.dataset.fold));
+                return true;
+              },
+            },
+          },
+        }),
+      ];
+    },
+  });
+}
+
 function behaviour(opts: EditorOpts) {
   return Extension.create({
     name: "mosaicBehaviour",
@@ -1204,7 +1338,7 @@ export function mosaicExtensions(opts: EditorOpts) {
     Image.configure({ imageUrl: opts.imageUrl }), Columns, Column, ColumnRules, Pages, PageHalf, MTable, TableRow, MHeader, MCell,
     Wikilink, Arrow, InlineImage.configure({ imageUrl: opts.imageUrl }), HardBreak,
     Bold, Italic, Strike, Code, Highlight, Link, Cloze,
-    Hidden, Shortcuts, behaviour(opts),
+    Hidden, Shortcuts, behaviour(opts), folding(opts),
     UndoRedo, Dropcursor.configure({ color: "var(--lavender, #c9b8f0)", width: 3 }), Gapcursor,
     Placeholder.configure({
       showOnlyCurrent: true,

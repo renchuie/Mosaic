@@ -812,3 +812,68 @@ button.dot[data-color] {
   opacity: 0.8;
   pointer-events: none;
 }
+
+/* ---- folding (Nov 18) ---- */
+.mosaic-doc .b-folded {
+  display: none !important;
+}
+/* the ▾ after a heading: shows on hover; "▸ N hidden" stays while folded */
+.mosaic-doc .b-fold {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 0.5em;
+  padding: 0 0.45em;
+  border: 0;
+  border-radius: 999px;
+  background: none;
+  font: inherit;
+  font-size: 0.55em;
+  font-weight: 600;
+  line-height: 1.8;
+  color: var(--text-muted);
+  vertical-align: middle;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.15s, background 0.15s;
+  user-select: none;
+}
+.mosaic-doc .b-h:hover .b-fold,
+.mosaic-doc .b-fold:focus-visible {
+  opacity: 1;
+}
+.mosaic-doc .b-fold:hover {
+  background: var(--chip);
+  color: var(--text);
+}
+.mosaic-doc .b-fold.on {
+  opacity: 1;
+  background: var(--chip);
+}
+/* callout fold button and the folded callout */
+.mosaic-doc .b-cfold {
+  margin-left: auto;
+  width: 26px;
+  height: 26px;
+  border: 0;
+  border-radius: 8px;
+  background: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.15s, transform 0.2s var(--spring, ease);
+}
+.mosaic-doc .b-cfold::before {
+  content: "⌄";
+  font-size: 18px;
+  line-height: 1;
+}
+.mosaic-doc .b-callout:hover .b-cfold,
+.mosaic-doc .b-callout[data-fold="closed"] .b-cfold {
+  opacity: 1;
+}
+.mosaic-doc .b-callout[data-fold="closed"] .b-cfold {
+  transform: rotate(-90deg);
+}
+.mosaic-doc .b-callout[data-fold="closed"] .b-cbody {
+  display: none;
+}

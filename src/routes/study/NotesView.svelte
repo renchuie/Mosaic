@@ -483,7 +483,7 @@
                     linkNames={() => allNotes().map(linkName)} tagNames={allTags}
                     imageUrl={(src) => imageUrl(rel!, src)} onpasteimage={(d, ext) => savePastedImage(rel!, d, ext)} />
                 {:else}
-                  <BlockEditor bind:this={blocks} value={body} onchange={changed} onopenlink={openLink} onfocuschange={setTyping} onleave={leaveFor(loadedRel!)}
+                  <BlockEditor bind:this={blocks} value={body} onchange={changed} onopenlink={openLink} onfocuschange={setTyping} onleave={leaveFor(loadedRel!)} foldKey={loadedRel ?? undefined}
                     linkNames={() => allNotes().map(linkName)} tagNames={allTags}
                     imageUrl={(src) => imageUrl(rel!, src)} onpasteimage={(d, ext) => savePastedImage(rel!, d, ext)} />
                 {/if}

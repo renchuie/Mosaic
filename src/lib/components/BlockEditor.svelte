@@ -29,6 +29,7 @@
     onpasteimage,
     onfocuschange,
     onleave,
+    foldKey,
   }: {
     value: string;
     onchange: () => void;
@@ -41,6 +42,8 @@
     onfocuschange?: (typing: boolean) => void;
     /** called with the note's Markdown when the editor closes with changes not yet asked for */
     onleave?: (md: string) => void;
+    /** remembers folded headings under this key (the note's path) */
+    foldKey?: string;
   } = $props();
 
   let host: HTMLDivElement;
@@ -836,6 +839,7 @@
           calloutMenu = { pos, x: rect.left - w.left, y: rect.bottom - w.top + 6 };
         },
         onOpenUrl: (h) => window.open(h, "_blank"),
+        foldKey,
       }),
       content: mdToDoc(value),
       editorProps: {
