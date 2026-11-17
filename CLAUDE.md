@@ -347,6 +347,12 @@ Markdown" view, the `<>` chip on the note header).
   "a · b" line per row, code gives a line per line, dividers / images are dropped (a pasted image
   FILE goes in as an inline image); in a column, pasted columns / side by side open up into their
   blocks. Plain text with `<!--mosaic-` lines counts as Markdown.
+- Print / save as PDF (Nov 18): note ⋯ → "Print or save as PDF…" calls `window.print()` (the GTK
+  print dialog; "Print to File" gives a PDF). `src/styles/print.css` keeps only `.printroot` (the
+  note's `.scroll`): everything that neither holds it nor sits inside it is hidden, the frames
+  around it lose height / overflow / glass, and handles, dots, menus, refs and empty chips go.
+  Columns and side by side keep their layout; folded parts stay folded. A dark theme prints as
+  Mosaic (NotesView `printNote`, restored on `afterprint`). Checked with Playwright `page.pdf`.
 - Card status dots (Nov 18): every card line (block with a `sid`) ends with a small dot from the
   decoration plugin (`.b-cstat s-<status>`, hover = tip): rose due, peach learning, lavender new,
   sage known well (interval ≥ 21 d), grey later / paused. NotesView works it out per line id from

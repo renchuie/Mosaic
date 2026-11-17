@@ -1,0 +1,28 @@
+/* Printing a note (⋯ → Print or save as PDF): only the open note's sheet goes to paper. Everything
+   that neither holds the sheet nor sits inside it is hidden; the frames around it lose their
+   heights, scrolling and glass so the note flows over as many pages as it needs. Columns and
+   side by side keep their layout. NotesView switches a dark theme to Mosaic while printing. */
+@media print {
+  @page { margin: 14mm 12mm; }
+  html, body { background: #fff !important; height: auto !important; overflow: visible !important; }
+  body :not(:has(.printroot)):not(.printroot):not(.printroot *) { display: none !important; }
+  body :has(.printroot) {
+    display: block !important; position: static !important; overflow: visible !important;
+    height: auto !important; min-height: 0 !important; max-height: none !important; width: auto !important;
+    margin: 0 !important; padding: 0 !important; border: 0 !important; background: none !important;
+    box-shadow: none !important; backdrop-filter: none !important; -webkit-backdrop-filter: none !important;
+    transform: none !important; animation: none !important;
+  }
+  .printroot { overflow: visible !important; height: auto !important; padding: 0 !important; }
+  .printroot, .printroot * { print-color-adjust: exact; -webkit-print-color-adjust: exact; animation: none !important; transition: none !important; }
+  .printroot .refs, .printroot .handle, .printroot .b-cstat, .printroot .cellbox, .printroot .bubble,
+  .printroot .tbar, .printroot .cbar, .printroot .menu, .printroot .pop, .printroot .chip.more,
+  .printroot .chip.add, .printroot .b-fold, .printroot .b-colgrips { display: none !important; }
+  .printroot .chip:has(input.empty), .printroot .chip.tag button, .printroot .chev,
+  .printroot .chip.tagin { display: none !important; }
+  .printroot td.cc::before { content: none !important; }
+  .printroot .mosaic-doc, .printroot .nh { max-width: none !important; width: auto !important; }
+  .printroot tr, .printroot figure, .printroot .b-callout, .printroot pre, .printroot h1, .printroot h2,
+  .printroot h3, .printroot h4 { break-inside: avoid; }
+  .printroot h1, .printroot h2, .printroot h3, .printroot h4 { break-after: avoid; }
+}

@@ -395,6 +395,23 @@
     else typingTimer = window.setTimeout(() => (typing = false), 150);
   }
 
+  // ---- print / save as PDF: print.css keeps only this sheet; a dark theme prints as Mosaic -----
+  async function printNote() {
+    await flush(true);
+    const root = document.documentElement;
+    const prev = { theme: root.dataset.theme, family: root.dataset.family };
+    if (prev.family === "dark") {
+      root.dataset.theme = "mosaic";
+      root.dataset.family = "glass";
+    }
+    const back = () => {
+      if (prev.theme) root.dataset.theme = prev.theme;
+      if (prev.family) root.dataset.family = prev.family;
+    };
+    window.addEventListener("afterprint", back, { once: true });
+    window.print();
+  }
+
   // ---- linked references -------------------------------------------------------------------------
   let showMentions = $state(false);
   const mentions = $derived.by(() => {
@@ -501,12 +518,12 @@
           {#if ((typing && (!panels.fullHead || headHidden)) || panels.tools) && !source}
             <div class="floatbar"><NoteToolbar floating onrun={(c, a) => blocks?.run(c, a)} /></div>
           {/if}
-          <div class="scroll" bind:this={scrollEl} onscroll={checkHead}>
+          <div class="scroll printroot" bind:this={scrollEl} onscroll={checkHead}>
             <NoteHead {rel} {meta} bind:title {status} {errorText} {source} {dirs}
               coverUrl={(s) => imageUrl(rel!, s)}
               onmeta={setMeta} onrename={doRename} onmove={doMove} ondelete={doDelete} ontoggleSource={toggleSource}
               full={panels.fullHead} onheadstyle={(f) => (panels.fullHead = f)} onrun={(c, a) => blocks?.run(c, a)}
-              oncoverfile={coverFile} ontheirs={takeTheirs} onmine={() => flush(true)} />
+              oncoverfile={coverFile} ontheirs={takeTheirs} onmine={() => flush(true)} onprint={printNote} />
             <div class="edwrap" class:src={source}>
               {#key `${loadedRel}#${version}`}
                 {#if source}

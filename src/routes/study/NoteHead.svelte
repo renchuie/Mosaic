@@ -44,8 +44,10 @@
     oncoverfile,
     ontheirs,
     onmine,
+    onprint,
   }: {
     rel: string;
+    onprint?: () => void;
     meta: Meta;
     title: string;
     status: "saved" | "saving" | "conflict" | "error";
@@ -146,6 +148,7 @@
             {:else}
               <button type="button" class="mi" onclick={() => { onmeta({ cover: "lilac" }); pick = null; }}>Add a cover</button>
             {/if}
+            {#if onprint}<button type="button" class="mi" onclick={() => { pick = null; onprint(); }}>Print or save as PDF…</button>{/if}
             {#if confirmDel}
               <button type="button" class="mi del" onclick={ondelete}>Move to trash (.trash in the Notes folder)</button>
             {:else}

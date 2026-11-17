@@ -273,7 +273,8 @@ Add things here as they come up (date, page, what happened). Each one is either 
   7. Ctrl+K search everywhere (week 3 already).
   8. Paste check into columns / halves / tables. **Done Nov 18** (blocks pasted into a cell become
      lines in that cell instead of splitting the table; columns pasted in a column open up).
-  9. Print / export a note to PDF, keeping columns and side by side.
+  9. Print / export a note to PDF, keeping columns and side by side. **Done Nov 18** (⋯ → Print or
+     save as PDF; the system print dialog's "Print to File" makes the PDF).
   10. Collapsible callouts (`> [!note]-`). **Done Nov 18.**
   11. Table flashcards fleshed out (her ask). **Done Nov 18** (▾ Flashcards menu: each cell / each
       row / cloze rows, → ⇄ ←, skip columns, key column).

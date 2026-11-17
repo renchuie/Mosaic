@@ -4,6 +4,7 @@ import "@fontsource/atkinson-hyperlegible-next/latin-600.css";
 import "@fontsource/atkinson-hyperlegible-next/latin-700.css";
 import "./styles/tokens.css";
 import "./styles/base.css";
+import "./styles/print.css";
 import { mount } from "svelte";
 import App from "./App.svelte";
 import { loadSettings } from "./lib/stores/settings.svelte";
