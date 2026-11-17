@@ -201,7 +201,8 @@ Markdown" view, the `<>` chip on the note header).
   Enter keeps the block type (empty list line steps out), Enter at a line start adds a line
   above (the card id stays with the text), Tab / Shift-Tab indent, Backspace at the start turns a
   block back into text. Menus: `/` blocks, `[[` notes (or "New note"), `#` tags; selection
-  toolbar (marks, colours, Cloze, Card →, [[ ]], web link); block handle (+ and ⠿: drag to move,
+  toolbar (marks, colours, → card, ⇄ two-way card, { } cloze, the same icons as the main toolbar;
+  [[ ]], web link); block handle (+ and ⠿: drag to move,
   click for turn into / move / duplicate / delete); table bar (rows, columns, Flashcards toggle).
   Paste: images saved to attachments, rich HTML via `htmlToMd`, Markdown-looking text parsed;
   copying gives Markdown text. Svelte rejects `$`-prefixed locals: name ProseMirror `$from` `rf`.
@@ -259,7 +260,8 @@ Markdown" view, the `<>` chip on the note header).
   course chip is a Mosaic menu (no native select); `NoteToolbar.svelte` is the floating bar at the
   bottom (since Nov 17 the only place it shows; see "Roomier layout").
 - List-card arrows (an arrow ending a line whose next line is indented deeper) get class `list`
-  from the decoration plugin and show a right-then-down arrow icon (the arrow node renders both SVGs; CSS picks).
+  from the decoration plugin and show a right-then-down arrow icon (the arrow node renders both SVGs; CSS picks). The arrow pill centres itself on the line from `--lh` (the
+  line height as a number, set with each line-height in editor.css), not a font baseline nudge.
   Cloze pairing bar (`.cbar`, cursor in a cloze on a line with 2+ clozes): Own card / existing
   group numbers / + new group, sets the cloze `n` (`{{cN::…}}`); numbered clozes show a badge.
   Card line tints follow the arrow colour (`ARROW_COLOURS` entries 3–4 → `--card-bg`, `--card-bg2`
@@ -330,7 +332,8 @@ Markdown" view, the `<>` chip on the note header).
   text. Joining is a deliberate ⠿ menu item on a block in a half, "Join halves into one page"
   (left, then right). NotesView puts `data-width` on `.npage`; editor.css shows two halves with a
   line down the middle only under `[data-width="full"]:not([data-split="stacked"])`, stacked
-  (with a line between) otherwise. The halves themselves get no block handle. Blocks in the right half get the handle 52px left of them; a click in a half's
+  (with a line between) otherwise. The halves themselves get no block handle. Ctrl+A inside a half selects that half (a second Ctrl+A,
+  or Ctrl+Shift+A, selects the whole note; keymap in `ColumnRules`). Blocks in the right half get the handle 52px left of them; a click in a half's
   empty space writes at its end.
 - Nov 18 fixes: the ⠿ menu opens beside the handle that opened it (`blockMenu.x`); the selection
   toolbar slides to stay on the page near an edge; flashcard bullets / numbers line up with plain

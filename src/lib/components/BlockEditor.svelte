@@ -459,7 +459,7 @@
     bubble = { x: Math.max(8, Math.min((a.left + b.left) / 2 - r.left, r.width - 8)), y: Math.min(a.top, b.top) - r.top };
   }
   const active = (m: string, attrs?: Record<string, unknown>) => (void tick, editor?.isActive(m, attrs) ?? false);
-  function makeCard() {
+  function makeCard(two = false) {
     if (!editor) return;
     const { state } = editor;
     const { from, to, $from: rf } = state.selection;
@@ -467,7 +467,7 @@
     const at = rf.parentOffset === 0 ? to : from;
     let start = at;
     while (start > rf.start() && /\s/.test(state.doc.textBetween(start - 1, start))) start--;
-    editor.chain().focus().insertContentAt({ from: start, to: at }, { type: "arrow", attrs: { two: false } }).run();
+    editor.chain().focus().insertContentAt({ from: start, to: at }, { type: "arrow", attrs: { two } }).run();
   }
   function noteLink() {
     if (!editor) return;
@@ -1090,8 +1090,10 @@
           <button type="button" class="pal" title="Highlight colours and palettes" aria-label="Highlight colours and palettes" onclick={() => { styleManager.tab = "highlights"; styleManager.open = true; }}>🎨</button>
         </span>
         <span class="sep"></span>
-        <button type="button" class="study" class:on={active("cloze")} title="Hide this part (cloze card)" onclick={() => run("mark", "cloze")}>Cloze</button>
-        <button type="button" class="study" title="Make a flashcard: question → this answer" onclick={makeCard}>Card →</button>
+        <!-- the same icons as the main toolbar: → card, ⇄ two-way card, { } cloze -->
+        <button type="button" class="study" title="Flashcard: question → this answer" aria-label="Make a flashcard" onclick={() => makeCard()}>→</button>
+        <button type="button" class="study" title="Two-way flashcard: question ⇄ this answer" aria-label="Make a two-way flashcard" onclick={() => makeCard(true)}>⇄</button>
+        <button type="button" class="study" class:on={active("cloze")} title="Cloze: hide this part" aria-label="Cloze" onclick={() => run("mark", "cloze")}>{"{ }"}</button>
         <span class="sep"></span>
         <button type="button" title="Link to a note with this name" onclick={noteLink}>[[ ]]</button>
         <button type="button" class:on={active("link")} title="Web link" onclick={() => (linkInput = editor?.getAttributes("link").href ?? "")}>🔗</button>

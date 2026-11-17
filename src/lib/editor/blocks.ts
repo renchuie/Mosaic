@@ -3,7 +3,7 @@
 // level), headings, quotes, callouts, code, tables, images and dividers; inline: bold, italic,
 // strike, code, highlight colours, links, cloze, [[note links]] and the flashcard arrow.
 import { Extension, InputRule, Mark, Node, getMarkRange, markInputRule, mergeAttributes, textblockTypeInputRule, type Editor } from "@tiptap/core";
-import { Plugin, PluginKey, Selection, TextSelection, type EditorState, type Transaction } from "@tiptap/pm/state";
+import { AllSelection, Plugin, PluginKey, Selection, TextSelection, type EditorState, type Transaction } from "@tiptap/pm/state";
 import { Decoration, DecorationSet, type EditorView } from "@tiptap/pm/view";
 import type { Mark as PMMark, Node as PMNode, NodeType } from "@tiptap/pm/model";
 import { Table, TableCell, TableHeader, TableRow } from "@tiptap/extension-table";
@@ -464,6 +464,28 @@ const ColumnRules = Extension.create({
   },
   addKeyboardShortcuts() {
     return {
+      // side by side: Ctrl+A selects the half the cursor is in, Ctrl+Shift+A the whole note
+      "Mod-a": ({ editor }) => {
+        const rf = editor.state.selection.$from;
+        for (let d = rf.depth; d > 0; d--) {
+          if (rf.node(d).type.name !== "pagecol") continue;
+          const doc = editor.state.doc;
+          const start = Selection.atStart(rf.node(d));
+          const end = Selection.atEnd(rf.node(d));
+          const base = rf.start(d);
+          const from = TextSelection.near(doc.resolve(base + start.from), 1);
+          const to = TextSelection.near(doc.resolve(base + end.to), -1);
+          // already the whole half selected: a second Ctrl+A takes the whole note
+          if (editor.state.selection.from === from.from && editor.state.selection.to === to.to) return false;
+          editor.view.dispatch(editor.state.tr.setSelection(TextSelection.create(doc, from.from, to.to)));
+          return true;
+        }
+        return false;
+      },
+      "Mod-Shift-a": ({ editor }) => {
+        editor.view.dispatch(editor.state.tr.setSelection(new AllSelection(editor.state.doc)));
+        return true;
+      },
       // Enter on an empty last line of a column steps out of the columns: a full-width line below
       // the row (like Enter on an empty bullet steps out of a list)
       Enter: ({ editor }) => {
