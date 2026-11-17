@@ -1,7 +1,10 @@
 # Mosaic (formerly Study Desk)
 
-**Mosaic: your student life in full view.** Personal app for Jazmine (pharmacy student), for her
-own use only. Desktop app for Arch Linux + Hyprland
+**Mosaic: your student life in full view.** Personal app for Jazmine (pharmacy student). Built for
+her own use until v1.0; during spring semester 2027 she'll share it with friends on **Windows**,
+once the Study tab and the Planner are complete (plan: `ROADMAP.md` "Sharing with friends"). So:
+don't hard-code her personal data as defaults in new code, keep paths and file opening
+cross-platform where it's cheap, and keep the app light on laptops. Desktop app for Arch Linux + Hyprland
 (Wayland, end-4 illogical-impulse dotfiles). Must install identically on her PC (AMD GPU) and
 laptop (NVIDIA GPU) through `./install.sh`.
 

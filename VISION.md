@@ -90,8 +90,10 @@ but connect like Obsidian (links, backlinks, tags, properties, mind map), stored
 
 ## Decisions (Nov 16)
 
-- **Just for her.** Mosaic is for her own use, not a product for other students. Goal: usable
-  every day before spring semester starts (v1.0 on Dec 31, as in `ROADMAP.md`).
+- **For her first, then her friends.** v1.0 is for her own use: usable every day before spring
+  semester starts (Dec 31, as in `ROADMAP.md`). Updated Nov 17: during the spring semester she'll
+  share it with friends, who use Windows, once the Study tab and the Planner are fully fleshed out.
+  It stays a personal app (no accounts, no cloud, no teams), just installable by others.
 - **No notes import.** She won't bring her Google Docs in as notes; she puts PDFs into folders
   and builds her knowledge base from there.
 - **Dates entered by hand.** Exams and assignments come from syllabi and Canvas, and she prefers

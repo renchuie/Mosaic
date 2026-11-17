@@ -1,6 +1,7 @@
 # Mosaic roadmap: to a usable v1.0 by December 31, 2026
 
-Mosaic is just for her; v1.0 = usable every day before spring semester starts. The bigger
+v1.0 is still just for her: usable every day before spring semester starts. Sharing with
+friends (on Windows) comes after, during the spring semester (see "Sharing with friends" below). The bigger
 vision in `VISION.md` (custom homepage, databases, notes editor without Markdown symbols,
 personal side) is planned after v1.0 unless a piece fits a week below.
 
@@ -183,6 +184,27 @@ the next starts. Placement in the weeks above is a proposal (see "Proposed place
 - More course modules from the week 5 list.
 - Statistics: study time per course, card retention over the term.
 
+## Sharing with friends (spring semester 2027, after Study and the Planner are fully fleshed out)
+
+Decided Nov 17: her friends use Windows, and she wants the Study tab and the Planner (Tasks +
+Calendar) complete before anyone else uses it. In this order:
+
+1. **First-run setup, no personal data built in.** A welcome flow asks name, notes / PDF /
+   materials folders and courses; nothing of hers is seeded (her Fall 2026 courses, Ther IV exam
+   dates and Drive layout become her own data, not defaults). Features shaped around her habits
+   (Recall Labs) are optional.
+2. **Windows builds.** GitHub Actions builds a Windows installer (Tauri bundler, `.msi` / `.exe`)
+   on a Windows runner and runs the automated checks there. Replace Linux-only bits: `xdg-open`
+   → Tauri's opener, folder defaults, Windows paths (Google Drive for desktop is e.g.
+   `G:\My Drive`). The NVIDIA launcher flag and Hyprland rules stay Linux-only. Windows uses
+   WebView2 (Edge's engine).
+3. **Auto-updates** through Tauri's updater and GitHub Releases, so friends never pull code.
+4. **A friend tests on Windows** before it is shared widely. Unsigned at first (friends click
+   "More info → Run anyway"); a code-signing certificate is a later, paid decision.
+
+Also before sharing: the performance pass and a "Battery saver" switch (solid panels instead of
+blur, fewer animations, slower background sync; on automatically when the laptop is unplugged).
+
 ## Found this week
 
 Add things here as they come up (date, page, what happened). Each one is either fixed now
@@ -231,3 +253,6 @@ Add things here as they come up (date, page, what happened). Each one is either 
   four were built now (the note page is daily use).
 - Nov 17 · She asked to split a note into columns; picked Notion-style **column blocks** over a
   whole-note newspaper layout. Built now (`/2 columns`, drag beside, resize), files stay Markdown.
+- Nov 17 · She'll share Mosaic with friends next semester; they're all on Windows. Planned as its
+  own track ("Sharing with friends"), after the Study tab and the Planner are complete. Also
+  wants it fast and light on laptops: performance pass + Battery saver switch, logged there too.
