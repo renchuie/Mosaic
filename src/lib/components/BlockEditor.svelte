@@ -11,7 +11,7 @@
   import { NodeSelection, TextSelection } from "@tiptap/pm/state";
   import { getMarkRange } from "@tiptap/core";
   import type { Node as PMNode } from "@tiptap/pm/model";
-  import { mosaicExtensions, setPaletteSource, FLOW } from "../editor/blocks";
+  import { mosaicExtensions, setPaletteSource, FLOW, MAX_COLUMNS } from "../editor/blocks";
   import { activePalette, hlColor, hlColors, styleManager, visibleCallouts } from "../stores/blockStyles.svelte";
   setPaletteSource(activePalette);
   import { docToMd, mdToDoc, type PMNode as JNode } from "../editor/mdDoc";
@@ -64,6 +64,8 @@
     { id: "quote", label: "Quote", icon: "❝", group: "Basic", keys: ">", run: () => editor?.chain().focus().wrapIn("blockquote").run() },
     { id: "table", label: "Table", icon: "▦", group: "Basic", run: () => editor?.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run() },
     { id: "hr", label: "Divider", icon: "―", group: "Basic", keys: "---", run: () => insertAfter({ type: "hr" }) },
+    { id: "cols2", label: "2 columns", icon: "▥", group: "Basic", hint: "or drag a block beside another", run: () => insertColumns(2) },
+    { id: "cols3", label: "3 columns", icon: "▥▥", group: "Basic", run: () => insertColumns(3) },
     { id: "code", label: "Code", icon: "</>", group: "Basic", keys: "```", run: () => editor?.chain().focus().setNode("codeBlock").run() },
     { id: "image", label: "Image", icon: "▣", group: "Basic", hint: "or paste one", run: () => pickImage() },
     { id: "link", label: "Link to a note", icon: "↗", group: "Basic", keys: "[[", run: () => editor?.chain().focus().insertContent("[[").run() },
@@ -84,7 +86,8 @@
     if (!menu) return [];
     const q = menu.q.toLowerCase();
     if (menu.kind === "slash") {
-      const hits = slashItems().filter((i) => !q || i.label.toLowerCase().includes(q) || i.id.startsWith(q) || (i.group ?? "").toLowerCase().startsWith(q));
+      const inCol = inColumn();
+      const hits = slashItems().filter((i) => !(inCol && i.id.startsWith("cols"))).filter((i) => !q || i.label.toLowerCase().includes(q) || i.id.startsWith(q) || (i.group ?? "").toLowerCase().startsWith(q));
       // names that start with what she typed come first ("list" → List flashcard before Bullet list)
       if (q) hits.sort((a, b) => Number(!a.label.toLowerCase().startsWith(q)) - Number(!b.label.toLowerCase().startsWith(q)));
       return hits.slice(0, 30);
@@ -168,6 +171,133 @@
     if (node.isTextblock && !node.content.size && node.type.name === "paragraph") editor.chain().focus().insertContentAt({ from: pos, to: pos + node.nodeSize }, [json, { type: "paragraph" }]).run();
     else editor.chain().focus().insertContentAt(rf.after(rf.depth), [json, { type: "paragraph" }]).run();
   }
+  // ---- columns ---------------------------------------------------------------------------------
+  /** Is the cursor inside a column? (columns can't go inside columns) */
+  function inColumn(): boolean {
+    const rf = editor?.state.selection.$from;
+    if (!rf) return false;
+    for (let d = rf.depth; d > 0; d--) if (rf.node(d).type.name === "column") return true;
+    return false;
+  }
+  /** "/2 columns": empty columns where the empty line was (or after the current line). */
+  function insertColumns(n: number) {
+    if (!editor || inColumn()) return;
+    const { $from: rf } = editor.state.selection;
+    const top = rf.before(1);
+    const node = editor.state.doc.nodeAt(top);
+    if (!node) return;
+    const json = { type: "columns", content: Array.from({ length: n }, () => ({ type: "column", content: [{ type: "paragraph" }] })) };
+    const empty = node.type.name === "paragraph" && !node.content.size;
+    const at = empty ? top : top + node.nodeSize;
+    const chain = editor.chain().focus();
+    if (empty) chain.insertContentAt({ from: top, to: top + node.nodeSize }, json);
+    else chain.insertContentAt(at, json);
+    chain.setTextSelection(at + 3).run();
+  }
+  /** Take the blocks out of their columns, one column after the other. */
+  function unwrapColumns(pos: number) {
+    if (!editor) return;
+    const node = editor.state.doc.nodeAt(pos);
+    if (node?.type.name !== "columns") return;
+    const kids: PMNode[] = [];
+    node.forEach((col) => col.forEach((b) => kids.push(b)));
+    editor.view.dispatch(editor.state.tr.replaceWith(pos, pos + node.nodeSize, kids));
+  }
+  /** The columns node a block at `pos` sits in (null for a top-level block). */
+  function columnsOf(pos: number): number | null {
+    if (!editor) return null;
+    const rp = editor.state.doc.resolve(pos);
+    for (let d = rp.depth; d > 0; d--) if (rp.node(d).type.name === "columns") return rp.before(d);
+    return editor.state.doc.nodeAt(pos)?.type.name === "columns" ? pos : null;
+  }
+
+  // dragging a block next to another one makes columns (a bar shows where it will go)
+  let sideDrop = $state<{ x: number; y: number; h: number } | null>(null);
+  type Side = { pos: number; side: "left" | "right" };
+  function sideTarget(e: DragEvent): Side | null {
+    if (!editor) return null;
+    const b = blockAt(e.clientX, e.clientY);
+    if (!b || b.node.type.name === "columns") return null;
+    const r = b.dom.getBoundingClientRect();
+    const side = e.clientX > r.right - 70 ? "right" : e.clientX < r.left + 14 ? "left" : null;
+    if (!side) return null;
+    const sel = editor.state.selection;
+    if (sel instanceof NodeSelection && sel.from === b.pos) return null; // onto itself
+    const cp = columnsOf(b.pos);
+    if (cp !== null) {
+      const cols = editor.state.doc.nodeAt(cp);
+      const fromSame = sel instanceof NodeSelection && columnsOf(sel.from) === cp;
+      if (cols && cols.childCount >= MAX_COLUMNS && !fromSame) return null;
+    }
+    return { pos: b.pos, side };
+  }
+  $effect(() => {
+    // hide the usual line-between-blocks marker while a drop would make columns
+    document.documentElement.classList.toggle("mosaic-sidedrop", !!sideDrop);
+  });
+  function showSide(e: DragEvent) {
+    const t = sideTarget(e);
+    if (!t || !editor) return (sideDrop = null);
+    const dom = editor.view.nodeDOM(t.pos) as HTMLElement | null;
+    if (!dom) return (sideDrop = null);
+    const r = dom.getBoundingClientRect();
+    const wr = wrap.getBoundingClientRect();
+    sideDrop = { x: (t.side === "right" ? r.right + 6 : r.left - 8) - wr.left, y: r.top - wr.top, h: r.height };
+  }
+  /** A block plus the lines indented under it, moved up so the first one has no indent. */
+  function withChildren(doc: PMNode, pos: number): { nodes: PMNode[]; end: number } {
+    const node = doc.nodeAt(pos)!;
+    const nodes: PMNode[] = [node];
+    let end = pos + node.nodeSize;
+    if (!("indent" in node.attrs)) return { nodes, end };
+    const base = Number(node.attrs.indent ?? 0);
+    const rp = doc.resolve(pos);
+    for (let k = rp.index() + 1; k < rp.parent.childCount; k++) {
+      const c = rp.parent.child(k);
+      if (!("indent" in c.attrs) || Number(c.attrs.indent ?? 0) <= base) break;
+      nodes.push(c);
+      end += c.nodeSize;
+    }
+    return { nodes: nodes.map((c) => ("indent" in c.attrs ? c.type.create({ ...c.attrs, indent: Math.max(0, Number(c.attrs.indent ?? 0) - base) }, c.content, c.marks) : c)), end };
+  }
+  /** Drop beside a block: put both in columns (or add a column to the columns it is in). */
+  function dropBeside(e: DragEvent): boolean {
+    sideDrop = null;
+    const t = sideTarget(e);
+    if (!t || !editor) return false;
+    const sel = editor.state.selection;
+    if (!(sel instanceof NodeSelection)) return false;
+    // the dragged line takes the lines indented under it along (like Notion)
+    const { nodes: lifted, end } = withChildren(editor.state.doc, sel.from);
+    // don't drop a block onto one of its own indented lines
+    if (t.pos > sel.from && t.pos < end) return false;
+    const schema = editor.schema;
+    const tr = editor.state.tr.delete(sel.from, end);
+    const tp = tr.mapping.map(t.pos);
+    const target = tr.doc.nodeAt(tp);
+    if (!target) return false;
+    const rp = tr.doc.resolve(tp);
+    const col = rp.depth >= 2 && rp.node(rp.depth).type.name === "column" ? rp.depth : -1;
+    const newCol = schema.nodes.column.create(null, lifted);
+    if (col < 0) {
+      // the target keeps its indented lines too
+      const group = withChildren(tr.doc, tp);
+      const a = schema.nodes.column.create(null, group.nodes);
+      tr.replaceWith(tp, group.end, schema.nodes.columns.create(null, t.side === "right" ? [a, newCol] : [newCol, a]));
+    } else {
+      const colPos = rp.before(col);
+      const colNode = rp.node(col);
+      const colsPos = rp.before(col - 1);
+      tr.insert(t.side === "right" ? colPos + colNode.nodeSize : colPos, newCol);
+      tr.setNodeMarkup(colsPos, undefined, { ...tr.doc.nodeAt(colsPos)!.attrs, w: null });
+    }
+    e.preventDefault();
+    editor.view.dispatch(tr.scrollIntoView());
+    editor.view.dragging = null;
+    dragging = false;
+    return true;
+  }
+
   function insertCloze() {
     if (!editor) return;
     const { empty } = editor.state.selection;
@@ -334,22 +464,42 @@
   }
 
   // ---- block handle ------------------------------------------------------------------------
-  let handle = $state<{ y: number; pos: number; h: number } | null>(null);
-  let blockMenu = $state<{ pos: number; y: number; type: string; clozes: number; together: boolean } | null>(null);
-  function topBlockAt(y: number): { pos: number; dom: HTMLElement; node: PMNode } | null {
+  let handle = $state<{ y: number; pos: number; h: number; x: number | null } | null>(null);
+  let blockMenu = $state<{ pos: number; y: number; type: string; clozes: number; together: boolean; cols: number | null } | null>(null);
+  /** The block under the mouse: a top-level block, or a block inside a column. */
+  function blockAt(x: number, y: number): { pos: number; dom: HTMLElement; node: PMNode } | null {
     if (!editor) return null;
     const view = editor.view;
     const r = view.dom.getBoundingClientRect();
     const pad = parseFloat(getComputedStyle(view.dom).paddingLeft) || 0;
-    const hit = view.posAtCoords({ left: r.left + pad + 12, top: y });
+    const hit = view.posAtCoords({ left: Math.max(r.left + pad + 12, Math.min(x, r.right - pad - 12)), top: y });
     if (!hit) return null;
-    const rp = view.state.doc.resolve(hit.inside >= 0 ? hit.inside : hit.pos);
+    const at = hit.inside >= 0 ? hit.inside : hit.pos;
+    const rp = view.state.doc.resolve(at);
     let pos: number;
     if (rp.depth === 0) {
-      const n = view.state.doc.nodeAt(hit.inside >= 0 ? hit.inside : hit.pos);
+      const n = view.state.doc.nodeAt(at);
       if (!n) return null;
-      pos = hit.inside >= 0 ? hit.inside : hit.pos;
-    } else pos = rp.before(1);
+      pos = at;
+      // between the blocks of a column row: the block at the inside position, if it's in a column
+      if (n.type.name === "columns" && hit.inside >= 0 && hit.pos !== at) {
+        const inner = view.state.doc.resolve(hit.pos);
+        for (let d = inner.depth; d > 0; d--) if (inner.node(d - 1).type.name === "column") pos = inner.before(d);
+      }
+    } else {
+      pos = rp.before(1);
+      for (let d = rp.depth; d > 0; d--) {
+        if (rp.node(d - 1).type.name === "column") {
+          pos = rp.before(d);
+          break;
+        }
+      }
+      // inside a column itself (not in one of its blocks)
+      if (rp.node(rp.depth).type.name === "column" && rp.depth >= 2) {
+        const n = view.state.doc.nodeAt(at);
+        if (n && n.type.name !== "column") pos = at;
+      }
+    }
     const node = view.state.doc.nodeAt(pos);
     const dom = view.nodeDOM(pos) as HTMLElement | null;
     if (!node || !dom || !(dom instanceof HTMLElement)) return null;
@@ -357,12 +507,15 @@
   }
   function onMove(e: MouseEvent) {
     if (blockMenu || dragging) return;
-    const b = topBlockAt(e.clientY);
+    const b = blockAt(e.clientX, e.clientY);
     if (!b) return;
     const wr = wrap.getBoundingClientRect();
     const br = b.dom.getBoundingClientRect();
     const lh = parseFloat(getComputedStyle(b.dom).lineHeight) || 26;
-    handle = { y: br.top - wr.top + Math.min(br.height, lh) / 2, pos: b.pos, h: br.height };
+    // a block in a column (other than the first) gets its handle just left of that column
+    const inCol = columnsOf(b.pos) !== null && b.node.type.name !== "columns";
+    const first = inCol && !(b.dom.closest(".b-col")?.previousElementSibling);
+    handle = { y: br.top - wr.top + Math.min(br.height, lh) / 2, pos: b.pos, h: br.height, x: inCol && !first ? br.left - wr.left - 52 : null };
   }
   let dragging = false;
   function dragStart(e: DragEvent) {
@@ -393,7 +546,7 @@
     const node = editor.state.doc.nodeAt(handle.pos);
     if (!node) return;
     const rs = clozeRanges(handle.pos);
-    blockMenu = { pos: handle.pos, y: handle.y, type: node.type.name, clozes: rs.length, together: rs.length > 1 && rs.every((r) => r.n !== null && r.n === rs[0].n) };
+    blockMenu = { pos: handle.pos, y: handle.y, type: node.type.name, clozes: rs.length, together: rs.length > 1 && rs.every((r) => r.n !== null && r.n === rs[0].n), cols: columnsOf(handle.pos) };
   }
   function blockAction(a: string) {
     if (!editor || !blockMenu) return;
@@ -419,7 +572,10 @@
         editor.view.dispatch(tr);
       }
     } else if (a === "cards") editor.view.dispatch(state.tr.setNodeMarkup(pos, undefined, { ...node.attrs, cards: !node.attrs.cards }));
-    else if (a === "unwrap") editor.chain().setTextSelection(pos + 2).lift(node.type.name).run();
+    else if (a === "uncols") {
+      const cp = columnsOf(pos);
+      if (cp !== null) unwrapColumns(cp);
+    } else if (a === "unwrap") editor.chain().setTextSelection(pos + 2).lift(node.type.name).run();
     else if (a === "source") addSource(pos);
     else if (a.startsWith("to:")) {
       const [, type, lvl] = a.split(":");
@@ -522,6 +678,13 @@
       content: mdToDoc(value),
       editorProps: {
         attributes: { class: "mosaic-doc", spellcheck: "true" },
+        handleDrop: (_v, e, _slice, moved) => moved && dropBeside(e as DragEvent),
+        handleDOMEvents: {
+          dragover: (_v, e) => {
+            showSide(e as DragEvent);
+            return false;
+          },
+        },
         handleKeyDown: (_v, e) => {
           if (blockMenu && e.key === "Escape") {
             blockMenu = null;
@@ -703,11 +866,12 @@
 <div class="bwrap" bind:this={wrap} onmousemove={onMove} onmousedown={(e) => { if ((e.target as HTMLElement).closest(".mosaic-doc")) mouseDown = true; }} onmouseleave={() => !blockMenu && (handle = null)}>
   <div class="bhost" bind:this={host}></div>
 
+  {#if sideDrop}<div class="sidedrop" style="left: {sideDrop.x}px; top: {sideDrop.y}px; height: {sideDrop.h}px" aria-hidden="true"></div>{/if}
   {#if handle && !blockMenu}
-    <div class="handle" style="top: {handle.y}px">
+    <div class="handle" style="top: {handle.y}px{handle.x !== null ? `; left: ${handle.x}px` : ''}">
       <button type="button" class="hb" title="Add a block below" aria-label="Add a block below" onmousedown={(e) => e.preventDefault()} onclick={plus}>+</button>
       <button type="button" class="hb grip" title="Drag to move · click for options" aria-label="Block options" draggable="true"
-        ondragstart={dragStart} ondragend={() => (dragging = false)} onclick={openBlockMenu}>⠿</button>
+        ondragstart={dragStart} ondragend={() => { dragging = false; sideDrop = null; }} onclick={openBlockMenu}>⠿</button>
     </div>
   {/if}
 
@@ -738,6 +902,9 @@
       {#if blockMenu.type === "blockquote" || blockMenu.type === "callout"}
         <button type="button" class="mi" onclick={() => blockAction("unwrap")}><span class="ic">¶</span>Back to plain text</button>
         <button type="button" class="mi" onclick={() => { blockMenu = null; styleManager.tab = "callouts"; styleManager.open = true; }}><span class="ic">🎨</span>Edit callout and quote styles…</button>
+      {/if}
+      {#if blockMenu.cols !== null}
+        <button type="button" class="mi" onclick={() => blockAction("uncols")}><span class="ic">▤</span>Remove columns (keep everything)</button>
       {/if}
       <button type="button" class="mi" onclick={() => blockAction("up")}><span class="ic">↑</span>Move up</button>
       <button type="button" class="mi" onclick={() => blockAction("down")}><span class="ic">↓</span>Move down</button>
@@ -851,6 +1018,19 @@
   }
   .bhost {
     min-height: 100%;
+  }
+  .sidedrop {
+    position: absolute;
+    z-index: 4;
+    width: 4px;
+    margin-left: -2px;
+    border-radius: 4px;
+    background: var(--lavender, #c9b8f0);
+    box-shadow: 0 0 10px color-mix(in srgb, var(--lavender, #c9b8f0) 80%, transparent);
+    pointer-events: none;
+  }
+  :global(html.mosaic-sidedrop .prosemirror-dropcursor-block) {
+    display: none;
   }
   .handle {
     position: absolute;

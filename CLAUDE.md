@@ -279,6 +279,20 @@ Markdown" view, the `<>` chip on the note header).
   `<!--mosaic-table {"w":[160,null],"bg":{"row,col":"rose"}}-->` (`TABLE_META`; cards.ts skips it
   when reading `:: table`). Table bar: rows / columns, 🎨 Colour (applies to all selected cells),
   ↔ Auto widths, Flashcards. Enter inside a cell adds a line (Tab moves to the next cell).
+- Columns (Nov 17, Notion-style column blocks): nodes `columns` (attr `w` = widths in percent,
+  null = equal; only at the top level: doc content is `(block | columns)+`) and `column`
+  (`block+`, isolating). In the file: `<!--mosaic-cols {"w":[60,40]}-->`, `<!--mosaic-col-->`
+  between columns, `<!--/mosaic-cols-->` (blank lines around each; `COLS_OPEN` / `COL_SEP` /
+  `COLS_CLOSE` in mdDoc.ts; an opener with no closer stays a raw block), so other apps show the
+  text stacked and cards inside columns work as usual (owner paths go through the column). Make
+  them with `/2 columns`, `/3 columns`, or by dragging a block (⠿) to the right / left edge of
+  another block (a lavender bar shows; the dragged and the target block take their indented lines
+  along; dropping beside a block already in columns adds a column, max 4). Drag the gap between
+  columns to resize, double-click it for equal widths. Backspace in an empty column removes it;
+  a row left with one column turns back into plain blocks (`ColumnRules` plugin); ⠿ menu
+  "Remove columns (keep everything)". The block handle works for blocks inside columns
+  (`blockAt`); numbering, list cards and #tags are worked out per column. Narrow windows
+  (< 640px) stack the columns. Node test: scratchpad `tstest/test15.ts`.
 - Saving on leave (bug found Nov 16: leaving a note within the 700 ms autosave lost the last
   edit): BlockEditor keeps a `dirty` flag and hands its Markdown to `onleave` in `onDestroy`;
   NotesView's `leaveFor(rel)` rebuilds the file from the saved front matter + title and saves it a

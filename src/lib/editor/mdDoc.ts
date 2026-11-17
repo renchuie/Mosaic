@@ -315,6 +315,10 @@ function splitRow(row: string): string[] {
 
 /** Column widths and cell colours, kept in a comment line just above the table (hidden elsewhere):
  *  `<!--mosaic-table {"w":[160,null,220],"bg":{"0,1":"rose","2,0":"mint"}}-->` (bg key = "row,col"). */
+/** Columns (Nov 17): hidden comment lines around the columns, so other apps show the text stacked. */
+export const COLS_OPEN = /^\s*<!--\s*mosaic-cols(?:\s+(\{.*?\}))?\s*-->\s*$/;
+export const COL_SEP = /^\s*<!--\s*mosaic-col\s*-->\s*$/;
+export const COLS_CLOSE = /^\s*<!--\s*\/mosaic-cols\s*-->\s*$/;
 export const TABLE_META = /^\s*<!--\s*mosaic-table\s+(\{.*?\})\s*-->\s*$/;
 type TableMeta = { w?: (number | null)[]; bg?: Record<string, string> };
 function readMeta(line: string): TableMeta | null {
@@ -414,6 +418,36 @@ export function parseBlocks(lines: string[]): PMNode[] {
       structural();
       i = closed ? j : lines.length;
       continue;
+    }
+    // columns: <!--mosaic-cols {"w":[..]}--> part <!--mosaic-col--> part … <!--/mosaic-cols-->
+    if ((m = COLS_OPEN.exec(line))) {
+      let j = i + 1;
+      while (j < lines.length && !COLS_CLOSE.test(lines[j])) j++;
+      if (j < lines.length) {
+        const parts: string[][] = [[]];
+        for (let k = i + 1; k < j; k++) {
+          if (COL_SEP.test(lines[k])) parts.push([]);
+          else parts[parts.length - 1].push(lines[k]);
+        }
+        let w: number[] | null = null;
+        try {
+          const meta = m[1] ? JSON.parse(m[1]) : null;
+          if (Array.isArray(meta?.w) && meta.w.length === parts.length && meta.w.every((x: unknown) => typeof x === "number" && x > 0)) w = meta.w;
+        } catch {}
+        push(
+          block(
+            "columns",
+            { w },
+            parts.map((pl) => {
+              const kids = parseBlocks(pl);
+              return { type: "column", content: kids.length ? kids : [block("paragraph", { indent: 0, sid: null })] };
+            }),
+          ),
+        );
+        structural();
+        i = j;
+        continue;
+      }
     }
     // maths / raw HTML blocks: kept exactly
     if (/^\$\$/.test(line) || (/^\s*<(?!mark\b)[a-zA-Z!/]/.test(line) && !/^\s*<mark\b/.test(line) && !TABLE_META.test(line))) {
@@ -618,6 +652,19 @@ function serializeBlocks(nodes: PMNode[], seen: Set<string>, owners: Owner[], ba
       case "hr":
         out.push("---");
         break;
+      case "columns": {
+        const w = Array.isArray(n.attrs?.w) && (n.attrs.w as number[]).length === (n.content?.length ?? 0) ? (n.attrs.w as number[]) : null;
+        out.push(`<!--mosaic-cols${w ? " " + JSON.stringify({ w }) : ""}-->`);
+        (n.content ?? []).forEach((col, ci) => {
+          if (ci) out.push("", "<!--mosaic-col-->");
+          out.push("");
+          const inner = serializeBlocks(col.content ?? [], seen, owners, base + out.length, [...here, ci]);
+          while (inner.length && !inner[inner.length - 1].trim()) inner.pop();
+          out.push(...inner);
+        });
+        out.push("", "<!--/mosaic-cols-->");
+        break;
+      }
       case "raw":
         out.push(...(n.content?.map((c) => c.text ?? "").join("") ?? "").split("\n"));
         break;

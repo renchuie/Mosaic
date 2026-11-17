@@ -229,3 +229,5 @@ Add things here as they come up (date, page, what happened). Each one is either 
 - Nov 17 · Note page felt "weird and small" with all the boxes. Mockups on the canvas ("Roomier
   note page": one sheet, compact header, page width, writing mode); she loved all four, so all
   four were built now (the note page is daily use).
+- Nov 17 · She asked to split a note into columns; picked Notion-style **column blocks** over a
+  whole-note newspaper layout. Built now (`/2 columns`, drag beside, resize), files stay Markdown.

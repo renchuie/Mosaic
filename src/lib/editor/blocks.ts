@@ -3,7 +3,7 @@
 // level), headings, quotes, callouts, code, tables, images and dividers; inline: bold, italic,
 // strike, code, highlight colours, links, cloze, [[note links]] and the flashcard arrow.
 import { Extension, InputRule, Mark, Node, getMarkRange, markInputRule, mergeAttributes, textblockTypeInputRule, type Editor } from "@tiptap/core";
-import { Plugin, PluginKey, TextSelection, type EditorState, type Transaction } from "@tiptap/pm/state";
+import { Plugin, PluginKey, Selection, TextSelection, type EditorState, type Transaction } from "@tiptap/pm/state";
 import { Decoration, DecorationSet, type EditorView } from "@tiptap/pm/view";
 import type { Mark as PMMark, Node as PMNode, NodeType } from "@tiptap/pm/model";
 import { Table, TableCell, TableHeader, TableRow } from "@tiptap/extension-table";
@@ -37,14 +37,15 @@ const Hidden = Extension.create({
   addGlobalAttributes() {
     return [
       { types: ["paragraph", "heading", "bullet", "ordered", "todo", "table"], attributes: { sid: hidden() } },
-      { types: ["paragraph", "heading", "bullet", "ordered", "todo", "table", "blockquote", "callout", "codeBlock", "raw", "hr", "image"], attributes: { tight: hidden(false) } },
+      { types: ["paragraph", "heading", "bullet", "ordered", "todo", "table", "blockquote", "callout", "codeBlock", "raw", "hr", "image", "columns"], attributes: { tight: hidden(false) } },
     ];
   },
 });
 
 // ---- blocks ----------------------------------------------------------------------------------
 
-const Doc = Node.create({ name: "doc", topNode: true, content: "block+" });
+// columns only sit at the top level (never inside a callout, a table or another column)
+const Doc = Node.create({ name: "doc", topNode: true, content: "(block | columns)+" });
 const Text = Node.create({ name: "text", group: "inline" });
 
 const Paragraph = Node.create({
@@ -274,6 +275,162 @@ const Image = Node.create<{ imageUrl: (s: string) => string }>({
         stopEvent: (e: Event) => grip.contains(e.target as HTMLElement),
         ignoreMutation: () => true,
       };
+    };
+  },
+});
+
+// ---- columns (Nov 17): blocks side by side, like Notion ---------------------------------------
+// In the file: <!--mosaic-cols {"w":[60,40]}--> … <!--mosaic-col--> … <!--/mosaic-cols-->
+// `w` = column widths in percent (null = equal). Drag the gap between two columns to resize,
+// double-click it to make them equal again.
+export const MAX_COLUMNS = 4;
+const Column = Node.create({
+  name: "column",
+  content: "block+",
+  isolating: true,
+  parseHTML: () => [{ tag: "div.b-col" }],
+  renderHTML: () => ["div", { class: "b-col" }, 0],
+});
+const Columns = Node.create({
+  name: "columns",
+  content: "column+",
+  defining: true,
+  addAttributes: () => ({ w: hidden(null) }),
+  parseHTML: () => [{ tag: "div.b-cols" }],
+  renderHTML: () => ["div", { class: "b-colsbox" }, ["div", { class: "b-cols" }, 0]],
+  addNodeView() {
+    return ({ node, getPos, editor }) => {
+      let cur = node;
+      const dom = document.createElement("div");
+      dom.className = "b-colsbox";
+      const content = document.createElement("div");
+      content.className = "b-cols";
+      const grips = document.createElement("div");
+      grips.className = "b-colgrips";
+      grips.contentEditable = "false";
+      dom.append(content, grips);
+      const widths = (): number[] => {
+        const w = cur.attrs.w as number[] | null;
+        return Array.isArray(w) && w.length === cur.childCount ? w : Array(cur.childCount).fill(100 / cur.childCount);
+      };
+      const setTemplate = (w: number[]) => (content.style.gridTemplateColumns = w.map((x) => `minmax(0, ${x}fr)`).join(" "));
+      /** one grip in the middle of each gap */
+      const place = () => {
+        const kids = [...content.children] as HTMLElement[];
+        const box = dom.getBoundingClientRect();
+        [...grips.children].forEach((g, i) => {
+          const a = kids[i]?.getBoundingClientRect();
+          const b = kids[i + 1]?.getBoundingClientRect();
+          if (a && b) (g as HTMLElement).style.left = `${(a.right + b.left) / 2 - box.left}px`;
+        });
+      };
+      const paint = () => {
+        setTemplate(widths());
+        while (grips.children.length > cur.childCount - 1) grips.lastChild!.remove();
+        while (grips.children.length < cur.childCount - 1) {
+          const g = document.createElement("span");
+          g.className = "b-colgrip";
+          g.title = "Drag to resize · double-click to make the columns equal";
+          grips.append(g);
+        }
+        requestAnimationFrame(place);
+      };
+      paint();
+      const ro = new ResizeObserver(place);
+      ro.observe(content);
+      const save = (w: number[] | null) => {
+        const pos = typeof getPos === "function" ? getPos() : undefined;
+        if (pos !== undefined) editor.view.dispatch(editor.state.tr.setNodeMarkup(pos, undefined, { ...cur.attrs, w }));
+      };
+      grips.addEventListener("pointerdown", (e) => {
+        const g = (e.target as HTMLElement).closest<HTMLElement>(".b-colgrip");
+        if (!g) return;
+        e.preventDefault();
+        const i = [...grips.children].indexOf(g);
+        const w = widths().slice();
+        const total = content.getBoundingClientRect().width || 1;
+        const startX = e.clientX;
+        const a0 = w[i];
+        const b0 = w[i + 1];
+        g.setPointerCapture(e.pointerId);
+        g.classList.add("on");
+        const move = (ev: PointerEvent) => {
+          const d = ((ev.clientX - startX) / total) * 100;
+          const a = Math.max(15, Math.min(a0 + b0 - 15, a0 + d));
+          w[i] = a;
+          w[i + 1] = a0 + b0 - a;
+          setTemplate(w);
+          place();
+        };
+        const up = () => {
+          g.removeEventListener("pointermove", move);
+          g.classList.remove("on");
+          save(w.map((x) => Math.round(x)));
+        };
+        g.addEventListener("pointermove", move);
+        g.addEventListener("pointerup", up, { once: true });
+      });
+      grips.addEventListener("dblclick", (e) => {
+        if ((e.target as HTMLElement).closest(".b-colgrip")) save(null);
+      });
+      return {
+        dom,
+        contentDOM: content,
+        update: (n: PMNode) => {
+          if (n.type !== cur.type) return false;
+          cur = n;
+          paint();
+          return true;
+        },
+        stopEvent: (e: Event) => grips.contains(e.target as HTMLElement),
+        ignoreMutation: (m: { type: string; target: globalThis.Node }) =>
+          m.type !== "selection" && (grips.contains(m.target) || (m.type === "attributes" && (m.target === content || m.target === dom))),
+        destroy: () => ro.disconnect(),
+      };
+    };
+  },
+});
+
+/** Columns never stay with one column: a single column turns back into plain blocks. */
+const columnsKey = new PluginKey("mosaicColumns");
+const ColumnRules = Extension.create({
+  name: "mosaicColumns",
+  addProseMirrorPlugins() {
+    return [
+      new Plugin({
+        key: columnsKey,
+        appendTransaction(trs, _old, state) {
+          if (!trs.some((t) => t.docChanged)) return null;
+          const tr = state.tr;
+          const at: { pos: number; node: PMNode }[] = [];
+          state.doc.forEach((n, pos) => {
+            if (n.type.name === "columns" && n.childCount < 2) at.push({ pos, node: n });
+          });
+          if (!at.length) return null;
+          for (const { pos, node } of at.reverse()) tr.replaceWith(pos, pos + node.nodeSize, node.firstChild ? node.firstChild.content : state.schema.nodes.paragraph.create());
+          return tr;
+        },
+      }),
+    ];
+  },
+  addKeyboardShortcuts() {
+    return {
+      // Backspace in the empty last line of an empty column removes the column
+      Backspace: ({ editor }) => {
+        const { selection } = editor.state;
+        const rf = selection.$from;
+        if (!selection.empty || rf.depth < 3 || rf.parent.content.size) return false;
+        const col = rf.node(rf.depth - 1);
+        if (col.type.name !== "column" || col.childCount !== 1) return false;
+        const colPos = rf.before(rf.depth - 1);
+        const idx = rf.index(rf.depth - 2);
+        const tr = editor.state.tr.delete(colPos, colPos + col.nodeSize);
+        // cursor: end of the column before (or start of the one after)
+        const target = idx > 0 ? Selection.near(tr.doc.resolve(tr.mapping.map(colPos) - 2), -1) : Selection.near(tr.doc.resolve(Math.min(tr.mapping.map(colPos) + 2, tr.doc.content.size)), 1);
+        tr.setSelection(target);
+        editor.view.dispatch(tr.scrollIntoView());
+        return true;
+      },
     };
   },
 });
@@ -752,6 +909,14 @@ function decorations(doc: PMNode): DecorationSet {
         }
       } else counters.length = 0;
       if (name === "blockquote" || name === "callout") walk(node, pos + 1);
+      if (name === "columns") {
+        // each column is its own little page (numbering, list cards, tags)
+        let cp = pos + 1;
+        node.forEach((col) => {
+          walk(col, cp + 1);
+          cp += col.nodeSize;
+        });
+      }
       if (name === "blockquote" && node.childCount > 1) {
         const last = node.lastChild!;
         if (last.type.name === "paragraph" && /^\s*(—|–|--|~)\s?/.test(last.textContent)) {
@@ -838,7 +1003,7 @@ function behaviour(opts: EditorOpts) {
 export function mosaicExtensions(opts: EditorOpts) {
   return [
     Doc, Text, Paragraph, Bullet, Ordered, Todo, Heading, Blockquote, Callout.configure({ onMenu: opts.onCalloutMenu }), CodeBlock, Raw, Hr,
-    Image.configure({ imageUrl: opts.imageUrl }), MTable, TableRow, MHeader, MCell,
+    Image.configure({ imageUrl: opts.imageUrl }), Columns, Column, ColumnRules, MTable, TableRow, MHeader, MCell,
     Wikilink, Arrow, InlineImage.configure({ imageUrl: opts.imageUrl }), HardBreak,
     Bold, Italic, Strike, Code, Highlight, Link, Cloze,
     Hidden, Shortcuts, behaviour(opts),

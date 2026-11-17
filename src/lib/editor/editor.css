@@ -604,3 +604,62 @@ button.dot[data-color] {
 :root[data-family="dark"] .mosaic-doc .b-arrow {
   color: var(--t-bg, #111);
 }
+
+/* ---- columns (Nov 17) ---------------------------------------------------------------------- */
+.mosaic-doc .b-colsbox {
+  position: relative;
+  margin: 6px 0;
+}
+.mosaic-doc .b-cols {
+  display: grid;
+  grid-auto-flow: column;
+  gap: 32px;
+}
+.mosaic-doc .b-col {
+  min-width: 0;
+}
+.mosaic-doc .b-colgrips {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.mosaic-doc .b-colgrip {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 16px;
+  margin-left: -8px;
+  cursor: col-resize;
+  pointer-events: auto;
+}
+.mosaic-doc .b-colgrip::after {
+  content: "";
+  position: absolute;
+  left: 7px;
+  top: 4px;
+  bottom: 4px;
+  width: 2px;
+  border-radius: 2px;
+  background: var(--hairline);
+  opacity: 0;
+  transition: opacity 0.15s, background 0.15s;
+}
+.mosaic-doc .b-colsbox:hover .b-colgrip::after {
+  opacity: 1;
+}
+.mosaic-doc .b-colgrip:hover::after,
+.mosaic-doc .b-colgrip.on::after {
+  opacity: 1;
+  background: var(--lavender, #c9b8f0);
+}
+/* a narrow window stacks the columns */
+@container (max-width: 640px) {
+  .mosaic-doc .b-cols {
+    grid-auto-flow: row;
+    grid-template-columns: minmax(0, 1fr) !important;
+    gap: 6px;
+  }
+  .mosaic-doc .b-colgrips {
+    display: none;
+  }
+}
