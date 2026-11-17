@@ -260,3 +260,17 @@ Add things here as they come up (date, page, what happened). Each one is either 
   selection toolbar cut off at the edge, flashcard bullets out of line, table "no colour" not
   clearing a mixed selection, selected coloured cells invisible, table widths confusing (now
   Google Docs style with Even out), and a new "side by side" layout for Full width. All done now.
+- Nov 18 · Editor todo list (she said yes to all; editor fixes count as daily use since she's
+  writing real Ther IV notes in it):
+  1. Tables shake-down: she tests (lists / cards in cells, tables in columns and halves, pasting
+     from Docs, undo after resize / Even out, wide tables, `:: table` after moving cells).
+  2. Concept and descriptor cards (RemNote style) — mockup first.
+  3. Reverse card ← (`A <:: Q`). **Done Nov 18.**
+  4. Images in the editor: test pass (paste, resize, under bullets, columns, halves, cells, drag).
+  5. Fold headings (collapse everything under a heading).
+  6. Card status in the note (dot per card line, hover = next due).
+  7. Ctrl+K search everywhere (week 3 already).
+  8. Paste check into columns / halves / tables.
+  9. Print / export a note to PDF, keeping columns and side by side.
+  10. Collapsible callouts (`> [!note]-`).
+  11. Table flashcards fleshed out (her ask) — in the same mockup as 2.

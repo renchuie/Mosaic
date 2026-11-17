@@ -27,6 +27,7 @@
     <span class="sep"></span>
     <button type="button" class="study" onclick={() => onrun("card")} title="Flashcard: question → answer (or type ::)">→</button>
     <button type="button" class="study" onclick={() => onrun("card2")} title="Two-way flashcard (or type :::)">⇄</button>
+    <button type="button" class="study" onclick={() => onrun("card3")} title="Reverse flashcard: asks for the left side (or type <-)">←</button>
     <button type="button" class="study" onclick={() => onrun("cloze")} title="Cloze: hide the selected part">{"{ }"}</button>
     <button type="button" onclick={() => onrun("link")} title="Link to a note ([[)">[[ ]]</button>
     {#if !floating}<span class="hint">Type <kbd>/</kbd> for blocks</span>{/if}

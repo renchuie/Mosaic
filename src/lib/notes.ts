@@ -92,6 +92,7 @@ export function plainText(s: string): string {
     .replace(/\{\{(?:c\d+::)?([^{}]*?)(?:::[^{}]*)?\}\}/g, "$1")
     .replace(/<\/?mark[^>]*>/g, "")
     .replace(/\*\*|==|~~|`/g, "")
+    .replace(/\s+<::(\s+|$)/g, " ← ")
     .replace(/\s+:{2,3}(\s+|$)/g, " → ")
     .replace(/^\s*(?:[-*+]\s+(?:\[[ xX]\]\s+)?|\d+[.)]\s+|#{1,6}\s+|>\s*)/gm, "");
 }

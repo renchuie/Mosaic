@@ -2,6 +2,7 @@
 //
 //   Question :: Answer            basic card
 //   Front ::: Back                two cards, one each way
+//   Answer <:: Question           reverse card (Nov 18): shows the right side, asks for the left
 //   Text with {{hidden}} part     cloze (each {{…}} is its own card; {{c1::a}} … {{c1::b}} hide together)
 //   {{answer::hint}}              cloze with a hint shown in the gap
 //   List question ::              list card: the answer is the indented bullets under it
@@ -50,14 +51,14 @@ function lines(body: string): Line[] {
   return out;
 }
 
-/** "Front :: Back" / "Front ::: Back" split, or null. Front must not be empty. */
-function splitCard(text: string): { front: string; back: string; two: boolean } | null {
-  const m = /^(.*?\S)\s+(:{2,3})(?:\s+(.*))?$/.exec(text);
+/** "Front :: Back" / "Front ::: Back" / "Left <:: Right" split, or null. Front must not be empty. */
+function splitCard(text: string): { front: string; back: string; two: boolean; rev: boolean } | null {
+  const m = /^(.*?\S)\s+(<::|:{2,3})(?:\s+(.*))?$/.exec(text);
   if (!m || /\{\{[^}]*$/.test(m[1])) return null; // a "::" inside an unfinished {{c1::…}} isn't a card separator
-  return { front: m[1].trim(), back: (m[3] ?? "").trim(), two: m[2] === ":::" };
+  return { front: m[1].trim(), back: (m[3] ?? "").trim(), two: m[2] === ":::", rev: m[2] === "<::" };
 }
 
-const plain = (s: string) => s.replace(CLOZE_RE, (_a, _n, t) => t).replace(/\s+:{2,3}\s+.*$/, "").replace(/\*\*|__/g, "").trim();
+const plain = (s: string) => s.replace(CLOZE_RE, (_a, _n, t) => t).replace(/\s+(?:<::|:{2,3})\s+.*$/, "").replace(/\*\*|__/g, "").trim();
 
 /** Children of line k: following lines indented deeper, until one that isn't. */
 function children(ls: Line[], k: number): Line[] {
@@ -142,7 +143,9 @@ export function extractCards(body: string): NoteCard[] {
     }
     if (kind === "card") {
       const c = splitCard(l.text)!;
-      out.push({ key: key(), lineId: l.id, kind: "basic", front: c.front, back: c.back, context, line: l.i });
+      // a reverse card is the ":r" half of a two-way card on its own (switching ⇄ ↔ ← keeps its history)
+      if (c.rev) out.push({ key: key(":r"), lineId: l.id, kind: "reverse", front: c.back, back: c.front, context, line: l.i });
+      else out.push({ key: key(), lineId: l.id, kind: "basic", front: c.front, back: c.back, context, line: l.i });
       if (c.two) out.push({ key: key(":r"), lineId: l.id, kind: "reverse", front: c.back, back: c.front, context, line: l.i });
     } else if (kind === "list") {
       const c = splitCard(l.text)!;

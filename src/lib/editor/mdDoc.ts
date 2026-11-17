@@ -148,10 +148,10 @@ export function parseInline(s: string, marks: PMMark[] = [], ctx: Ctx = { arrow:
     if (c === "~" && pair("~~", { type: "strike" })) continue;
     if (c === "*" && s[i + 1] !== "*" && pair("*", { type: "italic" })) continue;
     if (c === "_" && s[i + 1] !== "_" && pair("_", { type: "italic" }, true)) continue;
-    if (!ctx.arrow && !ctx.cell && /\s/.test(c) && i > 0 && !isSpace(s[i - 1]) && (m = /^[ \t]+(:{2,3})(?=\s|$)[ \t]?/.exec(rest))) {
+    if (!ctx.arrow && !ctx.cell && /\s/.test(c) && i > 0 && !isSpace(s[i - 1]) && (m = /^[ \t]+(<::|:{2,3})(?=\s|$)[ \t]?/.exec(rest))) {
       flush();
       ctx.arrow = true;
-      out.push(withMarks({ type: "arrow", attrs: { two: m[1].length === 3 } }, marks));
+      out.push(withMarks({ type: "arrow", attrs: { two: m[1] === ":::", back: m[1] === "<::" } }, marks));
       i += m[0].length;
       continue;
     }
@@ -262,7 +262,10 @@ export function serializeInline(nodes: PMNode[] = [], cell = false): string {
       nodesMerged[idx] = { ...n, text: core };
       (n as PMNode & { _trail?: string })._trail = trail;
     } else if (n.type === "wikilink") body = `[[${n.attrs?.target ?? ""}${n.attrs?.alias ? `|${n.attrs.alias}` : ""}]]`;
-    else if (n.type === "arrow") body = idx === nodesMerged.length - 1 ? ` ${n.attrs?.two ? ":::" : "::"}` : ` ${n.attrs?.two ? ":::" : "::"} `;
+    else if (n.type === "arrow") {
+      const sep = n.attrs?.back ? "<::" : n.attrs?.two ? ":::" : "::";
+      body = idx === nodesMerged.length - 1 ? ` ${sep}` : ` ${sep} `;
+    }
     else if (n.type === "inlineImage") body = `![${n.attrs?.alt ?? ""}](${n.attrs?.src ?? ""})`;
     else if (n.type === "hardBreak") body = "<br>";
     let k = 0;

@@ -615,7 +615,9 @@ Recall Labs. Decisions she approved:
 ## Study S3 (built): flashcards in notes + FSRS review
 
 - Syntax (`src/lib/cards.ts`, pure, node-tested): `Q :: A` basic, `Q ::: A` two cards (forward and
-  reverse), `{{cloze}}` (each gap its own card; `{{c1::…}}` gaps hide together; `{{answer::hint}}`),
+  reverse), `A <:: Q` reverse card (Nov 18: shows the right side, asks for the left; key `id:r`, so
+  switching ⇄ ↔ ← keeps its history; typed as ` <- ` or ` <:: `, arrow attr `back`, click on the
+  pill cycles → ⇄ ←), `{{cloze}}` (each gap its own card; `{{c1::…}}` gaps hide together; `{{answer::hint}}`),
   `Question ::` with indented bullets below = list card. `Field ::` with nothing after it (the drug
   template) is not a card. Code blocks are skipped. Context = heading path + up to two parent bullets.
 - Every card line gets a hidden stable id `<!--sd:xxxxxx-->` appended (review keys: `id`, `id:r`,

@@ -631,15 +631,21 @@ const Arrow = Node.create({
   inline: true,
   atom: true,
   selectable: true,
-  addAttributes: () => ({ two: { default: false } }),
-  parseHTML: () => [{ tag: "span.b-arrow", getAttrs: (el) => ({ two: (el as HTMLElement).dataset.two === "true" }) }],
+  // two: both ways (:::); back: reverse, the card asks for the left side (<::)
+  addAttributes: () => ({ two: { default: false }, back: { default: false } }),
+  parseHTML: () => [{ tag: "span.b-arrow", getAttrs: (el) => ({ two: (el as HTMLElement).dataset.two === "true", back: (el as HTMLElement).dataset.back === "true" }) }],
   renderHTML: ({ node }) => [
     "span",
-    { class: "b-arrow", "data-two": String(node.attrs.two), title: node.attrs.two ? "Flashcard both ways (click to switch)" : "Flashcard (click to make it two-way)" },
+    {
+      class: "b-arrow",
+      "data-two": String(node.attrs.two),
+      "data-back": String(!!node.attrs.back),
+      title: node.attrs.back ? "Reverse flashcard: asks for the left side (click: → one way)" : node.attrs.two ? "Flashcard both ways (click: ← reverse)" : "Flashcard (click: ⇄ both ways)",
+    },
     [
       "http://www.w3.org/2000/svg svg",
       { class: "a", viewBox: "0 0 24 24", width: "15", height: "15", fill: "none", stroke: "currentColor", "stroke-width": "2.6", "stroke-linecap": "round", "stroke-linejoin": "round", "aria-hidden": "true" },
-      ["http://www.w3.org/2000/svg path", { d: node.attrs.two ? "M4 8.5h15M15.5 5l3.5 3.5-3.5 3.5M20 15.5H5M8.5 12L5 15.5 8.5 19" : "M4 12h15M14 6.5l5.5 5.5-5.5 5.5" }],
+      ["http://www.w3.org/2000/svg path", { d: node.attrs.back ? "M20 12H5M10 6.5L4.5 12l5.5 5.5" : node.attrs.two ? "M4 8.5h15M15.5 5l3.5 3.5-3.5 3.5M20 15.5H5M8.5 12L5 15.5 8.5 19" : "M4 12h15M14 6.5l5.5 5.5-5.5 5.5" }],
     ],
     // list card (answer = the bullets under the line): an arrow going right, then down into them
     [
@@ -648,7 +654,7 @@ const Arrow = Node.create({
       ["http://www.w3.org/2000/svg path", { d: "M3.5 6h9a3.5 3.5 0 0 1 3.5 3.5v10M11.5 15l4.5 4.5 4.5-4.5" }],
     ],
   ],
-  renderText: ({ node }) => (node.attrs.two ? " ::: " : " :: "),
+  renderText: ({ node }) => (node.attrs.back ? " <:: " : node.attrs.two ? " ::: " : " :: "),
 });
 
 const InlineImage = Node.create<{ imageUrl: (s: string) => string }>({
@@ -901,13 +907,15 @@ const Shortcuts = Extension.create({
         },
       }),
       new InputRule({
-        find: /(?<=\S)[ \t]?(:{2,3})[ \t]$/,
+        // " :: " card, " ::: " both ways, " <:: " or " <- " reverse
+        find: /(?<=\S)[ \t]?(<::|<-|:{2,3})[ \t]$/,
         handler: ({ state, range, match }) => {
           const $s = state.doc.resolve(range.from);
           let has = false;
           $s.parent.forEach((c) => (has ||= c.type.name === "arrow"));
           if (has || $s.parent.type.spec.code) return null;
-          state.tr.replaceWith(range.from, range.to, n.arrow.create({ two: match[1].length === 3 }));
+          const back = match[1] === "<::" || match[1] === "<-";
+          state.tr.replaceWith(range.from, range.to, n.arrow.create({ two: match[1] === ":::", back }));
         },
       }),
     ];
@@ -1125,7 +1133,11 @@ function behaviour(opts: EditorOpts) {
                   e.preventDefault();
                   const pos = view.posAtDOM(arrow, 0);
                   const node = view.state.doc.nodeAt(pos);
-                  if (node?.type.name === "arrow") view.dispatch(view.state.tr.setNodeMarkup(pos, undefined, { two: !node.attrs.two }));
+                  // a click cycles the card's direction: → one way, ⇄ both ways, ← reverse
+                  if (node?.type.name === "arrow") {
+                    const next = node.attrs.back ? { two: false, back: false } : node.attrs.two ? { two: false, back: true } : { two: true, back: false };
+                    view.dispatch(view.state.tr.setNodeMarkup(pos, undefined, next));
+                  }
                   return true;
                 }
                 const a = t.closest<HTMLAnchorElement>("a.b-a");

@@ -73,6 +73,7 @@
     { id: "card", label: "Flashcard", icon: "→", group: "Study", hint: "Question → answer", keys: "::", run: () => editor?.chain().focus().insertContent({ type: "arrow", attrs: { two: false } }).run() },
     { id: "listcard", label: "List flashcard", icon: "→•", group: "Study", hint: "the bullets under it are the answer", keys: "::", run: () => listCard() },
     { id: "card2", label: "Two-way flashcard", icon: "⇄", group: "Study", hint: "both directions", keys: ":::", run: () => editor?.chain().focus().insertContent({ type: "arrow", attrs: { two: true } }).run() },
+    { id: "card3", label: "Reverse flashcard", icon: "←", group: "Study", hint: "shows the right side, asks for the left", keys: "<-", run: () => editor?.chain().focus().insertContent({ type: "arrow", attrs: { back: true } }).run() },
     { id: "cloze", label: "Cloze (hidden part)", icon: "{ }", group: "Study", hint: "select text, then Cloze", keys: "{{ }}", run: () => insertCloze() },
     { id: "tcards", label: "Table of flashcards", icon: "▦→", group: "Study", hint: "one card per cell", run: () => tableCards() },
   ];
@@ -482,7 +483,7 @@
     bubble = { x: Math.max(8, Math.min((a.left + b.left) / 2 - r.left, r.width - 8)), y: Math.min(a.top, b.top) - r.top };
   }
   const active = (m: string, attrs?: Record<string, unknown>) => (void tick, editor?.isActive(m, attrs) ?? false);
-  function makeCard(two = false) {
+  function makeCard(two = false, back = false) {
     if (!editor) return;
     const { state } = editor;
     const { from, to, $from: rf } = state.selection;
@@ -490,7 +491,7 @@
     const at = rf.parentOffset === 0 ? to : from;
     let start = at;
     while (start > rf.start() && /\s/.test(state.doc.textBetween(start - 1, start))) start--;
-    editor.chain().focus().insertContentAt({ from: start, to: at }, { type: "arrow", attrs: { two } }).run();
+    editor.chain().focus().insertContentAt({ from: start, to: at }, { type: "arrow", attrs: { two, back } }).run();
   }
   function noteLink() {
     if (!editor) return;
@@ -1118,6 +1119,7 @@
         <!-- the same icons as the main toolbar: → card, ⇄ two-way card, { } cloze -->
         <button type="button" class="study" title="Flashcard: question → this answer" aria-label="Make a flashcard" onclick={() => makeCard()}>→</button>
         <button type="button" class="study" title="Two-way flashcard: question ⇄ this answer" aria-label="Make a two-way flashcard" onclick={() => makeCard(true)}>⇄</button>
+        <button type="button" class="study" title="Reverse flashcard: asks for the left side" aria-label="Make a reverse flashcard" onclick={() => makeCard(false, true)}>←</button>
         <button type="button" class="study" class:on={active("cloze")} title="Cloze: hide this part" aria-label="Cloze" onclick={() => run("mark", "cloze")}>{"{ }"}</button>
         <span class="sep"></span>
         <button type="button" title="Link to a note with this name" onclick={noteLink}>[[ ]]</button>
