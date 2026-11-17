@@ -207,7 +207,9 @@ Markdown" view, the `<>` chip on the note header).
   `# Title` matching the file name is taken off the editor and written back on save; course /
   date / tag chips; toolbar; ⋯ move, remove icon / cover, delete) and `NoteSide.svelte` (panels:
   Outline, Cards in this note with status and "Review this note", Backlinks, Links + Linked to).
-  Linked references and unlinked mentions under the note. `plainText()` in `notes.ts` cleans
+  Linked references and unlinked mentions under the note: since Nov 17 one quiet line
+  "▸ Linked references N" at the bottom of the page (the note fills the free space), opened on
+  click and remembered (`refs` in "mosaic.notePanels"). `plainText()` in `notes.ts` cleans
   previews.
 - Roomier layout (Nov 17, her pick of all four ideas on canvas board "Roomier note page"): an open
   note fills the main panel as ONE sheet (App makes `main` flush for `#/study/notes/<rel>`; Study
@@ -231,7 +233,7 @@ Markdown" view, the `<>` chip on the note header).
   the top bar hides; touching the left edge brings the rail back, the window's top edge brings
   the top bar back (App's `.redge` / `.tedge`, NotesView reads `.shell:has(.tedge:hover)`); pills
   show where she is; Esc the editor didn't use, Ctrl+\ or the pill leaves; leaving the note page
-  ends it. `localStorage` "mosaic.notePanels" {pinL, pinR, tools, fullHead} per machine.
+  ends it. `localStorage` "mosaic.notePanels" {pinL, pinR, tools, fullHead, refs} per machine.
 - Browser preview exposes `window.__notes` (sample notes only) so UI tests can read saved text.
 - After her first test round (Nov 16): cloze "retyping" (typing over or erasing a whole cloze keeps
   typing inside it until the cursor moves, → or Esc; plugin in the Cloze mark); images are flow

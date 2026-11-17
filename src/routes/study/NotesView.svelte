@@ -261,12 +261,12 @@
   }
 
   // ---- panels ----------------------------------------------------------------------------------
-  type Saved = { pinL: boolean; pinR: Panel | null; tools: boolean; fullHead: boolean };
+  type Saved = { pinL: boolean; pinR: Panel | null; tools: boolean; fullHead: boolean; refs: boolean };
   const loadPanels = (): Saved => {
-    const base: Saved = { pinL: false, pinR: null, tools: false, fullHead: false };
+    const base: Saved = { pinL: false, pinR: null, tools: false, fullHead: false, refs: false };
     try {
       const v = JSON.parse(localStorage.getItem("mosaic.notePanels") ?? "{}");
-      return { pinL: !!v.pinL, pinR: v.pinR ?? null, tools: !!v.tools, fullHead: !!v.fullHead };
+      return { pinL: !!v.pinL, pinR: v.pinR ?? null, tools: !!v.tools, fullHead: !!v.fullHead, refs: !!v.refs };
     } catch {
       return base;
     }
@@ -472,8 +472,12 @@
               {/key}
             </div>
             {#if !source}
-              <footer class="refs">
-                <h3>Linked references <span class="n">{back.length}</span></h3>
+              <!-- linked references: one quiet line until she opens it (remembered per machine) -->
+              <footer class="refs" class:open={panels.refs}>
+                <button type="button" class="rtog" aria-expanded={panels.refs} onclick={() => (panels.refs = !panels.refs)}>
+                  <span class="chev">{panels.refs ? "▾" : "▸"}</span> Linked references <span class="n">{back.length}</span>
+                </button>
+                {#if panels.refs}
                 {#if back.length}
                   <div class="rgrid">
                     {#each back as b (b.e.rel)}<a href={noteHref(b.e.rel)}><b>{b.e.p.title}</b>{#if b.context}<span>{plainText(b.context)}</span>{/if}</a>{/each}
@@ -490,6 +494,7 @@
                   {:else}
                     <p class="muted">No other note mentions “{title}” without linking it.</p>
                   {/if}
+                {/if}
                 {/if}
               </footer>
             {/if}
@@ -804,11 +809,14 @@
   .scroll {
     flex: 1;
     min-height: 0;
+    display: flex;
+    flex-direction: column;
     overflow-y: auto;
     container-type: inline-size;
   }
+  /* the note takes the free space, so a short note keeps the references line at the bottom */
   .edwrap {
-    min-height: 50%;
+    flex: 1 0 auto;
   }
   .edwrap.src {
     height: calc(100% - 200px);
@@ -924,24 +932,47 @@
     }
   }
   .refs {
+    width: 100%;
     max-width: var(--note-box, 780px);
     box-sizing: border-box;
     margin: 0 auto;
-    padding: 18px var(--doc-pad, 40px) 60px;
+    padding: 6px var(--doc-pad, 40px) 40px;
+  }
+  .refs.open {
+    padding-top: 14px;
     border-top: 1px solid var(--hairline);
   }
-  .refs h3 {
-    margin: 0 0 10px;
-    font-size: 15px;
-    font-weight: 700;
+  .rtog {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin: 0 0 8px;
+    padding: 4px 8px 4px 0;
+    border: 0;
+    background: none;
+    font: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-muted);
+    cursor: pointer;
+    opacity: 0.75;
+    transition: opacity 0.15s;
+  }
+  .rtog:hover,
+  .open .rtog {
+    opacity: 1;
+    color: var(--text);
+  }
+  .rtog .chev {
+    font-size: 10px;
   }
   .refs .n {
     display: inline-grid;
     place-items: center;
-    min-width: 22px;
-    height: 22px;
-    margin-left: 4px;
-    border-radius: 11px;
+    min-width: 20px;
+    height: 20px;
+    margin-left: 2px;
+    border-radius: 10px;
     background: var(--panel);
     font-size: 12px;
   }
