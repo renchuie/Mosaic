@@ -3,6 +3,10 @@
 //   Question :: Answer            basic card
 //   Front ::: Back                two cards, one each way
 //   Answer <:: Question           reverse card (Nov 18): shows the right side, asks for the left
+//   **Term** ::: Meaning          concept (Nov 18): a both-ways card whose left side is all bold;
+//                                 the same two cards as :::, shown as a concept
+//   Property ;; Value             descriptor (Nov 18), indented under a concept (or any line, or
+//                                 a heading): asks "Concept › Property"
 //   Text with {{hidden}} part     cloze (each {{…}} is its own card; {{c1::a}} … {{c1::b}} hide together)
 //   {{answer::hint}}              cloze with a hint shown in the gap
 //   List question ::              list card: the answer is the indented bullets under it
@@ -11,7 +15,7 @@
 //
 // Each card line gets a hidden id comment, `<!--sd:k3x9ab-->`, so review history survives edits.
 
-export type CardKind = "basic" | "reverse" | "cloze" | "list" | "table" | "item";
+export type CardKind = "basic" | "reverse" | "cloze" | "list" | "table" | "item" | "concept" | "descriptor";
 
 export type NoteCard = {
   /** review key: line id + which card (":r", ":c2") */
@@ -27,6 +31,11 @@ export type NoteCard = {
   line: number;
   /** a basic or reverse card that is one of the two cards of a "⇄ both ways" line */
   two?: boolean;
+  /** concept: true on the "which concept?" card (meaning → term) */
+  rev?: boolean;
+  /** descriptor / table cell: the concept (or row) it is about, and the property asked */
+  concept?: string;
+  prop?: string;
 };
 
 export const ID_RE = /\s*<!--sd:([a-z0-9]{4,})-->/;
@@ -53,14 +62,20 @@ function lines(body: string): Line[] {
   return out;
 }
 
-/** "Front :: Back" / "Front ::: Back" / "Left <:: Right" split, or null. Front must not be empty. */
-function splitCard(text: string): { front: string; back: string; two: boolean; rev: boolean } | null {
-  const m = /^(.*?\S)\s+(<::|:{2,3})(?:\s+(.*))?$/.exec(text);
+/** "Front :: Back" / "Front ::: Back" / "Left <:: Right" / "Property ;; Value" split, or null.
+ *  Front must not be empty. */
+function splitCard(text: string): { front: string; back: string; two: boolean; rev: boolean; desc: boolean } | null {
+  const m = /^(.*?\S)\s+(<::|:{2,3}|;;)(?:\s+(.*))?$/.exec(text);
   if (!m || /\{\{[^}]*$/.test(m[1])) return null; // a "::" inside an unfinished {{c1::…}} isn't a card separator
-  return { front: m[1].trim(), back: (m[3] ?? "").trim(), two: m[2] === ":::", rev: m[2] === "<::" };
+  return { front: m[1].trim(), back: (m[3] ?? "").trim(), two: m[2] === ":::", rev: m[2] === "<::", desc: m[2] === ";;" };
 }
+/** "**Term**" (the whole left side bold): the term, else null */
+const conceptTerm = (front: string): string | null => {
+  const m = /^\*\*([^*]+?)\*\*$/.exec(front.trim());
+  return m ? m[1].trim() : null;
+};
 
-const plain = (s: string) => s.replace(CLOZE_RE, (_a, _n, t) => t).replace(/\s+(?:<::|:{2,3})\s+.*$/, "").replace(/\*\*|__/g, "").trim();
+const plain = (s: string) => s.replace(CLOZE_RE, (_a, _n, t) => t).replace(/\s+(?:<::|:{2,3}|;;)(?:\s+.*)?$/, "").replace(/\*\*|__/g, "").trim();
 
 /** Children of line k: following lines indented deeper, until one that isn't. */
 function children(ls: Line[], k: number): Line[] {
@@ -95,10 +110,11 @@ function hash(s: string): string {
   return (h >>> 0).toString(36).slice(0, 6);
 }
 
-function kindOf(ls: Line[], k: number): "card" | "cloze" | "list" | "table" | null {
+function kindOf(ls: Line[], k: number): "card" | "cloze" | "list" | "table" | "desc" | null {
   const l = ls[k];
   if (TABLE_RE.test(l.text)) return tableAfter(ls, k) ? "table" : null;
   const c = splitCard(l.text);
+  if (c?.desc) return c.back || children(ls, k).length ? "desc" : null;
   if (c) {
     if (c.back) return "card";
     return children(ls, k).length ? "list" : null; // "**Brand** ::" with nothing yet: not a card
@@ -143,12 +159,27 @@ export function extractCards(body: string): NoteCard[] {
       }
       return;
     }
-    if (kind === "card") {
+    if (kind === "card" || kind === "desc") {
       const c = splitCard(l.text)!;
+      if (c.desc) {
+        // descriptor: about the nearest line above it that it is indented under, else the heading
+        const owner = parents.length ? plain(parents[parents.length - 1].text) : heads[heads.length - 1]?.text ?? "";
+        const prop = plain(c.front);
+        const kids = children(ls, k);
+        const back = c.back || kids.map((x) => `${"  ".repeat(Math.max(0, (x.indent - kids[0].indent) / 2))}- ${x.text}`).join("\n");
+        out.push({ key: key(), lineId: l.id, kind: "descriptor", front: owner ? `${owner} › ${prop}` : prop, back, context, line: l.i, concept: owner || undefined, prop });
+      } else if (c.two && conceptTerm(c.front)) {
+        // concept: the same two cards (same keys) as a both-ways line
+        const term = conceptTerm(c.front)!;
+        out.push({ key: key(), lineId: l.id, kind: "concept", front: term, back: c.back, context, line: l.i, two: true, concept: term });
+        out.push({ key: key(":r"), lineId: l.id, kind: "concept", front: c.back, back: term, context, line: l.i, two: true, rev: true, concept: term });
+        return void (parents.push({ indent: l.indent, text: l.text }));
+      } else {
       // a reverse card is the ":r" half of a two-way card on its own (switching ⇄ ↔ ← keeps its history)
       if (c.rev) out.push({ key: key(":r"), lineId: l.id, kind: "reverse", front: c.back, back: c.front, context, line: l.i });
       else out.push({ key: key(), lineId: l.id, kind: "basic", front: c.front, back: c.back, context, line: l.i, ...(c.two ? { two: true } : {}) });
       if (c.two) out.push({ key: key(":r"), lineId: l.id, kind: "reverse", front: c.back, back: c.front, context, line: l.i, two: true });
+      }
     } else if (kind === "list") {
       const c = splitCard(l.text)!;
       const kids = children(ls, k);
@@ -177,7 +208,8 @@ export function extractCards(body: string): NoteCard[] {
         out.push({ key: key(`:c${gi + 1}`), lineId: l.id, kind: "cloze", front, back, context, line: l.i });
       });
     }
-    if (l.bullet || l.indent > 0) parents.push({ indent: l.indent, text: l.text });
+    // lines that can own the lines indented under them (a bold line too: a concept without a card)
+    if (l.bullet || l.indent > 0 || /^\*\*[^*]+\*\*/.test(l.text)) parents.push({ indent: l.indent, text: l.text });
   });
   return out;
 }

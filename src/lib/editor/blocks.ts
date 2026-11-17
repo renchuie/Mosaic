@@ -632,15 +632,17 @@ const Arrow = Node.create({
   atom: true,
   selectable: true,
   // two: both ways (:::); back: reverse, the card asks for the left side (<::)
-  addAttributes: () => ({ two: { default: false }, back: { default: false } }),
-  parseHTML: () => [{ tag: "span.b-arrow", getAttrs: (el) => ({ two: (el as HTMLElement).dataset.two === "true", back: (el as HTMLElement).dataset.back === "true" }) }],
+  // desc: a descriptor ("Property ;; value"), shown as a soft lavender pill
+  addAttributes: () => ({ two: { default: false }, back: { default: false }, desc: { default: false } }),
+  parseHTML: () => [{ tag: "span.b-arrow", getAttrs: (el) => ({ two: (el as HTMLElement).dataset.two === "true", back: (el as HTMLElement).dataset.back === "true", desc: (el as HTMLElement).dataset.desc === "true" }) }],
   renderHTML: ({ node }) => [
     "span",
     {
       class: "b-arrow",
       "data-two": String(node.attrs.two),
       "data-back": String(!!node.attrs.back),
-      title: node.attrs.back ? "Reverse flashcard: asks for the left side (click: → one way)" : node.attrs.two ? "Flashcard both ways (click: ← reverse)" : "Flashcard (click: ⇄ both ways)",
+      "data-desc": String(!!node.attrs.desc),
+      title: node.attrs.desc ? "Descriptor: a fact about the concept above (asks “Concept › this”)" : node.attrs.back ? "Reverse flashcard: asks for the left side (click: → one way)" : node.attrs.two ? "Flashcard both ways (click: ← reverse)" : "Flashcard (click: ⇄ both ways)",
     },
     [
       "http://www.w3.org/2000/svg svg",
@@ -654,7 +656,7 @@ const Arrow = Node.create({
       ["http://www.w3.org/2000/svg path", { d: "M3.5 6h9a3.5 3.5 0 0 1 3.5 3.5v10M11.5 15l4.5 4.5 4.5-4.5" }],
     ],
   ],
-  renderText: ({ node }) => (node.attrs.back ? " <:: " : node.attrs.two ? " ::: " : " :: "),
+  renderText: ({ node }) => (node.attrs.desc ? " ;; " : node.attrs.back ? " <:: " : node.attrs.two ? " ::: " : " :: "),
 });
 
 const InlineImage = Node.create<{ imageUrl: (s: string) => string }>({
@@ -908,14 +910,14 @@ const Shortcuts = Extension.create({
       }),
       new InputRule({
         // " :: " card, " ::: " both ways, " <:: " or " <- " reverse
-        find: /(?<=\S)[ \t]?(<::|<-|:{2,3})[ \t]$/,
+        find: /(?<=\S)[ \t]?(<::|<-|:{2,3}|;;)[ \t]$/,
         handler: ({ state, range, match }) => {
           const $s = state.doc.resolve(range.from);
           let has = false;
           $s.parent.forEach((c) => (has ||= c.type.name === "arrow"));
           if (has || $s.parent.type.spec.code) return null;
           const back = match[1] === "<::" || match[1] === "<-";
-          state.tr.replaceWith(range.from, range.to, n.arrow.create({ two: match[1] === ":::", back }));
+          state.tr.replaceWith(range.from, range.to, n.arrow.create({ two: match[1] === ":::", back, desc: match[1] === ";;" }));
         },
       }),
     ];
@@ -1048,6 +1050,27 @@ function decorations(doc: PMNode): DecorationSet {
           out.push(Decoration.node(at, at + last.nodeSize, { class: "list", title: "List flashcard: the lines indented under it are the answer" }));
         }
       }
+      // a concept: a both-ways card line whose whole left side is bold → green chip, ◆ pill
+      if (node.isTextblock && FLOW.includes(name)) {
+        let arrowAt = -1;
+        let arrowNode: PMNode | null = null;
+        let allBold = true;
+        let any = false;
+        node.forEach((c, off) => {
+          if (arrowAt >= 0) return;
+          if (c.type.name === "arrow") {
+            arrowAt = off;
+            arrowNode = c;
+          } else if (c.isText) {
+            if (c.text!.trim()) any = true;
+            if (c.text!.trim() && !c.marks.some((m) => m.type.name === "bold")) allBold = false;
+          } else allBold = false;
+        });
+        if (arrowNode && (arrowNode as PMNode).attrs.two && any && allBold) {
+          out.push(Decoration.inline(pos + 1, pos + 1 + arrowAt, { class: "b-concept" }));
+          out.push(Decoration.node(pos + 1 + arrowAt, pos + 2 + arrowAt, { class: "concept", title: "Concept: quizzed both ways; lines indented under it with ;; are its facts" }));
+        }
+      }
       if (INDENTABLE.includes(name)) {
         const emptyPara = name === "paragraph" && !node.content.size;
         if (!emptyPara) {
@@ -1134,7 +1157,7 @@ function behaviour(opts: EditorOpts) {
                   const pos = view.posAtDOM(arrow, 0);
                   const node = view.state.doc.nodeAt(pos);
                   // a click cycles the card's direction: → one way, ⇄ both ways, ← reverse
-                  if (node?.type.name === "arrow") {
+                  if (node?.type.name === "arrow" && !node.attrs.desc) {
                     const next = node.attrs.back ? { two: false, back: false } : node.attrs.two ? { two: false, back: true } : { two: true, back: false };
                     view.dispatch(view.state.tr.setNodeMarkup(pos, undefined, next));
                   }

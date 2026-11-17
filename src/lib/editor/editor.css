@@ -261,6 +261,46 @@ button.dot[data-color] {
   vertical-align: 0.18em;
   font-variant-numeric: tabular-nums;
 }
+/* concept (Nov 18): a both-ways line whose left side is all bold. The term gets a soft green chip,
+   the pill shows a diamond instead of the arrows */
+.mosaic-doc .b-concept {
+  padding: 0 0.3em 0.05em;
+  border-radius: 8px;
+  background: linear-gradient(135deg, color-mix(in srgb, var(--sage-deep) 22%, transparent), color-mix(in srgb, var(--lavender) 22%, transparent));
+  box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--sage-deep) 40%, transparent);
+}
+.mosaic-doc .b-arrow.concept,
+.mosaic-doc .b-arrow.concept[data-two="true"] {
+  background: linear-gradient(135deg, var(--sage-deep), color-mix(in srgb, var(--sage-deep) 40%, var(--lavender)));
+}
+.mosaic-doc .b-arrow.concept svg {
+  display: none !important; /* even as a list-card arrow */
+}
+.mosaic-doc .b-arrow.concept::after {
+  content: "◆";
+  font-size: 0.75em;
+  line-height: 1;
+}
+/* descriptor: a soft lavender pill with the guillemet; the line itself is not tinted like a card */
+.mosaic-doc .b-arrow[data-desc="true"] {
+  background: color-mix(in srgb, var(--lavender) 45%, var(--surface));
+  color: color-mix(in srgb, var(--lavender) 30%, var(--text));
+}
+.mosaic-doc .b-arrow[data-desc="true"] svg {
+  display: none !important; /* even as a list-card arrow */
+}
+.mosaic-doc .b-arrow[data-desc="true"]::after {
+  content: "›";
+  font-size: 1.05em;
+  font-weight: 700;
+  line-height: 1;
+}
+.mosaic-doc .b-p:has(> .b-arrow[data-desc="true"]),
+.mosaic-doc .b-li:has(> .b-arrow[data-desc="true"]) {
+  --cp: 0px;
+  margin-block: 0;
+  background: none;
+}
 .mosaic-doc .b-arrow[data-two="true"] {
   background: var(--arrow2-bg, linear-gradient(135deg, #8b9be8, #c58bd6));
 }

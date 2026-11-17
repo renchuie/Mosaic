@@ -141,6 +141,10 @@
         return { label: "List", icon: "→•", tone: "var(--sage-deep)" };
       case "table":
         return { label: "Table", icon: "▦", tone: "var(--link-ink)" };
+      case "concept":
+        return c.rev ? { label: "Which concept?", icon: "◆", tone: "var(--sage-deep)" } : { label: "Concept", icon: "◆", tone: "var(--sage-deep)" };
+      case "descriptor":
+        return { label: "Descriptor", icon: "›", tone: "color-mix(in srgb, var(--lavender) 70%, var(--link-ink))" };
       default: {
         const t = c.context[0] ?? "Card";
         return { label: t, icon: /drug/i.test(t) ? "💊" : "→", tone: "color-mix(in srgb, var(--lavender) 60%, var(--rose-deep))" };
@@ -186,8 +190,14 @@
         {#if status}<span class="status s-{status}">{status}</span>{/if}
       </div>
 
-      <div class="q" class:cloze={current.card.kind === "cloze"}>
-        {@html cardHtml(inPlace && shown ? current.card.back : current.card.front, img)}
+      <div class="q" class:cloze={current.card.kind === "cloze"} class:big={current.card.kind === "concept" && !current.card.rev}>
+        {#if current.card.kind === "concept" && !current.card.rev}
+          <span class="cpt">{@html cardHtml(current.card.front, img)}</span>
+        {:else if current.card.kind === "descriptor" && current.card.concept}
+          <span class="path"><span class="cpt">{@html cardHtml(current.card.concept, img)}</span><span class="ar">›</span><span>{@html cardHtml(current.card.prop ?? "", img)}</span></span>
+        {:else}
+          {@html cardHtml(inPlace && shown ? current.card.back : current.card.front, img)}
+        {/if}
       </div>
       {#if current.card.masks && current.card.image}
         <div class="occwrap"><OcclusionView src={img(current.card.image)} masks={current.card.masks} target={current.card.target} reveal={shown} /></div>
@@ -195,7 +205,10 @@
       {#if current.card.kind === "list" && !shown}<p class="hint">List card: recall every item, then show the answer.</p>{/if}
       {#if shown && !inPlace && current.card.back.trim()}
         <div class="divider">Answer</div>
-        <div class="a" class:list={current.card.kind === "list" || /^\s*- /m.test(current.card.back)}>{@html cardHtml(current.card.back, img)}</div>
+        <div class="a" class:list={current.card.kind === "list" || /^\s*- /m.test(current.card.back)}>
+          {#if current.card.kind === "concept" && current.card.rev}<span class="cpt">{@html cardHtml(current.card.back, img)}</span>
+          {:else}{@html cardHtml(current.card.back, img)}{/if}
+        </div>
       {/if}
 
       <div class="foot">
@@ -403,6 +416,35 @@
   .q :global(p),
   .a :global(p) {
     margin: 0 0 0.3em;
+  }
+  .q.big {
+    font-size: 38px;
+  }
+  /* a concept's term: a soft green chip (like in the note) */
+  .cpt {
+    display: inline-block;
+    padding: 0.04em 0.4em 0.1em;
+    border-radius: 14px;
+    background: linear-gradient(135deg, color-mix(in srgb, var(--sage-deep) 22%, transparent), color-mix(in srgb, var(--lavender) 22%, transparent));
+    box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--sage-deep) 40%, transparent);
+    font-weight: 700;
+  }
+  .cpt :global(p) {
+    display: inline;
+  }
+  .path {
+    display: inline-flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.3em;
+  }
+  .path .ar {
+    color: var(--t);
+    font-weight: 700;
+  }
+  .path :global(p) {
+    display: inline;
+    margin: 0;
   }
   .divider {
     display: flex;
