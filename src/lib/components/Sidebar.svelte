@@ -55,13 +55,16 @@
 
 <aside class="rail" aria-label="Mosaic">
   <a href="#/dashboard" class="logo" aria-label="Mosaic home">
+    <!-- the Mosaic tiles in the theme's own colours (Nov 18, her pick "D · Accent glow"): two tiles in
+         the text colour, the front one in the theme's accent, on a soft chip. The colourful glass
+         icon stays the app icon in the launcher. -->
     <svg viewBox="0 0 120 120" aria-hidden="true">
-      <defs><linearGradient id="mosaic-g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#FFC9DA" /><stop offset=".55" stop-color="#C9D3FF" /><stop offset="1" stop-color="#BFEBDD" /></linearGradient></defs>
-      <rect width="120" height="120" rx="28" fill="url(#mosaic-g)" />
-      <rect x="20" y="30" width="46" height="46" rx="12" fill="#fff" fill-opacity=".45" stroke="#fff" stroke-width="2" transform="rotate(-8 43 53)" />
-      <rect x="50" y="22" width="46" height="46" rx="12" fill="#fff" fill-opacity=".55" stroke="#fff" stroke-width="2" transform="rotate(6 73 45)" />
-      <rect x="38" y="52" width="46" height="46" rx="12" fill="#fff" fill-opacity=".7" stroke="#fff" stroke-width="2" />
-      <rect x="50" y="64" width="22" height="22" rx="6" fill="#7D8BE8" fill-opacity=".8" />
+      <rect width="120" height="120" rx="28" fill="var(--chip)" />
+      <g fill="var(--text)">
+        <rect x="20" y="30" width="46" height="46" rx="12" fill-opacity=".16" transform="rotate(-8 43 53)" />
+        <rect x="50" y="22" width="46" height="46" rx="12" fill-opacity=".28" transform="rotate(6 73 45)" />
+      </g>
+      <rect x="38" y="52" width="46" height="46" rx="12" fill="var(--accent)" />
     </svg>
   </a>
 
@@ -143,7 +146,7 @@
     height: 46px;
     margin-bottom: 8px;
     border-radius: 14px;
-    box-shadow: 0 8px 18px -10px rgba(40, 44, 80, 0.45);
+    box-shadow: none;
   }
   .logo svg {
     display: block;

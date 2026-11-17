@@ -43,8 +43,10 @@ The full vision, principles and what she likes or dislikes in each inspiration a
   purpose. The sync folder default also keeps its old name ("Study Desk Sync").
 - App icon (chosen Nov 16, option C "glass tiles"): frosted white tiles on a pink→periwinkle→mint
   gradient. Source `packaging/studydesk.svg` (viewBox 120); the PNGs in `src-tauri/icons/` and
-  `packaging/studydesk.png` are rendered from it with Playwright. The sidebar logo is the same SVG
-  inline in `Sidebar.svelte`.
+  `packaging/studydesk.png` are rendered from it with Playwright. The rail logo inside the app is
+  NOT the coloured icon since Nov 18 (her pick "D · Accent glow", canvas "Rail logo that fits every
+  theme"): the same three tiles on a `--chip` square, the back two in `--text` at 16% / 28%, the
+  front one in `--accent`, so it follows every theme (inline SVG in `Sidebar.svelte`).
 - App data: JSON files in `~/.local/share/studydesk/`, written atomically from Rust. Anything that
   should follow her between PC and laptop goes in the synced store (see "Sync" below), not in its
   own JSON file. Machine-only data (settings, scan cache, labs tree) stays local.
