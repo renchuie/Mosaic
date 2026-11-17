@@ -274,7 +274,8 @@ Markdown" view, the `<>` chip on the note header).
 - After her first test round (Nov 16): cloze "retyping" (typing over or erasing a whole cloze keeps
   typing inside it until the cursor moves, → or Esc; plugin in the Cloze mark); images are flow
   lines with `indent` and `width` (`![alt|300](src)`, Obsidian syntax; corner grip resizes,
-  double-click = full width); card lines get inner padding (`--cp`) and a 3px gap (since Nov 17
+  double-click = full width; pasted on a bullet / numbered / to-do line it goes one level in, under
+  the item's text, and the next line carries on the list); card lines get inner padding (`--cp`) and a 3px gap (since Nov 17
   the tint starts at the text edge like callouts and tables, no longer reaching into the margin); arrows are SVG;
   Settings → Appearance "Flashcards in notes": card background on/off (`settings.cardBg`,
   `<html data-cardbg>`), arrow colour (`ARROW_COLOURS`, `--arrow-bg`/`--arrow2-bg`) and cloze

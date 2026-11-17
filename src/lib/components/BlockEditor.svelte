@@ -456,8 +456,11 @@
     const blank = FLOW.includes(node.type.name) && !node.content.size;
     const before = rf.before(rf.depth);
     const at = blank ? before : rf.after(rf.depth);
-    const img = state.schema.nodes.image.create({ src, alt: "", indent });
-    const para = state.schema.nodes.paragraph.create({ indent: FLOW.includes(node.type.name) ? indent : 0 });
+    // in a list the picture lines up with the item's text (one level in), and the next line carries
+    // on the list, so she can keep typing bullets under it
+    const list = ["bullet", "ordered", "todo"].includes(node.type.name);
+    const img = state.schema.nodes.image.create({ src, alt: "", indent: list ? indent + 1 : indent });
+    const para = list ? node.type.create({ indent }) : state.schema.nodes.paragraph.create({ indent: FLOW.includes(node.type.name) ? indent : 0 });
     const tr = blank ? state.tr.replaceWith(at, at + node.nodeSize, [img, para]) : state.tr.insert(at, [img, para]);
     tr.setSelection(TextSelection.create(tr.doc, at + img.nodeSize + 1));
     editor.view.dispatch(tr.scrollIntoView());
