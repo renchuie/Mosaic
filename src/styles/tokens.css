@@ -110,6 +110,9 @@
     radial-gradient(40% 46% at 16% 94%, var(--t-b4) 0%, transparent 70%),
     var(--t-base);
   --panel: rgba(255, 255, 255, 0.4);
+  /* the page sheet in Window "Curve" / "Glass rail": mostly the theme's base colour, so the bloom only
+     glows through faintly and the white cards stand out on it */
+  --sheet: color-mix(in srgb, var(--t-base) 80%, transparent);
   --surface: rgba(255, 255, 255, 0.66);
   --surface-float: rgba(255, 255, 255, 0.9);
   --field: color-mix(in srgb, var(--t-text) 5%, transparent);

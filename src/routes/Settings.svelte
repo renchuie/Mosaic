@@ -105,6 +105,14 @@
       </div>
     {/each}
     <div class="field">
+      <span class="label" id="frame-l">Window</span>
+      <div class="seg" role="radiogroup" aria-labelledby="frame-l">
+        {#each [{ id: "curve", name: "Curve" }, { id: "sheet", name: "Glass rail" }, { id: "float", name: "Floating" }] as f}
+          <button type="button" role="radio" aria-checked={(settings.frame ?? "curve") === f.id} class:on={(settings.frame ?? "curve") === f.id} onclick={() => saveSettings({ frame: f.id as "curve" | "sheet" | "float" })}>{f.name}</button>
+        {/each}
+      </div>
+    </div>
+    <div class="field">
       <span class="label" id="density-l">Spacing</span>
       <div class="seg" role="radiogroup" aria-labelledby="density-l">
         {#each [{ id: "spacious", name: "Spacious" }, { id: "original", name: "Original" }, { id: "compact", name: "Compact" }] as d}

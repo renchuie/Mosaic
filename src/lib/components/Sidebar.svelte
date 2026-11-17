@@ -338,6 +338,26 @@
     display: none;
   }
 
+  /* Window "Curve" / "Glass rail": the rail is a full-height column at the window's edge instead of a
+     floating pill. Curve: just its icons on the colour bloom. Glass rail: a frosted column. */
+  :global(:root:not([data-frame="float"])) .rail {
+    width: 80px;
+    height: 100%;
+    box-sizing: border-box;
+    padding-top: 18px;
+    border: 0;
+    border-radius: 0;
+    background: none;
+    box-shadow: none;
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+  :global(:root[data-frame="sheet"]) .rail {
+    background: var(--surface);
+    border-right: 1px solid color-mix(in srgb, var(--text) 8%, transparent);
+    -webkit-backdrop-filter: var(--blur);
+    backdrop-filter: var(--blur);
+  }
   @media (max-height: 620px) {
     .rail {
       gap: 4px;

@@ -124,6 +124,41 @@
     opacity: 1;
     box-shadow: var(--shadow-lift);
   }
+  /* Window "Curve" (default) and "Glass rail": no border around the app, like a native app. The page
+     is one sheet touching the window's top, right and bottom edges; Curve gives it a big rounded
+     left side beside the rail (the bloom peeks through there), Glass rail a straight hairline. */
+  :global(:root:not([data-frame="float"])) .shell {
+    grid-template-columns: 80px minmax(0, 1fr);
+    gap: 0;
+    padding: 0;
+  }
+  :global(:root:not([data-frame="float"])) main {
+    background: var(--sheet, var(--panel));
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+  }
+  :global(:root[data-frame="curve"]) main {
+    border-radius: 38px 0 0 38px;
+    box-shadow: -14px 0 40px -26px rgba(40, 44, 80, 0.45), inset 1px 0 0 color-mix(in srgb, var(--white, #fff) 70%, transparent);
+  }
+  :global(:root:not([data-frame="float"])) .shell.writing {
+    grid-template-columns: 0 minmax(0, 1fr);
+  }
+  /* in writing mode the rail always comes back as the floating pill */
+  :global(:root) .shell.writing :global(.rail) {
+    width: 76px;
+    height: auto;
+    padding: 16px 0 14px;
+    border: var(--edge);
+    border-radius: 28px;
+    background: var(--surface-float, var(--surface));
+    -webkit-backdrop-filter: var(--blur);
+    backdrop-filter: var(--blur);
+    top: 12px;
+    bottom: 12px;
+    left: 12px;
+  }
   .redge {
     position: fixed;
     z-index: 29;
@@ -154,12 +189,14 @@
     opacity: 0.8;
   }
   @media (max-width: 860px) {
-    .shell {
+    :global(:root[data-frame="float"]) .shell {
       gap: 10px;
       padding: 10px;
     }
     main {
       padding: 20px 18px 28px;
+    }
+    :global(:root[data-frame="float"]) main {
       border-radius: 28px;
     }
   }

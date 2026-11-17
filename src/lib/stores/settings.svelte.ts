@@ -23,6 +23,10 @@ export type Settings = {
   theme: ThemeId;
   /** spacing: spacious (default), original, compact */
   density: "spacious" | "original" | "compact";
+  /** the window's frame (Nov 18, canvas "Native look, Mosaic vibe"): curve = the page is one sheet
+   *  with a big curve beside the rail (default), sheet = a frosted rail column and a straight page,
+   *  float = the original floating rail and panel inside a glass border */
+  frame?: "curve" | "sheet" | "float";
   /** flashcards in notes: soft background on card lines, arrow pill colour, cloze colour
    *  ("theme" = the theme's own colours) */
   cardBg: boolean;
@@ -99,6 +103,7 @@ export function applyLook() {
   root.dataset.theme = settings.theme;
   root.dataset.family = themeById(settings.theme).family;
   root.dataset.density = settings.density;
+  root.dataset.frame = settings.frame ?? "curve";
   root.dataset.cardbg = settings.cardBg === false ? "off" : "on";
   // flashcard colours: the theme's own unless she picked some
   const props = ["--arrow-bg", "--arrow2-bg", "--card-bg", "--card-bg2", "--cloze-bg", "--cloze-line"];

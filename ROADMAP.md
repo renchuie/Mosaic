@@ -272,6 +272,10 @@ Add things here as they come up (date, page, what happened). Each one is either 
   the core (deck list + deck page, Add card, Browse, deck options); the extras right after, as
   their own phase (they fit the "Sharing with friends" track, since friends coming from Anki or
   Quizlet need the import).
+- Nov 18 · Window frame: no border trim, native-app look (canvas boards "More room inside the
+  frame", "The frame on Windows and on Hyprland", "Native look, Mosaic vibe"). Built: Settings →
+  Window: Curve (default), Glass rail, Floating (the old look). Later, with "Sharing with friends":
+  hide the Windows title bar and draw Mosaic's own – □ ✕.
 - Nov 18 · Editor todo list (she said yes to all; editor fixes count as daily use since she's
   writing real Ther IV notes in it):
   1. Tables shake-down: she tests (lists / cards in cells, tables in columns and halves, pasting

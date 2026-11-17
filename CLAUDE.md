@@ -84,6 +84,17 @@ below disagrees.
   so don't add `backdrop-filter` to cards or list items. Anything floating (dialogs, `div.menu`,
   `div.pop`, `div.selmenu`) gets the nearly opaque `--surface-float` from base.css. Inputs use
   `--field`.
+- **Window frame** (Nov 18, her pick from canvas "Native look, Mosaic vibe"; `settings.frame`, `<html
+  data-frame>`, Settings → Appearance → Window): **curve** (default) = no border around the app,
+  like a native app: the rail is a full-height column of icons on the colour bloom, and `main` is
+  one sheet touching the window's top, right and bottom edges with a big 38px curve on its left
+  (the bloom peeks through beside the rail); **sheet** ("Glass rail") = a frosted full-height rail
+  column with a hairline and a straight page; **float** = the original floating rail and panel
+  inside an 18px glass border. In curve / sheet `main` uses `--sheet` (glass family: the theme base
+  at 80%, so the bloom only glows faintly; other families fall back to `--panel`). Writing mode
+  brings the rail back as the floating pill in every frame. CSS in App.svelte (`.shell`, `main`)
+  and Sidebar.svelte (`.rail`). Windows: Mosaic's own – □ ✕ title bar is planned with the
+  "Sharing with friends" track.
 - **Density** (`settings.density`, `<html data-density>`): spacious (default), original, compact.
   Spacing tokens: `--gap`, `--card-pad`, `--main-pad`, `--shell-pad`, `--radius`.
 - **Floating rail** (`Sidebar.svelte`): logo, + quick add (Task, Event, Note, Flashcard, PDF), page
