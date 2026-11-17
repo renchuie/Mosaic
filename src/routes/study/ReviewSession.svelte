@@ -6,6 +6,8 @@
   import { onDestroy, onMount } from "svelte";
   import Icon from "../../lib/components/Icon.svelte";
   import { cardHtml } from "../../lib/cards";
+  /** Length of a card side as she reads it (markup, ids and cloze syntax left out). */
+  const plainLen = (t: string) => t.replace(/<!--[\s\S]*?-->|<[^>]+>|\{\{(?:c\d+::)?|::[^}]*\}\}|\}\}|[*=_~`]/g, "").trim().length;
   import { courseByName } from "../../lib/stores/courses.svelte";
   import { notes } from "../../lib/stores/notes.svelte";
   import OcclusionView from "../../lib/components/OcclusionView.svelte";
@@ -194,7 +196,7 @@
         {#if status}<span class="status s-{status}">{status}</span>{/if}
       </div>
 
-      <div class="q" class:cloze={current.card.kind === "cloze"} class:big={current.card.kind === "concept" && !current.card.rev}>
+      <div class="q" class:cloze={current.card.kind === "cloze"} class:long={!current.card.grid && plainLen(current.card.front) > 90}>
         {#if current.card.kind === "concept" && !current.card.rev}
           <span class="cpt">{@html cardHtml(current.card.front, img)}</span>
         {:else if current.card.kind === "table" && current.card.grid}
@@ -328,12 +330,18 @@
     text-align: center;
     padding: 40px;
   }
+  /* Text sizes (her pick Nov 18, "C · Calm" on the canvas "Flashcard text sizes"): every question
+     --qs, every answer --as; lists and table values use the answer size, only small labels go
+     smaller (0.6 × answer). Questions over ~90 characters are 80%. */
   .card {
+    --qs: 25px;
+    --as: 21px;
+    --lbl: max(12px, calc(var(--as) * 0.6));
     --t: var(--rose-deep);
     position: relative;
     display: grid;
     gap: 20px;
-    min-height: 360px;
+    min-height: 270px; /* so Show answer and the rate buttons don't jump much */
     align-content: start;
     padding: 30px 40px 26px 44px;
     border-radius: 30px;
@@ -425,12 +433,14 @@
   .s-learning {
     color: var(--alert-ink);
   }
-  /* the question: big */
   .q {
-    font-size: 36px;
+    font-size: var(--qs);
     line-height: 1.3;
     font-weight: 600;
     overflow-wrap: anywhere;
+  }
+  .q.long {
+    font-size: calc(var(--qs) * 0.8);
   }
   .q :global(p),
   .a :global(p) {
@@ -448,8 +458,8 @@
     margin: 0;
   }
   .kv dt {
-    padding-top: 0.2em;
-    font-size: 0.72em;
+    padding-top: 0.35em;
+    font-size: var(--lbl);
     font-weight: 700;
     color: var(--text-muted);
   }
@@ -466,7 +476,7 @@
     border-radius: 18px;
     overflow: hidden;
     box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--text) 12%, transparent);
-    font-size: 0.72em;
+    font-size: var(--as);
     font-weight: 500;
   }
   .mini th,
@@ -477,7 +487,7 @@
     border-right: 1px solid color-mix(in srgb, var(--text) 8%, transparent);
   }
   .mini th {
-    font-size: 0.68em;
+    font-size: var(--lbl);
     font-weight: 700;
     color: var(--text-muted);
     background: color-mix(in srgb, var(--link-ink) 9%, transparent);
@@ -488,9 +498,6 @@
   }
   .mini :global(p) {
     margin: 0;
-  }
-  .q.big {
-    font-size: 38px;
   }
   /* a concept's term: a soft green chip (like in the note) */
   .cpt {
@@ -536,9 +543,8 @@
     height: 1px;
     background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--text) 18%, transparent), transparent);
   }
-  /* the answer: big too */
   .a {
-    font-size: 29px;
+    font-size: var(--as);
     line-height: 1.4;
     font-weight: 500;
     overflow-wrap: anywhere;
@@ -566,17 +572,16 @@
   .q :global(li),
   .a :global(li) {
     position: relative;
-    padding-left: 26px;
-    font-size: 0.92em;
+    padding-left: 1.1em;
   }
   .q :global(li)::before,
   .a :global(li)::before {
     content: "";
     position: absolute;
     left: 2px;
-    top: 0.55em;
-    width: 10px;
-    height: 10px;
+    top: 0.5em;
+    width: 0.4em;
+    height: 0.4em;
     border-radius: 50%;
     background: var(--t);
   }
@@ -760,11 +765,9 @@
     .card {
       padding: 24px 22px 22px 28px;
     }
-    .q {
-      font-size: 30px;
-    }
-    .a {
-      font-size: 24px;
+    .card {
+      --qs: 22px;
+      --as: 19px;
     }
     .rates {
       gap: 8px;
