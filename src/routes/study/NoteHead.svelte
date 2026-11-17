@@ -285,7 +285,7 @@
     max-width: var(--note-box, 860px);
     box-sizing: border-box;
     margin: 0 auto;
-    padding: 22px 40px 12px;
+    padding: 22px var(--doc-pad, 40px) 12px;
     display: grid;
     gap: 8px;
   }

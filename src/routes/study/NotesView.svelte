@@ -398,7 +398,7 @@
 
 <div class="nwrap" class:full={!!(rel && note)} class:pad={!!rel && !note} bind:clientWidth={width}>
   {#if rel && note}
-    <div class="npage" class:writing={ui.writing} class:typing style="--note-box: {WIDTHS[noteWidth]}">
+    <div class="npage" class:writing={ui.writing} class:typing style="--note-box: {WIDTHS[noteWidth]}; --doc-pad: {noteWidth === 'full' ? '64px' : '40px'}">
       <div class="topbar">
         <button type="button" class="ico" class:on={sheetL || pinL} title="Notes" aria-label="Notes" onclick={() => openLeft()}><Icon name="note" size={18} /></button>
         <button type="button" class="ico" title="Search notes" aria-label="Search notes" onclick={() => openLeft(true)}><Icon name="search" size={18} /></button>
@@ -922,7 +922,7 @@
     max-width: var(--note-box, 780px);
     box-sizing: border-box;
     margin: 0 auto;
-    padding: 18px 40px 60px;
+    padding: 18px var(--doc-pad, 40px) 60px;
     border-top: 1px solid var(--hairline);
   }
   .refs h3 {

@@ -4,7 +4,7 @@
   max-width: var(--note-box, 780px);
   box-sizing: border-box;
   margin: 0 auto;
-  padding: 10px 40px 80px;
+  padding: 10px var(--doc-pad, 40px) 80px;
   outline: none;
   font-size: 16.5px;
   line-height: 1.7;

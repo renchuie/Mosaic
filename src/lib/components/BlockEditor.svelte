@@ -854,7 +854,8 @@
   }
   .handle {
     position: absolute;
-    left: max(0px, calc(50% - 390px - 52px));
+    /* 52px left of the text, wherever the page width puts it (NotesView sets --note-box / --doc-pad) */
+    left: max(0px, calc(50% - min(var(--note-box, 780px), 100%) / 2 + var(--doc-pad, 40px) - 52px));
     display: flex;
     gap: 1px;
     transform: translateY(-50%);
@@ -952,7 +953,8 @@
   }
   .bmenu {
     position: absolute;
-    left: max(0px, calc(50% - 390px - 52px));
+    /* 52px left of the text, wherever the page width puts it (NotesView sets --note-box / --doc-pad) */
+    left: max(0px, calc(50% - min(var(--note-box, 780px), 100%) / 2 + var(--doc-pad, 40px) - 52px));
     width: 230px;
     z-index: 5;
   }
