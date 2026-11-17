@@ -211,9 +211,11 @@ Markdown" view, the `<>` chip on the note header).
   previews.
 - Roomier layout (Nov 17, her pick of all four ideas on canvas board "Roomier note page"): an open
   note fills the main panel as ONE sheet (App makes `main` flush for `#/study/notes/<rel>`; Study
-  hides its own tab bar there). The note's top bar sits on the glass (only the page below it is the
-  white sheet) and starts with the SAME Study tab bar in the same place as every other Study page
-  (padding `--main-pad-t` / `--main-pad-x`, density tokens), then notes list / search / + note,
+  hides its own tab bar there). Study tabs everywhere (her pick, "flip it"): the slim look, text
+  only, in a 56px strip across the top of the main panel on the glass with a hairline under it
+  (`StudyNav` `.sbar`, pulled to the panel edges with `--main-pad-t` / `--main-pad-x`). The note's
+  top bar is that same strip (white sheet only below it): `<StudyNav bar={false} />` first, then
+  notes list / search / + note,
   the note's title once the header scrolls away, save status, page
   width (Readable 860 / Wide 1120 / Full; front matter `width: wide|full`, Readable writes
   nothing; CSS var `--note-box` sizes `.mosaic-doc`, the header and the references), ✎ (keep the

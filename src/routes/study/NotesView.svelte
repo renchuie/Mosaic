@@ -401,7 +401,7 @@
   {#if rel && note}
     <div class="npage" class:writing={ui.writing} class:typing style="--bar-h: {barH}px; --note-box: {WIDTHS[noteWidth]}; --doc-pad: {noteWidth === 'full' ? '64px' : '40px'}">
       <div class="topbar" bind:clientHeight={barH}>
-        <StudyNav />
+        <StudyNav bar={false} />
         <span class="sep"></span>
         <button type="button" class="ico" class:on={sheetL || pinL} title="Notes" aria-label="Notes" onclick={() => openLeft()}><Icon name="note" size={18} /></button>
         <button type="button" class="ico" title="Search notes" aria-label="Search notes" onclick={() => openLeft(true)}><Icon name="search" size={18} /></button>
@@ -571,8 +571,9 @@
     display: flex;
     align-items: center;
     gap: 4px;
-    /* same place and size as the Study tab bar on every other Study page; sits on the glass */
-    padding: var(--main-pad-t) var(--main-pad-x) 14px;
+    /* same strip as the Study tab bar on every other Study page (StudyNav .sbar); on the glass */
+    min-height: 56px;
+    padding: 8px 14px;
     box-sizing: border-box;
     overflow-x: auto;
     scrollbar-width: none;
@@ -1028,11 +1029,6 @@
     height: 100%;
     padding: 30px;
     text-align: center;
-  }
-  @media (max-width: 860px) {
-    .topbar {
-      padding: 20px 18px 12px; /* App's narrow main padding */
-    }
   }
   @container (max-width: 1100px) {
     .seg {
