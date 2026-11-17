@@ -691,6 +691,10 @@ Recall Labs. Decisions she approved:
   back again; once they're all got, "↻ Whole list again" asks everything and is a real rating, where
   Good needs a clean run. Session state only (`retries`, `retryNow`, `seen` in ReviewSession); a
   card waiting for a retry is kept out of the normal queue; Undo drops its retries. Works in cram.
+  Lists of 6+ items go in two columns on wide cards (filled down, then across; `.litems.many`,
+  container ≥ 760px). Shift + number marks items 1–9 (more than 9: click). A card taller than the
+  space starts at the top of `.stage` and scrolls (flex + auto margins, not align-content: center,
+  which cut tall cards off).
 - Wired in: Cards tab badge, dashboard Flashcards card, Study Home card, course page "N to review",
   study plan suggestion "Review N flashcards" (block `href`), heatmap (+½ per review), streak
   (`markStudyDay("reviews")`).

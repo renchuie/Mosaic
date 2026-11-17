@@ -308,7 +308,7 @@
       {/if}
       {#if isList}
         {#if shown}<div class="divider">Answer</div>{/if}
-        <ol class="litems">
+        <ol class="litems" class:many={items.length >= 6} style="--rows: {Math.ceil(items.length / 2)}">
           {#each items as it, i}
             {#if !asked.includes(i)}
               <li class="known"><span class="num">{i + 1}</span><span class="tx">{@html cardHtml(it, img)}</span><span class="had">✓ you had this</span></li>
@@ -398,12 +398,18 @@
   }
   /* the middle: the card centred, scrolling inside only if it's taller than the space */
   .stage {
-    display: grid;
-    align-content: center;
+    /* flex + auto margins rather than align-content: center, so a card taller than the space
+       starts at the top and scrolls instead of being cut off (or shrunk: .card hides overflow) */
+    display: flex;
+    flex-direction: column;
     min-height: 0;
     overflow-y: auto;
     padding: 12px 4px 20px;
     margin: -12px -4px -20px;
+  }
+  .stage > :global(*) {
+    flex: none;
+    margin-block: auto;
   }
   .top {
     display: flex;
@@ -900,6 +906,15 @@
     font-size: var(--as);
     font-weight: 500;
     line-height: 1.35;
+  }
+  /* 6+ items: two columns on wide cards, filled down then across (1–4 left, 5–7 right) */
+  @container (min-width: 760px) {
+    .litems.many {
+      grid-template-rows: repeat(var(--rows), auto);
+      grid-auto-flow: column;
+      grid-auto-columns: minmax(0, 1fr);
+      column-gap: 18px;
+    }
   }
   .litems li {
     display: flex;
