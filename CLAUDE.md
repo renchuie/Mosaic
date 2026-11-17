@@ -218,7 +218,9 @@ Markdown" view, the `<>` chip on the note header).
   with the folders on the glass beside it. Fewer "Notes" labels (her Nov 17 ask): the list has no
   heading (📌 / × sit beside its search box, `NoteTree` `actions` snippet) and the home title is
   "Folders". Note previews in lists use `previewLine()` (notes.ts),
-  which skips comment lines (card ids, column markers). Study tabs everywhere (her pick, "flip it"): the slim look, text
+  which skips comment lines (card ids, column markers). The `attachments` folder (pasted
+  images, card pictures) is hidden everywhere folders are listed: use `noteDirs()` from the notes
+  store, not `notes.dirs`. Study tabs everywhere (her pick, "flip it"): the slim look, text
   only, in a 56px strip across the top of the main panel on the glass with a hairline under it
   (`StudyNav` `.sbar`, pulled to the panel edges with `--main-pad-t` / `--main-pad-x`). The note's
   top bar is that same strip (white sheet only below it): `<StudyNav bar={false} />` first, then

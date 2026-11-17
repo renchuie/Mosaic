@@ -2,7 +2,7 @@
   import type { Snippet } from "svelte";
   import Icon from "../../lib/components/Icon.svelte";
   import { courseByName } from "../../lib/stores/courses.svelte";
-  import { dirOf, noteHref, notes, searchNotes, type NoteEntry } from "../../lib/stores/notes.svelte";
+  import { dirOf, noteHref, notes, searchNotes, type NoteEntry, noteDirs } from "../../lib/stores/notes.svelte";
 
   // actions: small buttons beside the search box (📌 / × when the list is a panel inside a note)
   let { current, onnew, onnewfolder, actions }: { current: string | null; onnew: (folder: string) => void; onnewfolder: () => void; actions?: Snippet } = $props();
@@ -27,7 +27,7 @@
 
   type Node = { dir: string; name: string; depth: number; folders: Node[]; notes: NoteEntry[] };
   const tree = $derived.by(() => {
-    const dirs = new Set(notes.dirs.filter((d) => d !== "attachments" && !d.startsWith("attachments/")));
+    const dirs = new Set(noteDirs());
     for (const e of Object.values(notes.files)) {
       let d = dirOf(e.rel);
       while (d) {

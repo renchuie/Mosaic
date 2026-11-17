@@ -1,7 +1,7 @@
 <script lang="ts">
   import { TEMPLATES } from "../../lib/notes";
   import { courseNames } from "../../lib/stores/courses.svelte";
-  import { createNote, makeFolder, noteHref, notes } from "../../lib/stores/notes.svelte";
+  import { createNote, makeFolder, noteHref, notes, noteDirs } from "../../lib/stores/notes.svelte";
 
   let { open = $bindable(false), folder = "", mode = "note" }: { open: boolean; folder?: string; mode?: "note" | "folder" } = $props();
   let dialog = $state<HTMLDialogElement>();
@@ -21,7 +21,7 @@
       dialog.showModal();
     }
   });
-  const dirs = $derived(["", ...notes.dirs.filter((d) => !d.startsWith("attachments"))]);
+  const dirs = $derived(["", ...noteDirs()]);
 
   async function go(e: SubmitEvent) {
     e.preventDefault();

@@ -5,7 +5,7 @@
   import FolderTile from "../../lib/components/FolderTile.svelte";
   import { splitNote, previewLine } from "../../lib/notes";
   import { courses } from "../../lib/stores/courses.svelte";
-  import { dirOf, noteHref, notes, recentNotes, type NoteEntry } from "../../lib/stores/notes.svelte";
+  import { dirOf, noteHref, notes, recentNotes, type NoteEntry, noteDirs } from "../../lib/stores/notes.svelte";
 
   let { onnew }: { onnew: (folder: string) => void } = $props();
   let dir = $state("");
@@ -14,7 +14,7 @@
   const inside = (d: string, e: NoteEntry) => (d ? e.rel.startsWith(d + "/") : true);
   /** direct child folders of `d` */
   const childDirs = $derived(
-    [...new Set(notes.dirs.filter((x) => (dir ? x.startsWith(dir + "/") : true)).map((x) => (dir ? x.slice(dir.length + 1) : x).split("/")[0]))]
+    [...new Set(noteDirs().filter((x) => (dir ? x.startsWith(dir + "/") : true)).map((x) => (dir ? x.slice(dir.length + 1) : x).split("/")[0]))]
       .filter(Boolean)
       .map((n) => (dir ? `${dir}/${n}` : n))
       .sort((a, b) => a.localeCompare(b)),
@@ -61,7 +61,8 @@
           <button type="button" class="crumb" onclick={() => (dir = "")}>Folders</button>
           {#each crumbs.slice(0, -1) as c}<span> › </span><button type="button" class="crumb" onclick={() => (dir = c.d)}>{c.name}</button>{/each}
         {:else}
-          {all.length} {all.length === 1 ? "note" : "notes"} in {notes.dirs.filter((x) => !x.includes("/")).length} folders · Markdown files on your Drive
+          {@const nf = noteDirs().filter((x) => !x.includes("/")).length}
+          {all.length} {all.length === 1 ? "note" : "notes"} in {nf} {nf === 1 ? "folder" : "folders"} · Markdown files on your Drive
         {/if}
       </p>
     </div>

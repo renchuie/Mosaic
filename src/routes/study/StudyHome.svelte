@@ -11,7 +11,7 @@
   import { activityByDay } from "../../lib/stores/activity.svelte";
   import { inherited, labHref, labs, labsIn } from "../../lib/stores/labs.svelte";
   import { items as libraryItems } from "../../lib/stores/library.svelte";
-  import { dirOf, noteHref, notes, recentNotes } from "../../lib/stores/notes.svelte";
+  import { dirOf, noteHref, notes, recentNotes, noteDirs } from "../../lib/stores/notes.svelte";
   import { clock, completeBlock, getPlan, nowBlock, pauseBlock, reopenBlock, spent, startBlock } from "../../lib/stores/plan.svelte";
   import { pdfHref, pdfName, recentPdfs } from "../../lib/stores/pdfs.svelte";
   import { settings } from "../../lib/stores/settings.svelte";
@@ -119,7 +119,7 @@
   const COLORS = ["#E3949B", "#8FB2DA", "#A98CE0", "#E3A86C", "#7FB3A6", "#D9B850"];
   const firstLine = (text: string, title: string) => previewLine(splitNote(text).body, title);
   const folders = $derived.by(() => {
-    const tops = [...new Set(notes.dirs.map((d) => d.split("/")[0]))];
+    const tops = [...new Set(noteDirs().map((d) => d.split("/")[0]))];
     const last = recentNotes(1)[0];
     return tops
       .map((d, i) => {

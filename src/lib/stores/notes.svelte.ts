@@ -260,3 +260,8 @@ function loadSample() {
   notes.root = settings.notesRoot;
   notes.loaded = true;
 }
+
+/** Folders she sees (lists, tiles, pickers): everything but `attachments`, where pasted images
+ *  and card pictures are kept. The folder still exists on disk; it's only hidden in the app. */
+export const isHiddenDir = (d: string) => d === "attachments" || d.startsWith("attachments/");
+export const noteDirs = (): string[] => notes.dirs.filter((d) => !isHiddenDir(d));

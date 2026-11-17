@@ -13,8 +13,7 @@
   import { get } from "../../lib/stores/synced.svelte";
   import {
     allNotes, allTags, backlinks, createNote, dirOf, getNote, imageUrl, linkName, moveNote, noteHref, notes,
-    reloadNote, renameNote, resolveLink, saveNote, savePastedImage, trashNote,
-  } from "../../lib/stores/notes.svelte";
+    reloadNote, renameNote, resolveLink, saveNote, savePastedImage, trashNote, noteDirs } from "../../lib/stores/notes.svelte";
   import { pdfHref, resolvePdfLink } from "../../lib/stores/pdfs.svelte";
   import NewNoteDialog from "./NewNoteDialog.svelte";
   import NoteTree from "./NoteTree.svelte";
@@ -377,7 +376,7 @@
       });
   });
 
-  const dirs = $derived(["", ...notes.dirs.filter((d) => !d.startsWith("attachments"))]);
+  const dirs = $derived(["", ...noteDirs()]);
   const label = (p: Panel) => PANELS.find((x) => x.id === p)!.label;
 </script>
 
