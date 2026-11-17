@@ -1,16 +1,15 @@
 <script lang="ts">
   // The floating rail (chosen Nov 16, option A): logo, quick add, one icon per page with a
-  // dark marker that slides to the active one, overdue dot on Tasks, and at the bottom the
-  // streak badge, settings and her avatar. Page names show on hover / keyboard focus.
+  // dark marker that slides to the active one, overdue dot on Tasks, and at the bottom only her
+  // avatar (Nov 18, her ask: keep the rail minimal): hovering it opens a small menu with Settings
+  // and Appearance. Page names show on hover / keyboard focus.
   import Icon from "./Icon.svelte";
   import { NAV, route } from "../router.svelte";
-  import { streakInfo } from "../stores/labs.svelte";
   import { overdue } from "../stores/tasks.svelte";
   import { newEvent, newTask } from "../stores/calendar.svelte";
   import { settings } from "../stores/settings.svelte";
   import NewNoteDialog from "../../routes/study/NewNoteDialog.svelte";
 
-  const streak = $derived(streakInfo());
   const late = $derived(overdue().length);
   const labels: Record<string, string> = {
     dashboard: "Dashboard",
@@ -42,9 +41,17 @@
     else location.hash = "#/study/pdfs";
   }
   const initial = $derived((settings.name || "?").trim().charAt(0).toUpperCase());
+  // the avatar menu: opens on hover (CSS) or click / keyboard (state)
+  let meOpen = $state(false);
+  function goSettings(section?: string) {
+    meOpen = false;
+    (document.activeElement as HTMLElement | null)?.blur?.();
+    location.hash = "#/settings";
+    if (section) setTimeout(() => document.getElementById(section)?.scrollIntoView({ behavior: "smooth", block: "start" }), 350);
+  }
 </script>
 
-<svelte:window onkeydown={(e) => e.key === "Escape" && (addOpen = false)} />
+<svelte:window onkeydown={(e) => e.key === "Escape" && ((addOpen = false), (meOpen = false))} />
 
 <aside class="rail" aria-label="Mosaic">
   <a href="#/dashboard" class="logo" aria-label="Mosaic home">
@@ -90,14 +97,18 @@
 
   <span class="grow"></span>
 
-  <a href="#/dashboard" class="streak" class:lit={streak.week.some(Boolean)} aria-label="Study streak: {streak.days} {streak.days === 1 ? 'day' : 'days'}" data-tip="{streak.days}-day streak">
-    <Icon name="flame" size={18} />
-    <b>{streak.days}</b>
-  </a>
-  <a href="#/settings" class="item" class:active={route.page === "settings"} aria-current={route.page === "settings" ? "page" : undefined} aria-label="Settings" data-tip="Settings">
-    <Icon name="settings" size={21} />
-  </a>
-  <span class="avatar" title={settings.name} aria-hidden="true">{initial}</span>
+  <div class="me" class:open={meOpen}>
+    <button type="button" class="avatar" class:here={route.page === "settings"} aria-label="{settings.name || 'You'}: settings and more" aria-haspopup="menu" aria-expanded={meOpen} onclick={() => (meOpen = !meOpen)}>{initial}</button>
+    <div class="menu memenu" role="menu" aria-label="You">
+      <div class="who"><span class="avatar big" aria-hidden="true">{initial}</span><span><b>{settings.name || "You"}</b><small>Mosaic</small></span></div>
+      <button type="button" role="menuitem" class:on={route.page === "settings"} onclick={() => goSettings()}><Icon name="settings" size={17} /> Settings</button>
+      <button type="button" role="menuitem" onclick={() => goSettings("look-h")}><Icon name="star" size={17} /> Appearance</button>
+    </div>
+  </div>
+  {#if meOpen}
+    <!-- svelte-ignore a11y_no_static_element_interactions, a11y_click_events_have_key_events -->
+    <div class="scrim" onclick={() => (meOpen = false)}></div>
+  {/if}
 </aside>
 
 <NewNoteDialog bind:open={noteOpen} />
@@ -246,10 +257,6 @@
     color: var(--on-primary);
     background: none;
   }
-  .rail > .item.active {
-    background: var(--primary);
-    color: var(--on-primary);
-  }
   .item :global(svg) {
     position: relative;
   }
@@ -267,42 +274,111 @@
   .grow {
     flex: 1;
   }
-  .streak {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    width: 48px;
-    height: 58px;
-    border-radius: 16px;
-    background: var(--chip);
-    color: var(--text-muted);
-    text-decoration: none;
-  }
-  .streak.lit {
-    background: var(--butter);
-    color: var(--ink-on-color);
-  }
-  .streak b {
-    font-size: 13px;
-    line-height: 1.1;
-  }
-  .streak:hover {
-    transform: translateY(-2px) scale(1.05);
-  }
-  .streak:hover :global(svg) {
-    animation: wiggle 0.5s var(--spring);
-  }
   .avatar {
     display: grid;
     place-items: center;
-    width: 40px;
-    height: 40px;
-    margin-top: 4px;
+    width: 42px;
+    height: 42px;
+    padding: 0;
+    border: 0;
     border-radius: 50%;
     background: var(--rose);
     color: var(--ink-on-color);
+    font: inherit;
     font-weight: 600;
+    cursor: pointer;
+    transition: transform 0.2s var(--spring), box-shadow 0.2s ease;
+  }
+  .avatar.here {
+    box-shadow: 0 0 0 3px var(--surface), 0 0 0 5px var(--primary);
+  }
+  /* the avatar menu: slides out to the right of the avatar, bottom-aligned */
+  .me {
+    position: relative;
+    z-index: 3;
+    margin-top: 4px;
+  }
+  .me:hover .avatar,
+  .me.open .avatar {
+    transform: scale(1.08);
+  }
+  .memenu {
+    position: absolute;
+    left: calc(100% + 14px);
+    bottom: -6px;
+    z-index: 2;
+    min-width: 220px;
+    display: grid;
+    gap: 2px;
+    padding: 8px;
+    border-radius: 20px;
+    background: var(--surface-float);
+    box-shadow: var(--shadow-lift);
+    transform-origin: left bottom;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateX(-8px) scale(0.92);
+    transition: opacity 0.18s ease, transform 0.32s var(--spring), visibility 0s linear 0.32s;
+  }
+  /* an invisible bridge so the mouse can travel from the avatar to the menu */
+  .memenu::before {
+    content: "";
+    position: absolute;
+    left: -18px;
+    top: 0;
+    bottom: 0;
+    width: 18px;
+  }
+  .me:hover .memenu,
+  .me:focus-within .memenu,
+  .me.open .memenu {
+    opacity: 1;
+    visibility: visible;
+    transform: none;
+    transition: opacity 0.18s ease, transform 0.32s var(--spring), visibility 0s;
+  }
+  .who {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 10px 12px;
+    margin-bottom: 4px;
+    border-bottom: 1px solid var(--hairline);
+  }
+  .who span:last-child {
+    display: grid;
+  }
+  .who small {
+    color: var(--text-muted);
+    font-size: 12px;
+  }
+  .avatar.big {
+    width: 38px;
+    height: 38px;
+    cursor: default;
+  }
+  .memenu button {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-height: 44px;
+    padding: 0 14px;
+    border: 0;
+    border-radius: 14px;
+    background: none;
+    color: var(--text);
+    font: inherit;
+    font-weight: 500;
+    text-align: left;
+    cursor: pointer;
+    transition: background 0.15s, transform 0.2s var(--spring);
+  }
+  .memenu button:hover,
+  .memenu button.on {
+    background: var(--chip);
+  }
+  .memenu button:hover {
+    transform: translateX(3px);
   }
 
   /* page names on hover and keyboard focus */
@@ -325,8 +401,7 @@
     transition: opacity var(--t-fast) ease, transform var(--t) var(--spring);
     z-index: 3;
   }
-  .add[data-tip],
-  .streak[data-tip] {
+  .add[data-tip] {
     position: relative;
   }
   [data-tip]:hover::after,
@@ -363,9 +438,9 @@
       gap: 4px;
       padding: 10px 0;
     }
-    .streak,
     .avatar {
-      display: none;
+      width: 36px;
+      height: 36px;
     }
   }
 </style>

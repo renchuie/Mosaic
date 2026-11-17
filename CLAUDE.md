@@ -98,9 +98,11 @@ below disagrees.
 - **Density** (`settings.density`, `<html data-density>`): spacious (default), original, compact.
   Spacing tokens: `--gap`, `--card-pad`, `--main-pad`, `--shell-pad`, `--radius`.
 - **Floating rail** (`Sidebar.svelte`): logo, + quick add (Task, Event, Note, Flashcard, PDF), page
-  icons with a dark marker that slides to the active page, overdue dot on Tasks, streak badge,
-  Settings, avatar initial; names show on hover/focus (CSS `data-tip`). Replaced the labelled
-  sidebar and the streak panel.
+  icons with a dark marker that slides to the active page, overdue dot on Tasks, and at the bottom
+  only the avatar initial (Nov 18, her ask: no streak badge, no settings icon). Hovering the avatar
+  (or clicking / focusing it) springs open a menu to its right: name, Settings, Appearance (scrolls
+  to `#look-h`); a ring around the avatar marks the Settings page. Names show on hover/focus (CSS
+  `data-tip`). Replaced the labelled sidebar and the streak panel.
 - **Folder tiles** (`FolderTile.svelte`): tab + frosted body; the open folder (last used) takes its
   course colour and shows sheets (note snippets or PDF page sketches); any folder shows them on
   hover. Used on Notes home (`NotesHome.svelte`, shown when no note is open), PDFs home (folder
