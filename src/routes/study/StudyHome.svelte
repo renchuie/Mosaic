@@ -5,7 +5,7 @@
   import { addDays, fromKey, todayKey } from "../../lib/calendar";
   import { cardHtml } from "../../lib/cards";
   import { fmtClock, fmtDuration, type Block } from "../../lib/plan";
-  import { splitNote } from "../../lib/notes";
+  import { splitNote, previewLine } from "../../lib/notes";
   import { exams } from "../../lib/stores/calendar.svelte";
   import { courseByName, courses } from "../../lib/stores/courses.svelte";
   import { activityByDay } from "../../lib/stores/activity.svelte";
@@ -117,8 +117,7 @@
 
   // ---- note folders ----------------------------------------------------------------------
   const COLORS = ["#E3949B", "#8FB2DA", "#A98CE0", "#E3A86C", "#7FB3A6", "#D9B850"];
-  const firstLine = (text: string, title: string) =>
-    splitNote(text).body.split("\n").map((l) => l.replace(/<!--sd:\w+-->/g, "").replace(/^[#>*\-\s]+/, "").replace(/\*\*|__|==|`|\[\[|\]\]/g, "").replace(/\s*:{2,3}\s*$/, "").replace(/\s*:{2,3}\s*/g, " → ").trim()).find((l) => l && l !== title) ?? "";
+  const firstLine = (text: string, title: string) => previewLine(splitNote(text).body, title);
   const folders = $derived.by(() => {
     const tops = [...new Set(notes.dirs.map((d) => d.split("/")[0]))];
     const last = recentNotes(1)[0];

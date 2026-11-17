@@ -12,6 +12,8 @@
   import { parsePdfRoute } from "../lib/stores/pdfs.svelte";
 
   const noteRel = $derived(route.rest.startsWith("notes/") ? route.rest.slice(6) : null);
+  // the Notes pages draw their own top bar (same strip) and fill the panel
+  const notesPages = $derived(/^notes(\/|$)/.test(route.rest));
   // #/study/cards/review/<scope> or #/study/cards/cram/<scope>; scope = all | library | course:<name> | note:<rel>
   const cram = $derived(route.rest.startsWith("cards/cram"));
   const scope = $derived.by((): Scope | null => {
@@ -27,8 +29,8 @@
   const libItem = $derived(route.rest.startsWith("cards/library/") ? route.rest.slice("cards/library/".length) : null);
 </script>
 
-<div class="study" class:fill={!!noteRel}>
-  {#if !scope && !noteRel}<StudyNav />{/if}
+<div class="study" class:fill={notesPages}>
+  {#if !scope && !notesPages}<StudyNav />{/if}
   {#if scope}
     {#key route.rest}<ReviewSession {scope} {cram} />{/key}
   {:else if route.rest.startsWith("cards/library")}

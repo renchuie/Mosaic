@@ -109,6 +109,18 @@ export function renameLinks(text: string, from: string, to: string): string {
 }
 
 /** A short snippet around the first match of `q`. */
+/** The first line of a note worth showing in a list (not the title, not hidden comment lines
+ *  like card ids or column markers), cleaned of Markdown. */
+export function previewLine(body: string, title: string): string {
+  return (
+    body
+      .split("\n")
+      .filter((l) => !/^\s*<!--.*-->\s*$/.test(l))
+      .map((l) => plainText(l).replace(/\s*→\s*$/, "").trim())
+      .find((l) => l && l !== title) ?? ""
+  );
+}
+
 export function snippet(text: string, q: string, len = 90): string {
   const body = splitNote(text).body.replace(/\s+/g, " ");
   const i = body.toLowerCase().indexOf(q.toLowerCase());

@@ -397,7 +397,7 @@
   }}
 />
 
-<div class="nwrap" class:full={!!(rel && note)} class:pad={!!rel && !note} bind:clientWidth={width}>
+<div class="nwrap full" bind:clientWidth={width}>
   {#if rel && note}
     <div class="npage" class:writing={ui.writing} class:typing style="--bar-h: {barH}px; --note-box: {WIDTHS[noteWidth]}; --doc-pad: {noteWidth === 'full' ? '64px' : '40px'}">
       <div class="topbar" bind:clientHeight={barH}>
@@ -534,18 +534,26 @@
       {/if}
     </div>
   {:else}
-    {#if rel}<StudyNav />{/if}
-    <div class="notes homeview">
-      <aside class="left">
-        <NoteTree current={rel} onnew={(f) => { newMode = "note"; newFolder = f; newOpen = true; }} onnewfolder={() => { newMode = "folder"; newFolder = ""; newOpen = true; }} />
-      </aside>
-      <section class="center bare">
-        {#if rel && notes.loaded}
-          <div class="empty card"><p>This note isn't in the notes folder any more.</p><a class="btn quiet" href="#/study/notes">Back to notes</a></div>
-        {:else}
-          <NotesHome onnew={(f) => { newMode = "note"; newFolder = f; newOpen = true; }} />
-        {/if}
-      </section>
+    <!-- Notes home: the same top bar and the same clean notes column as inside a note -->
+    <div class="npage home">
+      <div class="topbar">
+        <StudyNav bar={false} />
+      </div>
+      <div class="body">
+        <aside class="pinned left solid">
+          <div class="ph"><b>Notes</b></div>
+          <NoteTree current={rel} onnew={(f) => { newMode = "note"; newFolder = f; newOpen = true; }} onnewfolder={() => { newMode = "folder"; newFolder = ""; newOpen = true; }} />
+        </aside>
+        <section class="center">
+          <div class="scroll homescroll">
+            {#if rel && notes.loaded}
+              <div class="empty card"><p>This note isn't in the notes folder any more.</p><a class="btn quiet" href="#/study/notes">Back to notes</a></div>
+            {:else}
+              <NotesHome onnew={(f) => { newMode = "note"; newFolder = f; newOpen = true; }} />
+            {/if}
+          </div>
+        </section>
+      </div>
     </div>
   {/if}
 </div>
@@ -559,9 +567,6 @@
   }
   .nwrap.full {
     height: 100%;
-  }
-  .nwrap.pad {
-    padding: var(--main-pad);
   }
   /* the note page: one sheet filling the main panel (App makes main flush for note routes) */
   .npage {
@@ -855,6 +860,7 @@
     display: flex;
     align-items: center;
     gap: 4px;
+    min-height: 28px; /* same height with or without the 📌 / × buttons */
     margin-bottom: 10px;
   }
   .ph b {
@@ -1032,22 +1038,18 @@
     color: var(--text);
   }
 
-  /* notes home (no note open) */
-  .notes {
-    display: grid;
-    grid-template-columns: 250px minmax(0, 1fr);
-    gap: 14px;
-    height: calc(100vh - 190px);
-    min-height: 480px;
-  }
-  .left {
-    min-height: 0;
-  }
-  .center.bare {
+  /* notes home (no note open): the content sits on the glass, the notes column looks like the
+     pinned column inside a note (white sheet under the same tint) */
+  .home .body {
     background: none;
-    box-shadow: none;
-    overflow: auto;
-    padding: 2px 4px 24px;
+  }
+  .pinned.solid {
+    background: linear-gradient(color-mix(in srgb, var(--panel) 40%, transparent), color-mix(in srgb, var(--panel) 40%, transparent)), var(--surface);
+    animation: none;
+  }
+  .homescroll {
+    display: block;
+    padding: calc(var(--main-pad-t) - 6px) var(--main-pad-x) 32px;
   }
   .empty {
     display: grid;
@@ -1064,12 +1066,14 @@
     }
   }
   @container (max-width: 680px) {
-    .notes {
-      grid-template-columns: minmax(0, 1fr);
-      height: auto;
+    .home .body {
+      flex-direction: column;
     }
-    .notes .left {
+    .home .pinned.left {
+      width: auto;
       max-height: 260px;
+      border-right: 0;
+      border-bottom: 1px solid var(--hairline);
     }
     .sheet.left,
     .sheet.right {

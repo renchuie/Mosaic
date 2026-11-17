@@ -22,7 +22,8 @@
   const pageKey = $derived(route.page === "labs" ? "study" : route.page);
 
   const viewer = $derived(route.page === "labs" && /\.html?$/i.test(route.rest));
-  // an open note fills the main panel edge to edge (one sheet, its own top bar)
+  // the Notes pages fill the main panel edge to edge (own top bar, notes list as a column)
+  const notesPages = $derived(route.page === "study" && /^notes(\/|$)/.test(route.rest));
   const notePage = $derived(route.page === "study" && route.rest.startsWith("notes/"));
   const writing = $derived(ui.writing && notePage);
 </script>
@@ -30,7 +31,7 @@
 <div class="shell" class:writing>
   {#if writing}<div class="redge" aria-hidden="true"></div><div class="tedge" aria-hidden="true"></div>{/if}
   <Sidebar />
-  <main class:flush={viewer || notePage}>
+  <main class:flush={viewer || notesPages}>
     {#key pageKey}
     <div class="view" in:fly={arrive}>
     {#if route.page === "dashboard"}

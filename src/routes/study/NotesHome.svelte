@@ -3,7 +3,7 @@
   // edited last is "open" (coloured, its latest notes peeking out). Clicking a folder shows
   // its subfolders and notes; the tree on the left stays for quick jumping.
   import FolderTile from "../../lib/components/FolderTile.svelte";
-  import { splitNote } from "../../lib/notes";
+  import { splitNote, previewLine } from "../../lib/notes";
   import { courses } from "../../lib/stores/courses.svelte";
   import { dirOf, noteHref, notes, recentNotes, type NoteEntry } from "../../lib/stores/notes.svelte";
 
@@ -29,11 +29,7 @@
     const c = courses(true).find(([, c]) => [c.name, c.code].filter(Boolean).some((k) => [leaf, top].includes(k!.toLowerCase())));
     return c?.[1].color ? c[1].color : COURSE_COLORS[i % COURSE_COLORS.length];
   }
-  const firstLine = (e: NoteEntry) =>
-    splitNote(e.text)
-      .body.split("\n")
-      .map((l) => l.replace(/<!--sd:\w+-->/g, "").replace(/^[#>*\-\s]+/, "").replace(/\*\*|__|==|`|\[\[|\]\]/g, "").replace(/\s*:{2,3}\s*$/, "").replace(/\s*:{2,3}\s*/g, " → ").trim())
-      .find((l) => l && l !== e.p.title) ?? "";
+  const firstLine = (e: NoteEntry) => previewLine(splitNote(e.text).body, e.p.title);
   function tile(d: string, i: number) {
     const list = all.filter((e) => inside(d, e)).sort((a, b) => b.mtime - a.mtime);
     const last = list[0];
