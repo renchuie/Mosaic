@@ -552,15 +552,21 @@ button.dot[data-color] {
 .mosaic-doc .cards {
   position: relative;
 }
-/* selected cells: a tint and an outline drawn ON TOP of the cell, so they show on coloured cells too */
+/* selected cells: a soft tint drawn ON TOP of the cell (so it shows on coloured cells too) that
+   fades in; the rounded outline around the whole selection is BlockEditor's .cellbox */
 .mosaic-doc .selectedCell::after {
   content: "";
   position: absolute;
   inset: 0;
   z-index: 1;
-  background: color-mix(in srgb, var(--lavender) 30%, transparent);
-  box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--lavender) 70%, var(--link-ink, #5b45b3));
+  background: color-mix(in srgb, var(--lavender) 32%, transparent);
   pointer-events: none;
+  animation: celltint 0.18s var(--ease-out, ease) backwards;
+}
+@keyframes celltint {
+  from {
+    opacity: 0;
+  }
 }
 
 /* ---- feedback ---- */

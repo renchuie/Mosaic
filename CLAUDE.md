@@ -296,8 +296,9 @@ Markdown" view, the `<>` chip on the note header).
   columns with just the cursor), so they share what's left. A plugin view in `ColumnRules` clears
   stale `<col>` widths, because Tiptap's table view never removes one when a width is cleared.
   🎨 Colour sets / clears EVERY selected cell (`setCellsBg`; Tiptap's setCellAttribute bailed when
-  the anchor cell already matched). Selected cells get an outlined overlay (`.selectedCell::after`)
-  that shows on coloured cells too. Table bar: rows / columns, 🎨 Colour, ⇔ Even out, Flashcards. Enter inside a cell adds a line (Tab moves to the next cell).
+  the anchor cell already matched). Selected cells get a soft tint that fades in (`.selectedCell::after`,
+  shows on coloured cells too) and ONE rounded outline around the whole selection (`.cellbox` in
+  BlockEditor, `placeCellBox()`), which glides as the selection changes. Table bar: rows / columns, 🎨 Colour, ⇔ Even out, Flashcards. Enter inside a cell adds a line (Tab moves to the next cell).
 - Columns (Nov 17, Notion-style column blocks): nodes `columns` (attr `w` = widths in percent,
   null = equal; only at the top level: doc content is `(block | columns)+`) and `column`
   (`block+`, isolating). In the file: `<!--mosaic-cols {"w":[60,40]}-->`, `<!--mosaic-col-->`
@@ -332,8 +333,11 @@ Markdown" view, the `<>` chip on the note header).
   text. Joining is a deliberate ⠿ menu item on a block in a half, "Join halves into one page"
   (left, then right). NotesView puts `data-width` on `.npage`; editor.css shows two halves with a
   line down the middle only under `[data-width="full"]:not([data-split="stacked"])`, stacked
-  (with a line between) otherwise. The halves themselves get no block handle. Ctrl+A inside a half selects that half (a second Ctrl+A,
-  or Ctrl+Shift+A, selects the whole note; keymap in `ColumnRules`). Blocks in the right half get the handle 52px left of them; a click in a half's
+  (with a line between) otherwise. The halves themselves get no block handle. Ctrl+A grows outward one step per press (keymap
+  `Mod-a` in `ColumnRules`, `selectSteps()`): in a table cell → the cell's text → its column → its
+  row → the whole table; then the column block, then the side-by-side half, then the whole note.
+  Steps are worked out at the first press and rebuilt on the current doc each time (autosave can
+  tidy the doc in between). Ctrl+Shift+A always selects the whole note. Blocks in the right half get the handle 52px left of them; a click in a half's
   empty space writes at its end.
 - Nov 18 fixes: the ⠿ menu opens beside the handle that opened it (`blockMenu.x`); the selection
   toolbar slides to stay on the page near an edge; flashcard bullets / numbers line up with plain

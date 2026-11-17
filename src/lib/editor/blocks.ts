@@ -7,6 +7,7 @@ import { AllSelection, Plugin, PluginKey, Selection, TextSelection, type EditorS
 import { Decoration, DecorationSet, type EditorView } from "@tiptap/pm/view";
 import type { Mark as PMMark, Node as PMNode, NodeType } from "@tiptap/pm/model";
 import { Table, TableCell, TableHeader, TableRow } from "@tiptap/extension-table";
+import { CellSelection } from "@tiptap/pm/tables";
 import { Dropcursor, Gapcursor, Placeholder, UndoRedo } from "@tiptap/extensions";
 
 export type EditorOpts = {
@@ -412,6 +413,49 @@ const Pages = Node.create({
   renderHTML: () => ["div", { class: "b-pages" }, 0],
 });
 
+/** What Ctrl+A selects, step by step from the cursor outward (see "Mod-a" below). */
+const lastSelectAll = new WeakMap<EditorView, { sel: Selection; i: number; steps: Selection[] }>();
+function selectSteps(state: EditorState): Selection[] {
+  const out: Selection[] = [];
+  const doc = state.doc;
+  const rf = state.selection.$from;
+  /** all the text inside the node at depth d */
+  const inside = (d: number): Selection | null => {
+    const node = rf.node(d);
+    const base = rf.start(d);
+    const a = Selection.atStart(node);
+    const b = Selection.atEnd(node);
+    const from = base + a.from;
+    const to = base + b.to;
+    return to > from ? TextSelection.create(doc, from, to) : null;
+  };
+  for (let d = rf.depth; d > 0; d--) {
+    const name = rf.node(d).type.name;
+    if (name === "tableCell" || name === "tableHeader") {
+      const t = inside(d);
+      if (t) out.push(t);
+      const $cell = doc.resolve(rf.before(d));
+      out.push(CellSelection.colSelection($cell), CellSelection.rowSelection($cell));
+      const tablePos = rf.before(d - 2);
+      const table = doc.nodeAt(tablePos)!;
+      const cells: number[] = [];
+      table.descendants((c, p) => {
+        if (c.type.name === "tableCell" || c.type.name === "tableHeader") {
+          cells.push(tablePos + 1 + p);
+          return false;
+        }
+        return true;
+      });
+      if (cells.length) out.push(CellSelection.create(doc, cells[0], cells[cells.length - 1]));
+      d -= 2; // skip the row and the table themselves
+    } else if (name === "column" || name === "pagecol") {
+      const t = inside(d);
+      if (t) out.push(t);
+    }
+  }
+  return out;
+}
+
 /** Columns never stay with one column: a single column turns back into plain blocks. */
 const columnsKey = new PluginKey("mosaicColumns");
 const ColumnRules = Extension.create({
@@ -464,23 +508,35 @@ const ColumnRules = Extension.create({
   },
   addKeyboardShortcuts() {
     return {
-      // side by side: Ctrl+A selects the half the cursor is in, Ctrl+Shift+A the whole note
+      // Ctrl+A grows outward, one step per press (Nov 18): in a table cell → that cell's text →
+      // its column → its row → the whole table; then the column block, then the side-by-side
+      // half, then the whole note. Ctrl+Shift+A always selects the whole note.
       "Mod-a": ({ editor }) => {
-        const rf = editor.state.selection.$from;
-        for (let d = rf.depth; d > 0; d--) {
-          if (rf.node(d).type.name !== "pagecol") continue;
-          const doc = editor.state.doc;
-          const start = Selection.atStart(rf.node(d));
-          const end = Selection.atEnd(rf.node(d));
-          const base = rf.start(d);
-          const from = TextSelection.near(doc.resolve(base + start.from), 1);
-          const to = TextSelection.near(doc.resolve(base + end.to), -1);
-          // already the whole half selected: a second Ctrl+A takes the whole note
-          if (editor.state.selection.from === from.from && editor.state.selection.to === to.to) return false;
-          editor.view.dispatch(editor.state.tr.setSelection(TextSelection.create(doc, from.from, to.to)));
-          return true;
+        const { state, view } = editor;
+        // the steps come from where the cursor was at the FIRST press (a column selection's own
+        // start would point at another cell)
+        const memo = lastSelectAll.get(view);
+        const again = !!memo && memo.sel.eq(state.selection);
+        const steps = again ? memo!.steps : selectSteps(state);
+        let i = again ? memo!.i + 1 : 0;
+        // steps were made on the note as it was at the first press: rebuild them on the note now
+        // (autosave may have tidied it in between)
+        const now = (k: number): Selection | null => {
+          try {
+            return Selection.fromJSON(state.doc, steps[k].toJSON());
+          } catch {
+            return null;
+          }
+        };
+        while (i < steps.length && (!now(i) || now(i)!.eq(state.selection))) i++;
+        if (i >= steps.length) {
+          lastSelectAll.delete(view);
+          return false; // the editor's own select-all: the whole note
         }
-        return false;
+        view.dispatch(state.tr.setSelection(now(i)!));
+        // remember the selection as it ended up (the table plugin may tidy a cell selection)
+        lastSelectAll.set(view, { sel: view.state.selection, i, steps });
+        return true;
       },
       "Mod-Shift-a": ({ editor }) => {
         editor.view.dispatch(editor.state.tr.setSelection(new AllSelection(editor.state.doc)));

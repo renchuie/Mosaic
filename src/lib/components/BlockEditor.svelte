@@ -430,6 +430,27 @@
 
   // ---- selection toolbar ---------------------------------------------------------------------
   let bubble = $state<{ x: number; y: number } | null>(null);
+  // selected table cells: ONE rounded outline around the whole selected area, which glides as
+  // the selection changes (the cells themselves only get a soft tint)
+  let cellBox = $state<{ x: number; y: number; w: number; h: number } | null>(null);
+  function placeCellBox() {
+    if (!editor || !wrap) return;
+    const sel = editor.state.selection;
+    if (!(sel instanceof CellSelection)) {
+      if (cellBox) cellBox = null;
+      return;
+    }
+    const w = wrap.getBoundingClientRect();
+    let l = Infinity, t = Infinity, r = -Infinity, b = -Infinity;
+    sel.forEachCell((_n, pos) => {
+      const dom = editor!.view.nodeDOM(pos) as HTMLElement | null;
+      if (!dom) return;
+      const c = dom.getBoundingClientRect();
+      l = Math.min(l, c.left); t = Math.min(t, c.top); r = Math.max(r, c.right); b = Math.max(b, c.bottom);
+    });
+    if (l === Infinity) return (cellBox = null);
+    cellBox = { x: l - w.left, y: t - w.top, w: r - l, h: b - t };
+  }
   let bubbleEl = $state<HTMLDivElement>();
   // the toolbar is centred over the selection; near an edge it slides over so all of it shows
   $effect(() => {
@@ -867,6 +888,7 @@
           tick++;
           detectMenu(changed);
           placeBubble();
+          placeCellBox();
           if (changed) onchange();
         });
       },
@@ -1019,6 +1041,7 @@
 <div class="bwrap" bind:this={wrap} onmousemove={onMove} onmousedown={(e) => { if ((e.target as HTMLElement).closest(".mosaic-doc")) mouseDown = true; }} onmouseleave={() => !blockMenu && (handle = null)}>
   <div class="bhost" bind:this={host}></div>
 
+  {#if cellBox}<div class="cellbox" style="left: {cellBox.x}px; top: {cellBox.y}px; width: {cellBox.w}px; height: {cellBox.h}px" aria-hidden="true"></div>{/if}
   {#if sideDrop}<div class="sidedrop" style="left: {sideDrop.x}px; top: {sideDrop.y}px; height: {sideDrop.h}px" aria-hidden="true"></div>{/if}
   {#if handle && !blockMenu}
     <!-- in a column after the first, + and ⠿ stack so the handle fits in the gap (and clears the divider line) -->
@@ -1185,6 +1208,23 @@
   }
   .handle.stack .hb {
     height: 22px;
+  }
+  .cellbox {
+    position: absolute;
+    z-index: 2;
+    border-radius: 10px;
+    box-shadow:
+      0 0 0 2px color-mix(in srgb, var(--lavender, #c9b8f0) 75%, var(--link-ink, #5b45b3)),
+      0 6px 18px -8px color-mix(in srgb, var(--lavender, #c9b8f0) 90%, transparent);
+    pointer-events: none;
+    transition: left 0.14s var(--ease-out, ease), top 0.14s var(--ease-out, ease), width 0.14s var(--ease-out, ease), height 0.14s var(--ease-out, ease);
+    animation: cellboxin 0.18s var(--ease-out, ease) backwards;
+  }
+  @keyframes cellboxin {
+    from {
+      opacity: 0;
+      transform: scale(0.98);
+    }
   }
   .sidedrop {
     position: absolute;
