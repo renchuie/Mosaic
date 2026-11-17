@@ -904,7 +904,7 @@
   .undo kbd {
     background: var(--chip);
   }
-  /* scratchpad */
+  /* scratchpad: tinted with the card type's own colour (--t), like the stripe and badge */
   .scrbtn.on {
     background: var(--text);
     color: var(--surface);
@@ -920,8 +920,8 @@
     padding: 14px 16px;
     border: 0;
     border-radius: 16px;
-    background: var(--field);
-    box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--lavender) 55%, transparent);
+    background: color-mix(in srgb, var(--t) 7%, var(--field));
+    box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--t) 55%, transparent);
     color: var(--text);
     font: inherit;
     font-size: calc(var(--as) * 0.86);
@@ -930,7 +930,7 @@
   }
   .scratch textarea:focus {
     outline: none;
-    box-shadow: inset 0 0 0 2px var(--lavender);
+    box-shadow: inset 0 0 0 2px var(--t);
   }
   .scrrow {
     display: flex;
@@ -952,7 +952,7 @@
     gap: 4px;
     padding: 12px 16px;
     border-radius: 16px;
-    background: color-mix(in srgb, var(--lavender) 14%, transparent);
+    background: color-mix(in srgb, var(--t) 14%, transparent);
     text-align: left;
   }
   .mine p {
@@ -972,7 +972,7 @@
     font-weight: 700;
     letter-spacing: 0.06em;
     text-transform: uppercase;
-    color: color-mix(in srgb, var(--lavender) 50%, var(--text));
+    color: color-mix(in srgb, var(--t) 50%, var(--text));
   }
   .mtip {
     font-size: 12.5px;

@@ -686,7 +686,7 @@ Recall Labs. Decisions she approved:
   recalling out loud lags): "✎ Scratchpad" in the review top bar or Settings → Flashcard review
   (`settings.cardScratch`). On: a textarea under the question (focused), Show answer stays
   disabled until she writes something (Ctrl+Enter compares; "I don't know, show me" skips), then a
-  lavender "You wrote" box sits above the answer with "rate the idea, not the wording". Not saved.
+  "You wrote" box (box and textarea tinted with the card type's colour `--t`) sits above the answer with "rate the idea, not the wording". Not saved.
 - List cards in review (Nov 18, her design on artifact "List Card Retry"): one numbered "?" per item
   and an "N items" pill; after Show answer each item is a button (or Shift + its number) to mark it
   missed. Any miss disables Good / Easy and suggests Hard (Again when over half were missed). The
