@@ -552,8 +552,9 @@ button.dot[data-color] {
 .mosaic-doc .cards {
   position: relative;
 }
-/* selected cells: a soft tint drawn ON TOP of the cell (so it shows on coloured cells too) that
-   fades in; the rounded outline around the whole selection is BlockEditor's .cellbox */
+/* selected cells: a soft tint drawn ON TOP of the cell (so it shows on coloured cells too). No
+   animation of its own: it would replay on every cell at every selection change (flicker); the
+   rounded outline around the whole selection (BlockEditor's .cellbox) does the fading. */
 .mosaic-doc .selectedCell::after {
   content: "";
   position: absolute;
@@ -561,12 +562,6 @@ button.dot[data-color] {
   z-index: 1;
   background: color-mix(in srgb, var(--lavender) 32%, transparent);
   pointer-events: none;
-  animation: celltint 0.18s var(--ease-out, ease) backwards;
-}
-@keyframes celltint {
-  from {
-    opacity: 0;
-  }
 }
 
 /* ---- feedback ---- */

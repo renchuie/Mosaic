@@ -296,9 +296,12 @@ Markdown" view, the `<>` chip on the note header).
   columns with just the cursor), so they share what's left. A plugin view in `ColumnRules` clears
   stale `<col>` widths, because Tiptap's table view never removes one when a width is cleared.
   🎨 Colour sets / clears EVERY selected cell (`setCellsBg`; Tiptap's setCellAttribute bailed when
-  the anchor cell already matched). Selected cells get a soft tint that fades in (`.selectedCell::after`,
-  shows on coloured cells too) and ONE rounded outline around the whole selection (`.cellbox` in
-  BlockEditor, `placeCellBox()`), which glides as the selection changes. Table bar: rows / columns, 🎨 Colour, ⇔ Even out, Flashcards. Enter inside a cell adds a line (Tab moves to the next cell).
+  the anchor cell already matched). Selected cells get a soft tint (`.selectedCell::after`, no animation: it
+  would replay on every cell at every change) and ONE rounded outline around the whole selection
+  (`.cellbox` in BlockEditor, `placeCellBox()`, positioned with transform). It fades in once,
+  snaps to the selection while she drags (no transition: smooth and free), and glides 0.12s only
+  when the selection jumps without the mouse (Ctrl+A growing). After her Nov 18 recording showed
+  the always-on glide stuttering. Table bar: rows / columns, 🎨 Colour, ⇔ Even out, Flashcards. Enter inside a cell adds a line (Tab moves to the next cell).
 - Columns (Nov 17, Notion-style column blocks): nodes `columns` (attr `w` = widths in percent,
   null = equal; only at the top level: doc content is `(block | columns)+`) and `column`
   (`block+`, isolating). In the file: `<!--mosaic-cols {"w":[60,40]}-->`, `<!--mosaic-col-->`
