@@ -260,6 +260,12 @@ Add things here as they come up (date, page, what happened). Each one is either 
   selection toolbar cut off at the edge, flashcard bullets out of line, table "no colour" not
   clearing a mixed selection, selected coloured cells invisible, table widths confusing (now
   Google Docs style with Even out), and a new "side by side" layout for Full width. All done now.
+- Nov 18 · Flashcards as a standalone deck system too (Anki / Quizlet side; her "what sets Mosaic
+  apart"). Canvas boards "Flashcards tab" (options A, B, C + Add card + Browse) and "A + C combined"
+  (her pick: deck list as home, each deck opens its own page with the deck tree; Add card form with
+  Ctrl+Enter and kept fields; Browse table with filters and bulk actions). Note cards stay as a
+  "From your notes" group in the same queue. Big build: proposed for **week 3** (Study for real),
+  after the week 1–2 focus. Open questions: Type it / Test / Match modes, Stats page, .apkg import.
 - Nov 18 · Editor todo list (she said yes to all; editor fixes count as daily use since she's
   writing real Ther IV notes in it):
   1. Tables shake-down: she tests (lists / cards in cells, tables in columns and halves, pasting
