@@ -632,7 +632,16 @@ Recall Labs. Decisions she approved:
   retention, today), decks by course and by note, 14-day forecast, searchable card list with suspend,
   settings. Review (`ReviewSession.svelte`, `#/study/cards/review/all|course:<name>|note:<rel>`):
   context breadcrumb, Space to show, 1–4 to rate with next-interval labels, Z undo, "Edit in note"
-  jumps to the line (`notes.jump`), summary at the end.
+  jumps to the line (`notes.jump`), summary at the end. Nov 18 redesign (her "nothing small like RemNote", canvas board
+  "Flashcards in review"): questions 36px, answers 29px (30 / 24 in narrow windows), the card
+  as wide as the review area (max 1000px); each card type has a colour (`--t`: → rose-deep,
+  ⇄ lavender (`NoteCard.two` marks both cards of a ⇄ line, "1 of 2 / 2 of 2"), ← peach, cloze
+  butter, list sage-deep, table link-ink, image rose, library lavender/rose mix) shown as a corner
+  glow, a left stripe and a badge with its icon; course dot + section on top; new / learning /
+  review chip; "Answer" divider; cloze fills in place (the gap turns into a sage pill in the same
+  sentence); list answers as big coloured bullets; big Again / Hard / Good / Easy buttons and a
+  full-width "Show answer" bar; progress bar in the top row. The preview's sample notes include
+  `Therapeutics IV/Bipolar.md` with one of each card type for trying it.
 - Wired in: Cards tab badge, dashboard Flashcards card, Study Home card, course page "N to review",
   study plan suggestion "Review N flashcards" (block `href`), heatmap (+½ per review), streak
   (`markStudyDay("reviews")`).

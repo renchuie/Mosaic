@@ -25,6 +25,8 @@ export type NoteCard = {
   context: string[];
   /** 0-based line in the note body */
   line: number;
+  /** a basic or reverse card that is one of the two cards of a "⇄ both ways" line */
+  two?: boolean;
 };
 
 export const ID_RE = /\s*<!--sd:([a-z0-9]{4,})-->/;
@@ -145,8 +147,8 @@ export function extractCards(body: string): NoteCard[] {
       const c = splitCard(l.text)!;
       // a reverse card is the ":r" half of a two-way card on its own (switching ⇄ ↔ ← keeps its history)
       if (c.rev) out.push({ key: key(":r"), lineId: l.id, kind: "reverse", front: c.back, back: c.front, context, line: l.i });
-      else out.push({ key: key(), lineId: l.id, kind: "basic", front: c.front, back: c.back, context, line: l.i });
-      if (c.two) out.push({ key: key(":r"), lineId: l.id, kind: "reverse", front: c.back, back: c.front, context, line: l.i });
+      else out.push({ key: key(), lineId: l.id, kind: "basic", front: c.front, back: c.back, context, line: l.i, ...(c.two ? { two: true } : {}) });
+      if (c.two) out.push({ key: key(":r"), lineId: l.id, kind: "reverse", front: c.back, back: c.front, context, line: l.i, two: true });
     } else if (kind === "list") {
       const c = splitCard(l.text)!;
       const kids = children(ls, k);

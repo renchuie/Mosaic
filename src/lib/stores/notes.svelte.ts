@@ -254,6 +254,11 @@ function loadSample() {
     ],
     ["Therapeutics IV/Arrhythmias.md", joinNote({ course: "Therapeutics IV", tags: ["exam5"] }, `# Arrhythmias\n\n- Rate vs rhythm control\n- Anticoagulate per CHA2DS2-VASc, see [[Anticoagulation]]\n- Related: [[Heart failure]]\n`)],
     ["Drugs/Apixaban.md", joinNote({ tags: ["drug"] }, TEMPLATES.drug.body("Apixaban"))],
+    // one of every card type, for trying the review screen in the browser preview
+    [
+      "Therapeutics IV/Bipolar.md",
+      joinNote({ course: "Therapeutics IV", tags: ["exam5"] }, `# Bipolar\n\n## Mood stabilisers\n- Lithium therapeutic range? :: **0.6–1.2** mEq/L (acute mania up to 1.5)\n- Longest half-life SSRI, no taper needed ::: Fluoxetine\n- Lithium <:: first line for classic euphoric mania\n- Four domains: genetics, environment, {{neuro/endocrine}}, and autoimmunity\n- Lithium toxicity signs ::\n  - Coarse tremor\n  - Confusion, ataxia\n  - Vomiting, diarrhoea\n\n## Pregnancy and lactation\n:: table\n| Agent | Pregnancy | Lactation |\n| --- | --- | --- |\n| Lithium | Avoid in 1st trimester | Infant sx: floppy baby |\n`),
+    ],
   ];
   notes.files = Object.fromEntries(s.map(([rel, t], i) => [rel, entry(rel, Date.now() - i * 3.6e6, t.length, t)]));
   notes.dirs = ["Drugs", "Therapeutics IV"];
