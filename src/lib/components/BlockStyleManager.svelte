@@ -544,9 +544,6 @@
     cursor: default;
     gap: 10px;
   }
-  .pal.fixed small {
-    font-size: 12px;
-  }
   .pal {
     display: flex;
     align-items: center;
