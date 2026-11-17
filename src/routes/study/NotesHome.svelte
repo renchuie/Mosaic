@@ -55,10 +55,10 @@
 <div class="home">
   <header class="top">
     <div>
-      <h1 class="display">{dir ? dir.split("/").pop() : "Notes"}</h1>
+      <h1 class="display">{dir ? dir.split("/").pop() : "Folders"}</h1>
       <p class="muted">
         {#if dir}
-          <button type="button" class="crumb" onclick={() => (dir = "")}>Notes</button>
+          <button type="button" class="crumb" onclick={() => (dir = "")}>Folders</button>
           {#each crumbs.slice(0, -1) as c}<span> › </span><button type="button" class="crumb" onclick={() => (dir = c.d)}>{c.name}</button>{/each}
         {:else}
           {all.length} {all.length === 1 ? "note" : "notes"} in {notes.dirs.filter((x) => !x.includes("/")).length} folders · Markdown files on your Drive

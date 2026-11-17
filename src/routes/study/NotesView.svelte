@@ -443,8 +443,9 @@
       <div class="body">
         {#if pinL}
           <aside class="pinned left" bind:this={treeHost}>
-            <div class="ph"><b>Notes</b><button type="button" class="x" title="Unpin" aria-label="Unpin notes" onclick={() => (panels.pinL = false)}>📌</button></div>
-            <NoteTree current={rel} onnew={(f) => { newMode = "note"; newFolder = f; newOpen = true; }} onnewfolder={() => { newMode = "folder"; newFolder = dirOf(rel!); newOpen = true; }} />
+            <NoteTree current={rel} onnew={(f) => { newMode = "note"; newFolder = f; newOpen = true; }} onnewfolder={() => { newMode = "folder"; newFolder = dirOf(rel!); newOpen = true; }}>
+              {#snippet actions()}<button type="button" class="x" title="Unpin" aria-label="Unpin notes" onclick={() => (panels.pinL = false)}>📌</button>{/snippet}
+            </NoteTree>
           </aside>
         {/if}
 
@@ -514,12 +515,12 @@
       {/if}
       {#if sheetL}
         <aside class="sheet left" bind:this={treeHost}>
-          <div class="ph">
-            <b>Notes</b>
-            {#if roomL && !ui.writing}<button type="button" class="x" title="Pin beside the note" aria-label="Pin" onclick={pinLeft}>📌</button>{/if}
-            <button type="button" class="x" aria-label="Close" onclick={() => (sheetL = false)}>×</button>
-          </div>
-          <NoteTree current={rel} onnew={(f) => { newMode = "note"; newFolder = f; newOpen = true; sheetL = false; }} onnewfolder={() => { newMode = "folder"; newFolder = dirOf(rel!); newOpen = true; sheetL = false; }} />
+          <NoteTree current={rel} onnew={(f) => { newMode = "note"; newFolder = f; newOpen = true; sheetL = false; }} onnewfolder={() => { newMode = "folder"; newFolder = dirOf(rel!); newOpen = true; sheetL = false; }}>
+            {#snippet actions()}
+              {#if roomL && !ui.writing}<button type="button" class="x" title="Pin beside the note" aria-label="Pin" onclick={pinLeft}>📌</button>{/if}
+              <button type="button" class="x" aria-label="Close" onclick={() => (sheetL = false)}>×</button>
+            {/snippet}
+          </NoteTree>
         </aside>
       {/if}
       {#if sheetR}
@@ -541,7 +542,6 @@
       </div>
       <div class="body">
         <aside class="pinned left solid">
-          <div class="ph"><b>Notes</b></div>
           <NoteTree current={rel} onnew={(f) => { newMode = "note"; newFolder = f; newOpen = true; }} onnewfolder={() => { newMode = "folder"; newFolder = ""; newOpen = true; }} />
         </aside>
         <section class="center">

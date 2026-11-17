@@ -1,9 +1,11 @@
 <script lang="ts">
+  import type { Snippet } from "svelte";
   import Icon from "../../lib/components/Icon.svelte";
   import { courseByName } from "../../lib/stores/courses.svelte";
   import { dirOf, noteHref, notes, searchNotes, type NoteEntry } from "../../lib/stores/notes.svelte";
 
-  let { current, onnew, onnewfolder }: { current: string | null; onnew: (folder: string) => void; onnewfolder: () => void } = $props();
+  // actions: small buttons beside the search box (📌 / × when the list is a panel inside a note)
+  let { current, onnew, onnewfolder, actions }: { current: string | null; onnew: (folder: string) => void; onnewfolder: () => void; actions?: Snippet } = $props();
   let q = $state("");
 
   const load = () => {
@@ -48,7 +50,10 @@
 
 <nav class="tree" aria-label="Notes">
   <div class="tools">
-    <input class="input search" bind:value={q} placeholder="Search notes" aria-label="Search notes" />
+    <div class="srow">
+      <input class="input search" bind:value={q} placeholder="Search notes" aria-label="Search notes" />
+      {#if actions}{@render actions()}{/if}
+    </div>
     <div class="btns">
       <button type="button" class="btn primary sm" onclick={() => onnew(current ? dirOf(current) : "")}>+ Note</button>
       <button type="button" class="btn quiet sm" onclick={onnewfolder} aria-label="New folder"><Icon name="folder" size={15} /> +</button>
@@ -100,7 +105,14 @@
     display: grid;
     gap: 8px;
   }
+  .srow {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
   .search {
+    flex: 1;
+    min-width: 0;
     min-height: 40px;
     padding: 6px 12px;
     background: var(--surface);

@@ -215,7 +215,9 @@ Markdown" view, the `<>` chip on the note header).
   note fills the main panel as ONE sheet (App makes `main` flush for `#/study/notes` and
   `#/study/notes/<rel>`; Study hides its own tab bar there). Notes home uses the same top bar and
   shows the notes list as the same clean column as a pinned list inside a note (`.pinned.solid`),
-  with the folders on the glass beside it. Note previews in lists use `previewLine()` (notes.ts),
+  with the folders on the glass beside it. Fewer "Notes" labels (her Nov 17 ask): the list has no
+  heading (📌 / × sit beside its search box, `NoteTree` `actions` snippet) and the home title is
+  "Folders". Note previews in lists use `previewLine()` (notes.ts),
   which skips comment lines (card ids, column markers). Study tabs everywhere (her pick, "flip it"): the slim look, text
   only, in a 56px strip across the top of the main panel on the glass with a hairline under it
   (`StudyNav` `.sbar`, pulled to the panel edges with `--main-pad-t` / `--main-pad-x`). The note's
