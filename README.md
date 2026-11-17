@@ -77,7 +77,7 @@ notes.
 Mosaic currently runs on Arch Linux (made on Hyprland).
 
 ```sh
-git clone https://github.com/renchuie/iwanttocry && cd iwanttocry
+git clone https://github.com/renchuie/Mosaic.git && cd Mosaic
 ./install.sh
 ```
 
