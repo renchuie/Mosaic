@@ -18,7 +18,12 @@ export type EditorOpts = {
   onOpenUrl: (href: string) => void;
   /** remembers which headings are folded (per note, per machine); none = not remembered */
   foldKey?: string;
+  /** a card line's review status (by its card id), for the small dot at the end of the line */
+  cardStatus?: (sid: string) => { s: "new" | "due" | "learning" | "later" | "known" | "paused"; tip: string } | null;
 };
+/** Meta for a transaction that only asks the line decorations to be worked out again
+ *  (card statuses changed after a review). */
+export const REFRESH_MARKS = "mosaicRefreshMarks";
 
 export const FLOW = ["paragraph", "bullet", "ordered", "todo"];
 /** Blocks that can be indented with Tab (images can sit under a bullet). */
@@ -1043,7 +1048,7 @@ function toggleTodo(editor: Editor): boolean {
 // ---- decorations: numbers, #tags, table cards, clicks ------------------------------------------------
 
 const numKey = new PluginKey("mosaicDeco");
-function decorations(doc: PMNode): DecorationSet {
+function decorations(doc: PMNode, status?: EditorOpts["cardStatus"]): DecorationSet {
   const out: Decoration[] = [];
   const walk = (parent: PMNode, start: number) => {
     const counters: (number | undefined)[] = [];
@@ -1082,6 +1087,21 @@ function decorations(doc: PMNode): DecorationSet {
         if (arrowNode && (arrowNode as PMNode).attrs.two && any && allBold) {
           out.push(Decoration.inline(pos + 1, pos + 1 + arrowAt, { class: "b-concept" }));
           out.push(Decoration.node(pos + 1 + arrowAt, pos + 2 + arrowAt, { class: "concept", title: "Concept: quizzed both ways; lines indented under it with ;; are its facts" }));
+        }
+      }
+      // card status (Nov 18): a small dot at the end of a card line, hover for when it's next due
+      if (status && node.isTextblock && node.attrs.sid) {
+        const st = status(String(node.attrs.sid));
+        if (st) {
+          out.push(
+            Decoration.widget(pos + node.nodeSize - 1, () => {
+              const d = document.createElement("span");
+              d.className = `b-cstat s-${st.s}`;
+              d.title = st.tip;
+              d.contentEditable = "false";
+              return d;
+            }, { side: 1, key: `cs:${node.attrs.sid}:${st.s}:${st.tip}`, ignoreSelection: true }),
+          );
         }
       }
       if (INDENTABLE.includes(name)) {
@@ -1277,8 +1297,8 @@ function behaviour(opts: EditorOpts) {
         new Plugin({
           key: numKey,
           state: {
-            init: (_c, s) => decorations(s.doc),
-            apply: (tr: Transaction, old: DecorationSet) => (tr.docChanged ? decorations(tr.doc) : old),
+            init: (_c, s) => decorations(s.doc, opts.cardStatus),
+            apply: (tr: Transaction, old: DecorationSet) => (tr.docChanged || tr.getMeta(REFRESH_MARKS) ? decorations(tr.doc, opts.cardStatus) : old),
           },
           props: {
             decorations(state) {

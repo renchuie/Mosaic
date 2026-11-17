@@ -9,7 +9,7 @@
   import NoteEditor from "../../lib/components/NoteEditor.svelte";
   import { joinNote, linkKey, plainText, splitNote, type Meta } from "../../lib/notes";
   import { assignIds, cardId, extractCards, ID_RE } from "../../lib/cards";
-  import { statusOf, type SrsRec } from "../../lib/stores/srs.svelte";
+  import { fmtInterval, statusOf, type SrsRec } from "../../lib/stores/srs.svelte";
   import { get } from "../../lib/stores/synced.svelte";
   import {
     allNotes, allTags, backlinks, createNote, dirOf, getNote, imageUrl, linkName, moveNote, noteHref, notes,
@@ -341,6 +341,37 @@
     }).length;
   });
 
+  // ---- card status dots in the note (Nov 18) ------------------------------------------------------
+  // per card line (card id): the most pressing state of its cards (due > learning > new > later).
+  // "known" = every card of the line scheduled 3+ weeks out.
+  type CStat = { s: "new" | "due" | "learning" | "later" | "known" | "paused"; tip: string };
+  const cardStatusMap = $derived.by(() => {
+    const map = new Map<string, CStat>();
+    if (!note) return map;
+    const now = Date.now();
+    const byLine = new Map<string, { st: string; rec?: SrsRec }[]>();
+    for (const c of extractCards(splitNote(note.text).body)) {
+      if (!c.lineId) continue;
+      const rec = get<SrsRec>("srs", c.key);
+      (byLine.get(c.lineId) ?? byLine.set(c.lineId, []).get(c.lineId)!).push({ st: statusOf(rec, now), rec });
+    }
+    for (const [id, cs] of byLine) {
+      const n = cs.length;
+      const many = n > 1 ? ` (${n} cards)` : "";
+      if (cs.some((c) => c.st === "review")) map.set(id, { s: "due", tip: `Due today${many}` });
+      else if (cs.some((c) => c.st === "learning")) map.set(id, { s: "learning", tip: `Learning${many}` });
+      else if (cs.every((c) => c.st === "suspended")) map.set(id, { s: "paused", tip: "Paused" });
+      else if (cs.some((c) => c.st === "new")) map.set(id, { s: "new", tip: `New, not studied yet${many}` });
+      else {
+        const next = Math.min(...cs.filter((c) => c.rec).map((c) => c.rec!.due));
+        const known = cs.every((c) => !c.rec || c.st === "suspended" || (c.rec.scheduled_days ?? 0) >= 21);
+        map.set(id, { s: known ? "known" : "later", tip: `${known ? "Known well · " : ""}Next review in ${fmtInterval(next - now)}${many}` });
+      }
+    }
+    return map;
+  });
+  const cardStatus = $derived((sid: string) => cardStatusMap.get(sid) ?? null);
+
   // ---- floating toolbar (at the bottom while she types, or always when pinned with ✎) and the
   // title that moves into the top bar once the header has scrolled away ----
   let scrollEl = $state<HTMLElement>();
@@ -483,7 +514,7 @@
                     linkNames={() => allNotes().map(linkName)} tagNames={allTags}
                     imageUrl={(src) => imageUrl(rel!, src)} onpasteimage={(d, ext) => savePastedImage(rel!, d, ext)} />
                 {:else}
-                  <BlockEditor bind:this={blocks} value={body} onchange={changed} onopenlink={openLink} onfocuschange={setTyping} onleave={leaveFor(loadedRel!)} foldKey={loadedRel ?? undefined}
+                  <BlockEditor bind:this={blocks} value={body} onchange={changed} onopenlink={openLink} onfocuschange={setTyping} onleave={leaveFor(loadedRel!)} foldKey={loadedRel ?? undefined} {cardStatus}
                     linkNames={() => allNotes().map(linkName)} tagNames={allTags}
                     imageUrl={(src) => imageUrl(rel!, src)} onpasteimage={(d, ext) => savePastedImage(rel!, d, ext)} />
                 {/if}

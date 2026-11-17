@@ -342,6 +342,11 @@ Markdown" view, the `<>` chip on the note header).
   Steps are worked out at the first press and rebuilt on the current doc each time (autosave can
   tidy the doc in between). Ctrl+Shift+A always selects the whole note. Blocks in the right half get the handle 52px left of them; a click in a half's
   empty space writes at its end.
+- Card status dots (Nov 18): every card line (block with a `sid`) ends with a small dot from the
+  decoration plugin (`.b-cstat s-<status>`, hover = tip): rose due, peach learning, lavender new,
+  sage known well (interval ≥ 21 d), grey later / paused. NotesView works it out per line id from
+  `extractCards` + the `srs` records (`cardStatusMap`) and hands `cardStatus` to BlockEditor, whose
+  effect dispatches `REFRESH_MARKS` so the dots follow reviews.
 - Folding (Nov 18): a ▾ after a heading (shown on hover) folds everything under it up to the next
   heading of the same or a higher level, in the same page / half / column; folded it shows
   "▸ N hidden". A view setting, never in the file: `mosaicFolding` plugin in blocks.ts, keys

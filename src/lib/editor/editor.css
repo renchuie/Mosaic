@@ -877,3 +877,35 @@ button.dot[data-color] {
 .mosaic-doc .b-callout[data-fold="closed"] .b-cbody {
   display: none;
 }
+
+/* card status dot at the end of a card line (Nov 18): rose = due, peach = learning,
+   lavender = new, sage = later, deep sage = known well, grey = paused; hover for when */
+.mosaic-doc .b-cstat {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  margin-left: 8px;
+  border-radius: 50%;
+  vertical-align: 0.1em;
+  cursor: help;
+  user-select: none;
+}
+.mosaic-doc .b-cstat.s-due {
+  background: var(--rose-deep);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--rose-deep) 25%, transparent);
+}
+.mosaic-doc .b-cstat.s-learning {
+  background: var(--peach);
+}
+.mosaic-doc .b-cstat.s-new {
+  background: color-mix(in srgb, var(--lavender) 80%, var(--link-ink));
+}
+.mosaic-doc .b-cstat.s-later {
+  background: var(--sage);
+}
+.mosaic-doc .b-cstat.s-known {
+  background: var(--sage-deep);
+}
+.mosaic-doc .b-cstat.s-paused {
+  background: color-mix(in srgb, var(--text) 25%, transparent);
+}

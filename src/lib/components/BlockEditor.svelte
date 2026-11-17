@@ -12,7 +12,7 @@
   import { CellSelection } from "@tiptap/pm/tables";
   import { getMarkRange } from "@tiptap/core";
   import type { Node as PMNode } from "@tiptap/pm/model";
-  import { mosaicExtensions, setPaletteSource, FLOW, MAX_COLUMNS } from "../editor/blocks";
+  import { mosaicExtensions, setPaletteSource, FLOW, MAX_COLUMNS, REFRESH_MARKS } from "../editor/blocks";
   import { activePalette, hlColor, hlColors, styleManager, visibleCallouts } from "../stores/blockStyles.svelte";
   setPaletteSource(activePalette);
   import { docToMd, mdToDoc, type PMNode as JNode } from "../editor/mdDoc";
@@ -30,6 +30,7 @@
     onfocuschange,
     onleave,
     foldKey,
+    cardStatus,
   }: {
     value: string;
     onchange: () => void;
@@ -44,7 +45,14 @@
     onleave?: (md: string) => void;
     /** remembers folded headings under this key (the note's path) */
     foldKey?: string;
+    /** a card line's review status by its card id (dot at the end of the line) */
+    cardStatus?: (sid: string) => { s: "new" | "due" | "learning" | "later" | "known" | "paused"; tip: string } | null;
   } = $props();
+  // statuses change when she reviews (no edit in the note): redraw the dots
+  $effect(() => {
+    void cardStatus;
+    if (editor && !editor.isDestroyed) queueMicrotask(() => editor && !editor.isDestroyed && editor.view.dispatch(editor.state.tr.setMeta(REFRESH_MARKS, true).setMeta("addToHistory", false)));
+  });
 
   let host: HTMLDivElement;
   let wrap: HTMLDivElement;
@@ -840,6 +848,7 @@
         },
         onOpenUrl: (h) => window.open(h, "_blank"),
         foldKey,
+        cardStatus: (sid) => cardStatus?.(sid) ?? null,
       }),
       content: mdToDoc(value),
       editorProps: {
