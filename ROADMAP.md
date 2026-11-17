@@ -278,4 +278,5 @@ Add things here as they come up (date, page, what happened). Each one is either 
   10. Collapsible callouts (`> [!note]-`). **Done Nov 18.**
   11. Table flashcards fleshed out (her ask). **Done Nov 18** (▾ Flashcards menu: each cell / each
       row / cloze rows, → ⇄ ←, skip columns, key column).
+  13. Notes tab picks up the last open note at the same scroll spot (her ask). **Done Nov 18.**
   12. Big, pretty review cards (her ask, canvas "Flashcards in review"). **Done Nov 18.**

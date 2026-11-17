@@ -22,7 +22,7 @@
   import NoteToolbar from "./NoteToolbar.svelte";
   import NoteSide, { PANELS, type Panel } from "./NoteSide.svelte";
   import StudyNav from "./StudyNav.svelte";
-  import { ui } from "../../lib/stores/ui.svelte";
+  import { ui, setLastNote, noteScroll } from "../../lib/stores/ui.svelte";
 
   let { rel }: { rel: string | null } = $props();
 
@@ -385,7 +385,25 @@
   let headHidden = $state(false);
   let typing = $state(false);
   let typingTimer = 0;
+  // ---- picking up where she left off: the Notes tab comes back to this note (StudyNav reads
+  // ui.lastNote; the Notes home clears it) at the same scroll position ----------------------------
+  $effect(() => {
+    if (!rel) setLastNote(null);
+    else if (note) setLastNote(rel);
+  });
+  $effect(() => {
+    void version;
+    const r = loadedRel;
+    if (!r || !scrollEl) return;
+    const y = noteScroll.get(r) ?? 0;
+    const put = () => {
+      if (scrollEl && loadedRel === r) scrollEl.scrollTop = y;
+    };
+    requestAnimationFrame(() => requestAnimationFrame(put));
+    if (y) window.setTimeout(put, 150); // images and folds can settle a moment later
+  });
   function checkHead() {
+    if (loadedRel && scrollEl) noteScroll.set(loadedRel, scrollEl.scrollTop);
     const t = scrollEl?.querySelector(".nh .title");
     headHidden = !!(t && scrollEl && t.getBoundingClientRect().bottom < scrollEl.getBoundingClientRect().top + 4);
   }

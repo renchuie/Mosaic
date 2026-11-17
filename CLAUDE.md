@@ -353,6 +353,11 @@ Markdown" view, the `<>` chip on the note header).
   around it lose height / overflow / glass, and handles, dots, menus, refs and empty chips go.
   Columns and side by side keep their layout; folded parts stay folded. A dark theme prints as
   Mosaic (NotesView `printNote`, restored on `afterprint`). Checked with Playwright `page.pdf`.
+- Picking up where she left off (Nov 18, her ask): the open note is `ui.lastNote` (`setLastNote` in
+  `src/lib/stores/ui.svelte.ts`, localStorage "mosaic.lastNote", per machine). StudyNav's Notes tab
+  links to that note from any other page; clicked while already on Notes it goes to the Notes home
+  (folders), and showing the home clears `lastNote`. Scroll position per note is kept for the
+  session (`noteScroll`, saved in `checkHead`, put back after the note loads).
 - Card status dots (Nov 18): every card line (block with a `sid`) ends with a small dot from the
   decoration plugin (`.b-cstat s-<status>`, hover = tip): rose due, peach learning, lavender new,
   sage known well (interval ≥ 21 d), grey later / paused. NotesView works it out per line id from
