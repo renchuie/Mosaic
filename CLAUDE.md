@@ -307,7 +307,7 @@ Markdown" view, the `<>` chip on the note header).
   Theme highlighters (Nov 18, her ask): every theme has its own six (`THEME_HL` in the store;
   words `<theme>-<name>`, Mosaic's are the built-in words; Dark themes use their official
   accents). Palette id `"theme"` (the default for `hlActive`) = the current theme's six; the
-  style manager lists only the current theme's set, first, as "<Theme> highlighters". They're code,
+  style manager lists only the current theme's set, first, named just "Theme". They're code,
   not synced records, and ALL themes' words stay in the generated CSS, so a highlight keeps its
   colour after a theme switch. `hlColor()` falls back to them.
 - Tables (Nov 16): cells hold `(paragraph | bullet | ordered | todo)+`, written in the cell joined by

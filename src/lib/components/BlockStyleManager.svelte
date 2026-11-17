@@ -161,14 +161,14 @@
 
     <section>
       <h3>Palettes</h3>
-      <p class="muted small">Pick the set of highlighters you want on the toolbars. Its colours fill the highlight dots in order and the shortcuts <b>Ctrl+Shift+1…{MAX_PALETTE}</b> (<b>Ctrl+Shift+0</b> removes a highlight). The first one always matches your theme.</p>
+      <p class="muted small">Pick the set of highlighters you want on the toolbars. Its colours fill the highlight dots in order and the shortcuts <b>Ctrl+Shift+1…{MAX_PALETTE}</b> (<b>Ctrl+Shift+0</b> removes a highlight). <b>Theme</b> always matches the theme you're using.</p>
       <ul>
         <li>
           <div class="pline">
-            <label class="use"><input type="radio" name="hl-palette" checked={activePaletteId() === "theme"} onchange={() => setActivePalette("theme")} /> <span class="sr">Use the {themeName()} highlighters</span></label>
+            <label class="use"><input type="radio" name="hl-palette" checked={activePaletteId() === "theme"} onchange={() => setActivePalette("theme")} /> <span class="sr">Use the theme's highlighters</span></label>
             <span class="pal fixed">
               <span class="sw">{#each themeHighlights() as c}<i style="background: {hlColor(c)?.color ?? '#eee'}" title={hlColor(c)?.label}></i>{/each}</span>
-              <b>{themeName()} highlighters</b><small class="muted">matches your theme</small>
+              <b title="The {themeName()} theme's highlighters">Theme</b>
             </span>
             {#if activePaletteId() === "theme"}<span class="inuse">In use</span>{/if}
           </div>
