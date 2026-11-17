@@ -375,7 +375,7 @@
     stroke-width: 12;
   }
   .ring .bg {
-    stroke: rgba(255, 253, 251, 0.6);
+    stroke: color-mix(in srgb, var(--white) 60%, transparent);
   }
   .ring .fg {
     stroke: var(--charcoal);
@@ -422,7 +422,7 @@
     margin-top: 6px;
   }
   .hbtns .btn:not(.primary):not(.go) {
-    background: rgba(255, 253, 251, 0.7);
+    background: color-mix(in srgb, var(--white) 70%, transparent);
   }
 
   .list {

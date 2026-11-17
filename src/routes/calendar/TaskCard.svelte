@@ -108,7 +108,7 @@
     color: var(--text-muted);
   }
   .head span.late {
-    color: #8f3b45;
+    color: var(--alert-ink);
     font-weight: 600;
   }
   .inner {
@@ -192,6 +192,6 @@
   }
   .chip.high {
     background: var(--rose-soft);
-    color: #8f3b45;
+    color: var(--alert-ink);
   }
 </style>

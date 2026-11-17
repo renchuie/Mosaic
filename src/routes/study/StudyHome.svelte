@@ -435,7 +435,7 @@
     gap: 6px;
     padding: 6px;
     border-radius: var(--radius-pill);
-    background: rgba(255, 255, 255, 0.45);
+    background: color-mix(in srgb, var(--white) 45%, transparent);
   }
   .day {
     text-align: center;
@@ -449,11 +449,11 @@
   .day.exam {
     color: #8a3d46;
     font-weight: 600;
-    background: rgba(255, 255, 255, 0.5);
+    background: color-mix(in srgb, var(--white) 50%, transparent);
   }
   .day.today {
     background: var(--charcoal);
-    color: #fffdfb;
+    color: var(--white);
     font-weight: 600;
   }
 
@@ -470,7 +470,7 @@
     align-self: flex-start;
     padding: 4px 10px;
     border-radius: var(--radius-pill);
-    background: rgba(255, 255, 255, 0.16);
+    background: color-mix(in srgb, var(--white) 16%, transparent);
     font-size: 12.5px;
     font-weight: 600;
   }
@@ -519,7 +519,7 @@
   .ic.peach { background: var(--peach-soft); }
   .ic.butter { background: var(--butter-soft); }
   .ic.rose { background: var(--rose-soft); }
-  .ic.white { background: rgba(255, 255, 255, 0.7); }
+  .ic.white { background: color-mix(in srgb, var(--white) 70%, transparent); }
   .card:hover .ic {
     animation: wiggle 0.5s var(--spring);
   }

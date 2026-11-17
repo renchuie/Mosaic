@@ -442,7 +442,7 @@
     padding: 0;
   }
   dialog::backdrop {
-    background: rgba(59, 48, 51, 0.12);
+    background: color-mix(in srgb, var(--charcoal) 12%, transparent);
   }
   form {
     display: grid;
@@ -511,7 +511,7 @@
   }
   .seg button.p-high.on {
     background: var(--rose-soft);
-    color: #a8434f;
+    color: var(--alert-ink);
     box-shadow: inset 0 0 0 1.5px var(--rose-deep);
   }
   .seg button.p-normal.on {
@@ -521,7 +521,7 @@
   }
   .seg button.p-low.on {
     background: var(--sage-soft);
-    color: #3f7366;
+    color: var(--go-ink);
     box-shadow: inset 0 0 0 1.5px var(--sage-deep);
   }
   .rows {
@@ -692,7 +692,7 @@
   }
   .error {
     background: var(--rose-soft);
-    color: #8f3b45;
+    color: var(--alert-ink);
     border-radius: var(--radius-sm);
     padding: 8px 12px;
   }
@@ -709,11 +709,11 @@
     font-size: 13px;
   }
   .notes {
-    background: color-mix(in srgb, #cdb4f7 30%, var(--white));
+    background: color-mix(in srgb, var(--lavender) 30%, var(--white));
   }
   .danger {
     background: var(--rose-soft);
-    color: #8f3b45;
+    color: var(--alert-ink);
   }
   select:disabled {
     opacity: 0.6;

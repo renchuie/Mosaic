@@ -481,7 +481,7 @@
   }
   .hero-stats div {
     display: grid;
-    background: rgba(255, 253, 251, 0.72);
+    background: color-mix(in srgb, var(--white) 72%, transparent);
     border-radius: var(--radius-sm);
     padding: 10px 14px;
   }
@@ -570,7 +570,7 @@
     display: block;
     height: 8px;
     border-radius: var(--radius-pill);
-    background: rgba(255, 253, 251, 0.6);
+    background: color-mix(in srgb, var(--white) 60%, transparent);
     overflow: hidden;
   }
   .bar span {

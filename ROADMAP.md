@@ -210,6 +210,9 @@ Add things here as they come up (date, page, what happened). Each one is either 
   switch, roomier spacing with a density switch, floating rail, folder tiles on Notes / PDFs /
   Study Home, the Study Home card dashboard, lively spring animations. Week 6 still has dark mode,
   the consistency pass, the exam prep hub and the widget gallery.
+- Nov 17 · **15 themes built at her request** (mocked up first on the canvas): Glass (Mosaic, Pink,
+  Green, Blue, Purple), Neutral (Linen, Stone, Oat, Plain, Default), Dark (Catppuccin, Tokyo
+  Night, Rosé Pine, Gruvbox, Everforest). Pastel retired. (Dark mode was planned for week 6.)
 - Nov 16 · **N1b built at her request** (new note page, tucked panels). Testing it is part of
   daily use now; anything odd goes here.
 - Nov 16 · **Note page test list (her first testing round).** Fix now: cloze placeholder loses its

@@ -64,7 +64,7 @@
   .bar {
     height: 8px;
     border-radius: var(--radius-pill);
-    background: rgba(255, 253, 251, 0.6);
+    background: color-mix(in srgb, var(--white) 60%, transparent);
     overflow: hidden;
   }
   .fill {

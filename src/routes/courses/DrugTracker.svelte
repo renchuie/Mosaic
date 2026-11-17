@@ -145,7 +145,7 @@
     display: grid;
     padding: 10px 12px;
     border-radius: 14px;
-    background: rgba(255, 253, 251, 0.8);
+    background: color-mix(in srgb, var(--white) 80%, transparent);
   }
   .stats b {
     font-size: 24px;
@@ -166,7 +166,7 @@
     display: block;
     height: 100%;
     border-radius: inherit;
-    background: linear-gradient(90deg, var(--c), color-mix(in srgb, var(--c) 60%, #3b3033));
+    background: linear-gradient(90deg, var(--c), color-mix(in srgb, var(--c) 60%, var(--charcoal)));
   }
   .cover i {
     position: absolute;
@@ -189,14 +189,14 @@
   }
   .trend .line {
     fill: none;
-    stroke: color-mix(in srgb, var(--c) 55%, #3b3033);
+    stroke: color-mix(in srgb, var(--c) 55%, var(--charcoal));
     stroke-width: 2.5;
     stroke-linejoin: round;
     stroke-linecap: round;
   }
   .trend circle {
     fill: var(--surface);
-    stroke: color-mix(in srgb, var(--c) 55%, #3b3033);
+    stroke: color-mix(in srgb, var(--c) 55%, var(--charcoal));
     stroke-width: 2.5;
   }
   .goal {
@@ -217,7 +217,7 @@
     gap: 10px;
     padding: 6px 10px;
     border-radius: 14px;
-    background: rgba(255, 253, 251, 0.85);
+    background: color-mix(in srgb, var(--white) 85%, transparent);
   }
   .qn {
     display: grid;
@@ -265,10 +265,10 @@
     text-align: right;
   }
   .qp.good {
-    color: #3f7366;
+    color: var(--go-ink);
   }
   .qp.low {
-    color: #a8434f;
+    color: var(--alert-ink);
   }
   .qadd {
     display: flex;

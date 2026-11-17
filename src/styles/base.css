@@ -113,11 +113,11 @@ a {
   white-space: nowrap;
 }
 .tag.glass {
-  background: rgba(255, 253, 251, 0.6);
+  background: color-mix(in srgb, var(--white) 60%, transparent);
 }
 .tag.alert {
   background: var(--rose-soft);
-  color: #8f3b45;
+  color: var(--alert-ink);
 }
 .t-rose { background: var(--g-rose); }
 .t-peach { background: var(--g-peach); }
@@ -210,15 +210,16 @@ dialog[open]::backdrop {
   transition: transform var(--t) var(--spring), background-color var(--t-fast) ease, color var(--t-fast) ease, box-shadow var(--t) var(--ease-out);
 }
 
-/* glass: everything that floats over the page is nearly opaque and blurs what is behind */
-:root[data-theme="glass"] :is(dialog, div.menu, div.pop, div.selmenu) {
+/* everything that floats over the page is nearly opaque (and blurs what is behind it in the
+   glass themes, where --blur is set) */
+:root :is(dialog, div.menu, div.pop, div.selmenu) {
   background: var(--surface-float) !important;
   -webkit-backdrop-filter: var(--blur);
   backdrop-filter: var(--blur);
   border: var(--edge);
 }
-:root[data-theme="glass"] dialog::backdrop {
-  background: rgba(35, 38, 58, 0.18);
+:root dialog::backdrop {
+  background: var(--scrim);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -281,4 +282,9 @@ select {
 /* WebKitGTK shows today's date in an empty date box; grey it so it doesn't look set */
 input[type="date"].empty {
   color: color-mix(in srgb, var(--text-muted) 55%, transparent);
+}
+
+/* dark themes: soften the few bright pastel fills that sit behind text */
+:root[data-family="dark"] svg.wave path {
+  opacity: 0.22;
 }

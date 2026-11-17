@@ -3,6 +3,7 @@
   import { labs, refreshProgress, rescan } from "../lib/stores/labs.svelte";
   import { ARROW_COLOURS, CLOZE_COLOURS, DEFAULT_SETTINGS, saveSettings, settings } from "../lib/stores/settings.svelte";
   import { styleManager } from "../lib/stores/blockStyles.svelte";
+  import { FAMILIES, THEMES } from "../lib/themes";
   import { inTauri } from "../lib/tauri";
   import { sync, syncNow } from "../lib/stores/synced.svelte";
   import { refreshNotes } from "../lib/stores/notes.svelte";
@@ -81,15 +82,28 @@
 
   <section class="card look" aria-labelledby="look-h">
     <h2 class="h2" id="look-h">Appearance</h2>
-    <div class="themes" role="radiogroup" aria-label="Theme">
-      {#each [{ id: "glass", name: "Frosted glass", note: "Soft colour behind frosted panels" }, { id: "pastel", name: "Pastel", note: "The original solid pastel look" }] as th}
-        <button type="button" role="radio" aria-checked={settings.theme === th.id} class="theme" class:on={settings.theme === th.id} onclick={() => saveSettings({ theme: th.id as "glass" | "pastel" })}>
-          <span class="swatch {th.id}" aria-hidden="true"><i></i><i></i><i></i></span>
-          <b>{th.name}</b>
-          <span class="muted small">{th.note}</span>
-        </button>
-      {/each}
-    </div>
+    {#each FAMILIES as fam (fam.id)}
+      <div class="tgroup">
+        <div class="tgh"><b>{fam.name}</b><span class="muted small">{fam.note}</span></div>
+        <div class="themes" role="radiogroup" aria-label="{fam.name} themes">
+          {#each THEMES.filter((t) => t.family === fam.id) as th (th.id)}
+            {@const p = th.preview}
+            <button type="button" role="radio" aria-checked={settings.theme === th.id} class="theme" class:on={settings.theme === th.id} onclick={() => saveSettings({ theme: th.id })}>
+              <span class="thumb" style="background: {p.bg}" aria-hidden="true">
+                <span class="trail" style="background: {p.panel}"><i style="background: {p.text}"></i><i></i><i></i></span>
+                <span class="tpanel" style="background: {p.panel}; --tx: {p.text}">
+                  <b></b><i style="width: 80%"></i>
+                  <span class="tcard"><i style="width: 34%"></i><em style="background: {p.accent}"></em><i style="width: 26%"></i></span>
+                  <i style="width: 60%"></i><u style="background: {p.hl}"></u>
+                </span>
+              </span>
+              <span class="tn"><b>{th.name}</b>{#if settings.theme === th.id}<span class="chk" aria-hidden="true">✓</span>{/if}</span>
+              <span class="muted small">{th.note}</span>
+            </button>
+          {/each}
+        </div>
+      </div>
+    {/each}
     <div class="field">
       <span class="label" id="density-l">Spacing</span>
       <div class="seg" role="radiogroup" aria-labelledby="density-l">
@@ -110,8 +124,8 @@
       <span class="label" id="arrow-l">Arrow colour</span>
       <div class="swatches" role="radiogroup" aria-labelledby="arrow-l">
         {#each Object.entries(ARROW_COLOURS) as [k, [one, two]]}
-          <button type="button" role="radio" aria-checked={settings.arrowColor === k} class:on={settings.arrowColor === k} title={k === "mosaic" ? "Mosaic (pink and periwinkle)" : k} aria-label={k}
-            onclick={() => saveSettings({ arrowColor: k })}><i style="background: {one}">→</i><i style="background: {two}">⇄</i></button>
+          <button type="button" role="radio" aria-checked={settings.arrowColor === k} class:on={settings.arrowColor === k} title={k === "theme" ? "Follow the theme" : k === "mosaic" ? "Mosaic (pink and periwinkle)" : k} aria-label={k}
+            onclick={() => saveSettings({ arrowColor: k })}>{#if k === "theme"}<i class="cz">Theme</i>{:else}<i style="background: {one}">→</i><i style="background: {two}">⇄</i>{/if}</button>
         {/each}
       </div>
     </div>
@@ -120,7 +134,7 @@
       <div class="swatches" role="radiogroup" aria-labelledby="cloze-l">
         {#each Object.entries(CLOZE_COLOURS) as [k, [fill, line]]}
           <button type="button" role="radio" aria-checked={settings.clozeColor === k} class:on={settings.clozeColor === k} title={k} aria-label={k}
-            onclick={() => saveSettings({ clozeColor: k })}><i class="cz" style="background: {fill}; box-shadow: inset 0 -2px 0 {line}">cloze</i></button>
+            onclick={() => saveSettings({ clozeColor: k })}>{#if k === "theme"}<i class="cz">Theme</i>{:else}<i class="cz" style="background: {fill}; box-shadow: inset 0 -2px 0 {line}">cloze</i>{/if}</button>
         {/each}
       </div>
     </div>
@@ -254,20 +268,33 @@
     display: grid;
     gap: 16px;
   }
+  .tgroup {
+    display: grid;
+    gap: 10px;
+  }
+  .tgh {
+    display: flex;
+    gap: 10px;
+    align-items: baseline;
+  }
+  .tgh b {
+    font-size: 15px;
+  }
   .themes {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
     gap: 12px;
   }
   .theme {
     display: grid;
-    gap: 4px;
-    justify-items: start;
-    padding: 14px;
+    gap: 5px;
+    padding: 8px 8px 10px;
     border: 0;
-    border-radius: 20px;
+    border-radius: 18px;
     background: var(--chip);
     text-align: left;
+    color: var(--text);
+    cursor: pointer;
   }
   .theme:hover {
     transform: translateY(-2px);
@@ -277,39 +304,92 @@
     box-shadow: 0 0 0 2px var(--primary), var(--shadow);
   }
   .small {
-    font-size: 13px;
+    font-size: 12.5px;
   }
-  .swatch {
-    position: relative;
-    width: 100%;
-    height: 64px;
-    border-radius: 14px;
-    margin-bottom: 6px;
+  .thumb {
+    display: flex;
+    gap: 6px;
+    height: 96px;
+    padding: 8px;
+    border-radius: 12px;
+    box-sizing: border-box;
     overflow: hidden;
+    box-shadow: inset 0 0 0 1px rgba(127, 127, 127, 0.15);
   }
-  .swatch.glass {
-    background: radial-gradient(60% 80% at 15% 20%, #ffd6e4, transparent 70%), radial-gradient(60% 80% at 90% 10%, #d5e1ff, transparent 70%), radial-gradient(60% 80% at 80% 100%, #cff2e6, transparent 70%), #f2f1f8;
+  .trail {
+    width: 16px;
+    border-radius: 7px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    padding: 5px 0;
+    box-shadow: 0 0 0 1px rgba(127, 127, 127, 0.15);
   }
-  .swatch.pastel {
-    background: linear-gradient(135deg, #ecd2cf, #f1e2d6 48%, #d9e6de);
+  .trail i {
+    width: 8px;
+    height: 8px;
+    border-radius: 3px;
+    background: rgba(127, 127, 127, 0.35);
   }
-  .swatch i {
-    position: absolute;
-    top: 14px;
-    width: 30%;
-    height: 36px;
-    border-radius: 10px;
+  .tpanel {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    padding: 8px;
+    border-radius: 8px;
+    box-shadow: 0 0 0 1px rgba(127, 127, 127, 0.15);
   }
-  .swatch.glass i {
-    background: rgba(255, 255, 255, 0.6);
-    border: 1px solid rgba(255, 255, 255, 0.85);
+  .tpanel b {
+    width: 50%;
+    height: 7px;
+    border-radius: 3px;
+    background: var(--tx);
   }
-  .swatch.pastel i {
-    background: #fffdfb;
+  .tpanel i {
+    display: block;
+    height: 4px;
+    border-radius: 2px;
+    background: var(--tx);
+    opacity: 0.35;
   }
-  .swatch i:nth-child(1) { left: 6%; }
-  .swatch i:nth-child(2) { left: 38%; }
-  .swatch i:nth-child(3) { left: 70%; }
+  .tcard {
+    display: flex;
+    gap: 4px;
+    align-items: center;
+  }
+  .tcard em {
+    width: 14px;
+    height: 8px;
+    border-radius: 999px;
+  }
+  .tpanel u {
+    display: block;
+    width: 40%;
+    height: 7px;
+    border-radius: 2px;
+  }
+  .tn {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0 4px;
+    font-size: 14px;
+  }
+  .theme > .small {
+    padding: 0 4px;
+  }
+  .chk {
+    display: grid;
+    place-items: center;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: var(--primary);
+    color: var(--on-primary);
+    font-size: 11px;
+  }
   .row-btns {
     display: flex;
     flex-wrap: wrap;
@@ -449,7 +529,7 @@
   }
   .bad {
     background: var(--rose-soft);
-    color: #8f3b45;
+    color: var(--alert-ink);
     border-radius: var(--radius-sm);
     padding: 10px 14px;
   }

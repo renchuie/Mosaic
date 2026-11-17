@@ -183,7 +183,7 @@
   }
   .fold.open .front {
     top: 86px;
-    background: linear-gradient(165deg, color-mix(in srgb, var(--c) 40%, rgba(255, 255, 255, 0.8)), color-mix(in srgb, var(--c) 75%, #fff));
+    background: linear-gradient(165deg, color-mix(in srgb, var(--c) 40%, color-mix(in srgb, var(--white) 80%, transparent)), color-mix(in srgb, var(--c) 75%, #fff));
   }
   .fold.open .line {
     color: var(--text);

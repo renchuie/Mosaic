@@ -469,10 +469,10 @@
     color: var(--text-muted);
   }
   .ct small.bad {
-    color: #a8434f;
+    color: var(--alert-ink);
   }
   .ct small.ok {
-    color: #3f7366;
+    color: var(--go-ink);
   }
   .lectures {
     display: grid;
@@ -536,7 +536,7 @@
     padding: 1px 8px;
     border-radius: var(--radius-pill);
     background: var(--rose-soft);
-    color: #8f3b45;
+    color: var(--alert-ink);
   }
   .t-title {
     font-weight: 500;
@@ -627,7 +627,7 @@
     text-decoration: underline;
   }
   .done-btn {
-    background: rgba(255, 253, 251, 0.6);
+    background: color-mix(in srgb, var(--white) 60%, transparent);
   }
 
   .timeline {
@@ -660,7 +660,7 @@
     font-size: 14.5px;
   }
   .flash {
-    background: linear-gradient(150deg, color-mix(in srgb, #cdb4f7 35%, var(--white)), var(--surface) 70%);
+    background: linear-gradient(150deg, color-mix(in srgb, var(--lavender) 35%, var(--white)), var(--surface) 70%);
   }
   .fl {
     display: flex;

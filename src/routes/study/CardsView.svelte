@@ -214,8 +214,8 @@
     flex-wrap: wrap;
     padding: 24px 28px;
     border-radius: 30px;
-    background: radial-gradient(120% 160% at 0% 0%, #5a4a4e 0%, var(--charcoal) 60%);
-    color: var(--on-primary);
+    background: var(--hero);
+    color: var(--on-hero);
     box-shadow: var(--shadow-lift);
   }
   .big {
@@ -223,7 +223,7 @@
     line-height: 1.1;
   }
   .big .label {
-    color: var(--on-primary);
+    color: var(--on-hero);
     opacity: 0.7;
   }
   .big b {
@@ -243,14 +243,14 @@
     padding: 0 26px;
     font-size: 17px;
     background: var(--sage);
-    color: var(--charcoal);
+    color: var(--ink-on-color);
   }
   .done {
     font-size: 18px;
     font-weight: 600;
   }
   .go .muted {
-    color: rgba(255, 253, 251, 0.7);
+    color: color-mix(in srgb, var(--white) 70%, transparent);
   }
   .small {
     font-size: 13.5px;
@@ -361,10 +361,10 @@
     font-variant-numeric: tabular-nums;
   }
   .n-due {
-    color: #3f7366;
+    color: var(--go-ink);
   }
   .n-new {
-    color: #7a5bbf;
+    color: var(--link-ink);
   }
   .nums .muted {
     font-weight: 500;
@@ -381,7 +381,7 @@
     display: inline-flex;
     align-items: center;
     gap: 6px;
-    color: var(--on-primary);
+    color: var(--on-hero);
     font-size: 14px;
     font-weight: 600;
     opacity: 0.9;
@@ -442,7 +442,7 @@
   }
   .okm {
     font-weight: 600;
-    color: #3f7366;
+    color: var(--go-ink);
   }
   .exb {
     display: flex;

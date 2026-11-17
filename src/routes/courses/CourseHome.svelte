@@ -141,6 +141,9 @@
   .course.arch {
     opacity: 0.6;
   }
+  :global(:root[data-family="dark"]) .head {
+    background: linear-gradient(135deg, color-mix(in srgb, var(--c) 34%, var(--surface)), color-mix(in srgb, var(--c) 20%, var(--surface))) !important;
+  }
   .head {
     display: flex;
     align-items: center;
@@ -154,7 +157,7 @@
     width: 42px;
     height: 42px;
     border-radius: 14px;
-    background: rgba(255, 253, 251, 0.75);
+    background: color-mix(in srgb, var(--white) 75%, transparent);
   }
   .code {
     font-weight: 600;
@@ -167,7 +170,7 @@
     height: 34px;
     margin-left: auto;
     border-radius: 50%;
-    background: rgba(255, 253, 251, 0.75);
+    background: color-mix(in srgb, var(--white) 75%, transparent);
     transition: background 0.15s ease, color 0.15s ease;
   }
   .body {
@@ -191,7 +194,7 @@
     color: var(--text-muted);
   }
   .need.warn {
-    color: #a8434f;
+    color: var(--alert-ink);
   }
   .share {
     display: flex;
@@ -212,7 +215,7 @@
     display: block;
     height: 100%;
     border-radius: inherit;
-    background: color-mix(in srgb, var(--c) 75%, #3b3033);
+    background: color-mix(in srgb, var(--c) 75%, var(--charcoal));
   }
   .foot {
     display: flex;
@@ -236,7 +239,7 @@
   }
   .chip.exam {
     background: var(--rose-soft);
-    color: #8f3b45;
+    color: var(--alert-ink);
   }
   .check {
     display: inline-flex;

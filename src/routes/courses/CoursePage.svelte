@@ -238,6 +238,10 @@
     font-size: 14px;
     font-weight: 500;
   }
+  /* dark themes: the course colour is a pastel, so tint it into the dark page behind light text */
+  :global(:root[data-family="dark"]) .hero {
+    background: linear-gradient(135deg, color-mix(in srgb, var(--c) 32%, var(--surface)) 0%, color-mix(in srgb, var(--c) 18%, var(--surface)) 100%) !important;
+  }
   .hero {
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto;
@@ -266,7 +270,7 @@
     width: 58px;
     height: 58px;
     border-radius: 18px;
-    background: rgba(255, 253, 251, 0.75);
+    background: color-mix(in srgb, var(--white) 75%, transparent);
   }
   .kicker {
     font-size: 13px;
@@ -289,7 +293,7 @@
     gap: 6px;
     padding: 4px 10px;
     border-radius: var(--radius-pill);
-    background: rgba(255, 253, 251, 0.6);
+    background: color-mix(in srgb, var(--white) 60%, transparent);
     font-size: 12.5px;
     text-decoration: none;
   }
@@ -306,7 +310,7 @@
     gap: 18px;
     padding: 16px 20px;
     border-radius: 24px;
-    background: rgba(255, 253, 251, 0.55);
+    background: color-mix(in srgb, var(--white) 55%, transparent);
     backdrop-filter: blur(6px);
   }
   .gstats {
@@ -350,12 +354,12 @@
     line-height: 1.35;
   }
   .need.bad {
-    color: #8f3b45;
+    color: var(--alert-ink);
   }
   .need.wi {
     padding: 6px 10px;
     border-radius: 10px;
-    background: color-mix(in srgb, #cdb4f7 35%, var(--white));
+    background: color-mix(in srgb, var(--lavender) 35%, var(--white));
   }
   .range {
     display: grid;
@@ -369,14 +373,14 @@
     position: relative;
     height: 8px;
     border-radius: var(--radius-pill);
-    background: rgba(255, 253, 251, 0.8);
+    background: color-mix(in srgb, var(--white) 80%, transparent);
   }
   .rb span {
     position: absolute;
     top: 0;
     bottom: 0;
     border-radius: inherit;
-    background: color-mix(in srgb, var(--c) 60%, #3b3033);
+    background: color-mix(in srgb, var(--c) 60%, var(--charcoal));
     opacity: 0.55;
   }
   .rb i {
@@ -492,7 +496,7 @@
     color: var(--text-muted);
   }
   .t span.late {
-    color: #a8434f;
+    color: var(--alert-ink);
     font-weight: 600;
   }
   .lnk {
@@ -563,7 +567,7 @@
     gap: 10px;
     padding: 8px 10px;
     border-radius: 14px;
-    background: color-mix(in srgb, #cdb4f7 25%, var(--white));
+    background: color-mix(in srgb, var(--lavender) 25%, var(--white));
     font-size: 13.5px;
   }
   .cardsrow > span {

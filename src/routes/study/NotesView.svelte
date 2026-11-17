@@ -583,7 +583,7 @@
   }
   .ico.on {
     background: var(--primary, var(--text));
-    color: var(--on-primary, #fff);
+    color: var(--on-primary);
   }
   .badge {
     position: absolute;
@@ -593,7 +593,7 @@
     height: 17px;
     padding: 0 4px;
     border-radius: 999px;
-    background: var(--rose-deep, #e3949b);
+    background: var(--rose-deep);
     color: #fff;
     font-size: 10px;
     font-style: normal;
@@ -603,7 +603,7 @@
     box-sizing: border-box;
   }
   .badge.soft {
-    background: var(--lavender, #c9b8f0);
+    background: var(--lavender);
     color: var(--text);
   }
   .center {
@@ -761,7 +761,7 @@
     flex: none;
     width: 12px;
     border-radius: 999px;
-    background: linear-gradient(180deg, transparent, color-mix(in srgb, var(--lavender, #c9b8f0) 70%, transparent), transparent);
+    background: linear-gradient(180deg, transparent, color-mix(in srgb, var(--lavender) 70%, transparent), transparent);
     opacity: 0.7;
     transition: opacity 0.2s;
     z-index: 7;

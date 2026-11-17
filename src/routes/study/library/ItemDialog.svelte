@@ -88,7 +88,7 @@
     padding: 0;
   }
   dialog::backdrop {
-    background: rgba(59, 48, 51, 0.2);
+    background: var(--scrim);
   }
   form {
     display: grid;
@@ -158,6 +158,6 @@
   }
   .danger {
     background: var(--rose-soft);
-    color: #8f3b45;
+    color: var(--alert-ink);
   }
 </style>

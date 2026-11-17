@@ -45,7 +45,7 @@
     box-shadow: var(--shadow-lift);
   }
   .pill.over {
-    background: #8f3b45;
+    background: var(--alert-ink);
   }
   .dot {
     width: 10px;
@@ -90,15 +90,15 @@
     height: 40px;
     border: 0;
     border-radius: 50%;
-    background: rgba(255, 253, 251, 0.15);
+    background: color-mix(in srgb, var(--white) 15%, transparent);
     color: inherit;
   }
   button:hover {
-    background: rgba(255, 253, 251, 0.28);
+    background: color-mix(in srgb, var(--white) 28%, transparent);
   }
   .ok {
     background: var(--sage);
-    color: var(--charcoal);
+    color: var(--ink-on-color);
   }
   @media (prefers-reduced-motion: reduce) {
     .dot {

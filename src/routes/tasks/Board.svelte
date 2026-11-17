@@ -473,7 +473,7 @@
   }
   .mini.danger {
     background: var(--rose-soft);
-    color: #8f3b45;
+    color: var(--alert-ink);
   }
   .rename {
     min-height: 34px;
@@ -552,7 +552,7 @@
   }
   .prio.p-high {
     background: var(--rose-soft);
-    color: #a8434f;
+    color: var(--alert-ink);
   }
   .prio.p-normal {
     background: var(--peach-soft);
@@ -560,7 +560,7 @@
   }
   .prio.p-low {
     background: var(--sage-soft);
-    color: #3f7366;
+    color: var(--go-ink);
   }
   .openbtn {
     display: grid;
@@ -641,7 +641,7 @@
     white-space: nowrap;
   }
   .when.late {
-    color: #a8434f;
+    color: var(--alert-ink);
     font-weight: 600;
   }
   .tick {
@@ -663,12 +663,12 @@
   .done .tick {
     background: var(--sage);
     border-color: var(--sage-deep);
-    color: var(--charcoal);
+    color: var(--ink-on-color);
   }
   .placeholder {
     border: 2px dashed color-mix(in srgb, var(--col) 60%, var(--charcoal));
     border-radius: 22px;
-    background: rgba(255, 253, 251, 0.5);
+    background: color-mix(in srgb, var(--white) 50%, transparent);
   }
   .empty {
     font-size: 13.5px;

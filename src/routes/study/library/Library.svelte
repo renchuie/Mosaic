@@ -203,7 +203,7 @@
   .quick {
     display: grid;
     gap: 10px;
-    background: linear-gradient(150deg, color-mix(in srgb, #cdb4f7 25%, var(--white)), var(--surface) 70%);
+    background: linear-gradient(150deg, color-mix(in srgb, var(--lavender) 25%, var(--white)), var(--surface) 70%);
   }
   .qh {
     display: flex;

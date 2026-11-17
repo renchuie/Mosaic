@@ -330,7 +330,7 @@
     opacity: 0.7;
   }
   .st.bad {
-    color: #a8434f;
+    color: var(--alert-ink);
     font-weight: 600;
   }
   .title {
@@ -383,7 +383,7 @@
   .chip:focus-visible,
   .chip:focus-within {
     outline: none;
-    box-shadow: 0 0 0 2px color-mix(in srgb, var(--lavender, #c9b8f0) 80%, transparent);
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--lavender) 80%, transparent);
   }
   .chip input:focus {
     outline: none;
@@ -405,7 +405,7 @@
     background: var(--panel);
   }
   .copt.on {
-    background: color-mix(in srgb, var(--lavender, #c9b8f0) 30%, transparent);
+    background: color-mix(in srgb, var(--lavender) 30%, transparent);
     font-weight: 600;
   }
   .cdot {
@@ -416,7 +416,7 @@
     background: var(--hairline);
   }
   .chip.course[style] {
-    background: color-mix(in srgb, var(--c) 40%, var(--white, #fff));
+    background: color-mix(in srgb, var(--c) 40%, var(--white));
     color: var(--text);
   }
   .chip input {
@@ -435,7 +435,7 @@
     color: color-mix(in srgb, var(--text-muted) 55%, transparent);
   }
   .chip.tag {
-    background: color-mix(in srgb, var(--lavender, #c9b8f0) 35%, transparent);
+    background: color-mix(in srgb, var(--lavender) 35%, transparent);
     color: var(--text);
     padding-right: 4px;
   }
@@ -475,7 +475,7 @@
   }
   .chip.more.on {
     background: var(--primary, var(--text));
-    color: var(--on-primary, #fff);
+    color: var(--on-primary);
   }
   .mwrap {
     position: relative;
@@ -531,7 +531,7 @@
   }
   .mi.del {
     background: var(--rose-soft);
-    color: #8f3b45;
+    color: var(--alert-ink);
     font-weight: 600;
   }
   .mi.soft {

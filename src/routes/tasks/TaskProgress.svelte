@@ -105,8 +105,8 @@
     gap: 18px;
     padding: 18px 20px;
     border-radius: var(--radius);
-    background: radial-gradient(120% 140% at 0% 0%, #5a4a4e 0%, var(--charcoal) 55%);
-    color: var(--on-primary);
+    background: var(--hero);
+    color: var(--on-hero);
     box-shadow: var(--shadow-lift);
   }
   .ringbox {
@@ -124,7 +124,7 @@
     stroke-width: 11;
   }
   .bg {
-    stroke: rgba(255, 253, 251, 0.14);
+    stroke: color-mix(in srgb, var(--white) 14%, transparent);
   }
   .fg {
     stroke: var(--sage);
@@ -164,7 +164,7 @@
     list-style: none;
     margin: 0;
     padding: 0 0 0 18px;
-    border-left: 1px solid rgba(255, 253, 251, 0.15);
+    border-left: 1px solid color-mix(in srgb, var(--white) 15%, transparent);
     display: grid;
     gap: 6px;
   }
@@ -181,7 +181,7 @@
     width: 30px;
     height: 30px;
     border-radius: 10px;
-    background: rgba(255, 253, 251, 0.1);
+    background: color-mix(in srgb, var(--white) 10%, transparent);
   }
   .pstats b {
     font-size: 17px;
@@ -199,7 +199,7 @@
       grid-column: 1 / -1;
       grid-auto-flow: column;
       border-left: 0;
-      border-top: 1px solid rgba(255, 253, 251, 0.15);
+      border-top: 1px solid color-mix(in srgb, var(--white) 15%, transparent);
       padding: 12px 0 0;
     }
   }
@@ -272,7 +272,7 @@
     background: var(--charcoal);
   }
   .day.sel .dn {
-    color: var(--on-primary);
+    color: var(--ivory);
     opacity: 0.8;
   }
   .dots {

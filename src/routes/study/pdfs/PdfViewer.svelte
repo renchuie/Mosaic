@@ -1088,7 +1088,7 @@
     border-radius: 50%;
     background: var(--c);
     cursor: pointer;
-    box-shadow: inset 0 0 0 1px rgba(59, 48, 51, 0.08);
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--charcoal) 8%, transparent);
     flex: none;
   }
   .sw.on {
@@ -1135,7 +1135,7 @@
     margin: 0 auto 22px;
     background: #fff;
     border-radius: 6px;
-    box-shadow: 0 2px 14px rgba(59, 48, 51, 0.1);
+    box-shadow: 0 2px 14px color-mix(in srgb, var(--charcoal) 10%, transparent);
   }
   .cv,
   .cv :global(canvas) {
@@ -1157,7 +1157,7 @@
   }
   .marks .sel {
     fill: none;
-    stroke: #3b3033;
+    stroke: var(--charcoal);
     stroke-width: 1;
     stroke-dasharray: 4 3;
   }

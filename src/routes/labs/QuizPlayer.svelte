@@ -757,7 +757,7 @@
     font-size: 11px;
     padding: 1px 6px;
     border-radius: 6px;
-    background: rgba(255, 255, 255, 0.2);
+    background: color-mix(in srgb, var(--white) 20%, transparent);
   }
 
   /* results */

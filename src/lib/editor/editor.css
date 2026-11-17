@@ -13,7 +13,7 @@
   white-space: pre-wrap;
 }
 .mosaic-doc ::selection {
-  background: color-mix(in srgb, var(--lavender, #c9b8f0) 28%, transparent);
+  background: color-mix(in srgb, var(--lavender) 28%, transparent);
 }
 
 /* ---- line blocks ---- */
@@ -76,7 +76,7 @@
   transform: scale(1.1);
 }
 .mosaic-doc .b-todo[data-checked="true"] .tick {
-  background: var(--sage-deep, #7fb3a6) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M3.5 8.5l3 3 6-7' fill='none' stroke='white' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center / 80% no-repeat;
+  background: var(--sage-deep) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M3.5 8.5l3 3 6-7' fill='none' stroke='white' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center / 80% no-repeat;
   box-shadow: none;
   animation: tickpop 0.3s var(--spring, ease);
 }
@@ -148,12 +148,12 @@
   font-size: 0.9em;
   padding: 1px 5px;
   border-radius: 6px;
-  background: var(--chip, rgba(0, 0, 0, 0.06));
+  background: var(--chip);
 }
 .mosaic-doc a.b-a {
-  color: #5b6fc7;
+  color: var(--link-ink);
   text-decoration: underline;
-  text-decoration-color: color-mix(in srgb, #5b6fc7 40%, transparent);
+  text-decoration-color: color-mix(in srgb, var(--link-ink) 40%, transparent);
   text-underline-offset: 3px;
   cursor: text;
 }
@@ -171,14 +171,14 @@ button.dot[data-color] {
   display: inline;
   padding: 1px 6px;
   border-radius: 7px;
-  background: color-mix(in srgb, var(--lavender, #c9b8f0) 32%, transparent);
-  color: #5b45b3;
+  background: color-mix(in srgb, var(--lavender) 32%, transparent);
+  color: var(--link-ink);
   font-weight: 500;
   cursor: pointer;
   transition: background 0.15s;
 }
 .mosaic-doc .b-link:hover {
-  background: color-mix(in srgb, var(--lavender, #c9b8f0) 55%, transparent);
+  background: color-mix(in srgb, var(--lavender) 55%, transparent);
 }
 .mosaic-doc .b-link.pdf::before {
   content: "▤ ";
@@ -187,15 +187,15 @@ button.dot[data-color] {
 .mosaic-doc .b-tag {
   padding: 1px 7px;
   border-radius: 999px;
-  background: var(--sage-soft, #e3efe9);
-  color: #3f7366;
+  background: var(--sage-soft);
+  color: var(--go-ink);
   font-size: 0.9em;
   font-weight: 600;
 }
 .mosaic-doc .b-cloze {
   padding: 1px 4px;
   border-radius: 5px;
-  background: var(--cloze-bg, color-mix(in srgb, var(--butter, #f7e3b0) 85%, #ffd66e));
+  background: var(--cloze-bg, color-mix(in srgb, var(--butter) 85%, #ffd66e));
   box-shadow: inset 0 -2px 0 color-mix(in srgb, var(--cloze-line, #d9a93a) 55%, transparent);
   font-weight: 600;
 }
@@ -213,7 +213,7 @@ button.dot[data-color] {
   height: 1.3em;
   margin: 0 0.4em;
   border-radius: 999px;
-  background: var(--arrow-bg, linear-gradient(135deg, var(--rose-deep, #e3949b), #c58bd6));
+  background: var(--arrow-bg, linear-gradient(135deg, var(--rose-deep), #c58bd6));
   color: #fff;
   vertical-align: -0.22em;
   line-height: 0;
@@ -267,7 +267,7 @@ button.dot[data-color] {
   --cp: 10px;
   margin-block: 3px;
   border-radius: 10px;
-  background: var(--card-bg, linear-gradient(90deg, color-mix(in srgb, var(--rose, #f2b8b5) 16%, transparent), transparent 85%));
+  background: var(--card-bg, linear-gradient(90deg, color-mix(in srgb, var(--rose) 16%, transparent), transparent 85%));
 }
 .mosaic-doc .b-p:has(> .b-arrow[data-two="true"]),
 .mosaic-doc .b-li:has(> .b-arrow[data-two="true"]) {
@@ -286,7 +286,7 @@ button.dot[data-color] {
 }
 .mosaic-doc .ProseMirror-selectednode.b-link,
 .mosaic-doc .ProseMirror-selectednode.b-arrow {
-  outline: 2px solid color-mix(in srgb, var(--lavender, #c9b8f0) 90%, #7a5bbf);
+  outline: 2px solid color-mix(in srgb, var(--lavender) 90%, var(--link-ink));
   outline-offset: 1px;
 }
 
@@ -298,7 +298,7 @@ button.dot[data-color] {
   color: color-mix(in srgb, var(--text) 85%, var(--text-muted));
 }
 .mosaic-doc .b-callout {
-  --cc: var(--lavender, #c9b8f0);
+  --cc: var(--lavender);
   margin: 10px 0;
   padding: 10px 16px 10px 14px;
   border-radius: 16px;
@@ -319,7 +319,7 @@ button.dot[data-color] {
   padding: 0 10px 0 4px;
   border: 0;
   border-radius: 999px;
-  background: color-mix(in srgb, var(--cc) 60%, var(--white, #fff));
+  background: color-mix(in srgb, var(--cc) 60%, var(--white));
   font: inherit;
   font-size: 12.5px;
   font-weight: 700;
@@ -333,7 +333,7 @@ button.dot[data-color] {
   width: 19px;
   height: 19px;
   border-radius: 50%;
-  background: var(--white, #fff);
+  background: var(--white);
   font-size: 11px;
   line-height: 1;
 }
@@ -430,7 +430,7 @@ button.dot[data-color] {
   height: 18px;
   border-radius: 50%;
   background: var(--surface);
-  box-shadow: 0 2px 8px rgba(40, 44, 80, 0.3), inset 0 0 0 4px color-mix(in srgb, var(--lavender, #c9b8f0) 90%, #7a5bbf);
+  box-shadow: 0 2px 8px rgba(40, 44, 80, 0.3), inset 0 0 0 4px color-mix(in srgb, var(--lavender) 90%, var(--link-ink));
   cursor: nwse-resize;
   opacity: 0;
   transition: opacity 0.15s, transform 0.2s var(--spring, ease);
@@ -444,7 +444,7 @@ button.dot[data-color] {
   transform: scale(1.2);
 }
 .mosaic-doc .ProseMirror-selectednode {
-  outline: 2px solid color-mix(in srgb, var(--lavender, #c9b8f0) 80%, transparent);
+  outline: 2px solid color-mix(in srgb, var(--lavender) 80%, transparent);
   outline-offset: 3px;
   border-radius: 10px;
 }
@@ -480,7 +480,7 @@ button.dot[data-color] {
   border-bottom: 0;
 }
 .mosaic-doc th {
-  background: color-mix(in srgb, var(--lavender, #c9b8f0) 20%, transparent);
+  background: color-mix(in srgb, var(--lavender) 20%, transparent);
   font-weight: 700;
 }
 .mosaic-doc td .b-p,
@@ -525,7 +525,7 @@ button.dot[data-color] {
   width: 4px;
   z-index: 2;
   border-radius: 2px;
-  background: color-mix(in srgb, var(--lavender, #c9b8f0) 90%, #7a5bbf);
+  background: color-mix(in srgb, var(--lavender) 90%, var(--link-ink));
   pointer-events: none;
 }
 .mosaic-doc.resize-cursor,
@@ -534,14 +534,14 @@ button.dot[data-color] {
 }
 .mosaic-doc table.cards,
 .mosaic-doc .cards table {
-  box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--rose-deep, #e3949b) 45%, transparent);
+  box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--rose-deep) 45%, transparent);
 }
 .mosaic-doc .tableWrapper:has(table.cards),
 .mosaic-doc .cards {
   position: relative;
 }
 .mosaic-doc .selectedCell {
-  background: color-mix(in srgb, var(--lavender, #c9b8f0) 25%, transparent);
+  background: color-mix(in srgb, var(--lavender) 25%, transparent);
 }
 
 /* ---- feedback ---- */
@@ -551,7 +551,7 @@ button.dot[data-color] {
 @keyframes flash {
   0%,
   40% {
-    background: color-mix(in srgb, var(--butter, #f7e3b0) 80%, transparent);
+    background: color-mix(in srgb, var(--butter) 80%, transparent);
     border-radius: 8px;
   }
 }
@@ -582,4 +582,24 @@ button.dot[data-color] {
     animation: none !important;
     transition: none !important;
   }
+}
+
+/* dark themes: her highlight and cell colours are light pastels; tint them into the dark page
+   so light text stays readable */
+:root[data-family="dark"] .mosaic-doc mark.b-hl,
+:root[data-family="dark"] .mosaic-doc td.tinted,
+:root[data-family="dark"] .mosaic-doc th.tinted {
+  background: color-mix(in srgb, var(--hl, #f9de8c) 30%, var(--surface));
+}
+:root[data-family="dark"] .mosaic-doc .b-callout {
+  background: color-mix(in srgb, var(--cc) 16%, transparent);
+}
+:root[data-family="dark"] .mosaic-doc .b-cbadge {
+  background: color-mix(in srgb, var(--cc) 34%, var(--surface));
+}
+:root[data-family="dark"] .mosaic-doc .b-cbadge::before {
+  background: var(--panel);
+}
+:root[data-family="dark"] .mosaic-doc .b-arrow {
+  color: var(--t-bg, #111);
 }

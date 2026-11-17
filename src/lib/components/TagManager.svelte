@@ -91,7 +91,7 @@
     padding: 0;
   }
   dialog::backdrop {
-    background: rgba(59, 48, 51, 0.2);
+    background: var(--scrim);
   }
   .wrap {
     display: grid;
@@ -224,7 +224,7 @@
   }
   .danger {
     background: var(--rose-soft);
-    color: #8f3b45;
+    color: var(--alert-ink);
   }
   @media (max-width: 520px) {
     .line {

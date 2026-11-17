@@ -235,7 +235,7 @@
     box-shadow: var(--shadow);
   }
   .late .gi {
-    color: #a8434f;
+    color: var(--alert-ink);
   }
   .timeline {
     position: relative;

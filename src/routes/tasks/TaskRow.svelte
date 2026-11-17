@@ -172,7 +172,7 @@
     white-space: nowrap;
   }
   .late {
-    color: #a8434f;
+    color: var(--alert-ink);
   }
   .steps {
     grid-column: 2;

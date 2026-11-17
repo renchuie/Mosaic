@@ -284,7 +284,7 @@
     }
   }
   dialog::backdrop {
-    background: rgba(59, 48, 51, 0.2);
+    background: var(--scrim);
   }
   .wrap {
     display: grid;
@@ -352,7 +352,7 @@
     padding: 0 12px 0 5px;
     border: 0;
     border-radius: 999px;
-    background: color-mix(in srgb, var(--cc) 60%, var(--white, #fff));
+    background: color-mix(in srgb, var(--cc) 60%, var(--white));
     font: inherit;
     font-size: 13px;
     font-weight: 700;
@@ -373,7 +373,7 @@
     width: 22px;
     height: 22px;
     border-radius: 50%;
-    background: var(--white, #fff);
+    background: var(--white);
     font-size: 12px;
   }
   .line .input {
@@ -410,7 +410,7 @@
   }
   .danger {
     background: var(--rose-soft);
-    color: #8f3b45;
+    color: var(--alert-ink);
   }
   .picker {
     display: grid;
@@ -467,7 +467,7 @@
   }
   .ico.on {
     background: var(--text);
-    color: var(--on-primary, #fff);
+    color: var(--on-primary);
   }
   .any {
     width: 70px;
@@ -558,7 +558,7 @@
   .inuse {
     font-size: 12px;
     font-weight: 700;
-    color: var(--sage-deep, #5f9184);
+    color: var(--sage-deep);
   }
   .slots {
     display: flex;

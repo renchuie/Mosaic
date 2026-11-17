@@ -874,7 +874,7 @@
     padding: 0;
   }
   .hb:hover {
-    background: var(--chip, rgba(0, 0, 0, 0.06));
+    background: var(--chip);
     color: var(--text);
   }
   .grip {
@@ -933,10 +933,10 @@
     height: 22px;
     padding: 0;
     border-radius: 50%;
-    box-shadow: inset 0 0 0 1px rgba(59, 48, 51, 0.12);
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--charcoal) 12%, transparent);
   }
   .tbar .cpop .dot.none {
-    background: linear-gradient(135deg, transparent 44%, #c25a64 45% 55%, transparent 56%), var(--surface);
+    background: linear-gradient(135deg, transparent 44%, var(--alert-ink) 45% 55%, transparent 56%), var(--surface);
   }
   .cmenu {
     position: absolute;
@@ -947,7 +947,7 @@
   }
   .cmenu .edit {
     margin-top: 4px;
-    border-top: 1px solid var(--hairline, rgba(0, 0, 0, 0.08));
+    border-top: 1px solid var(--hairline);
     border-radius: 0 0 10px 10px;
   }
   .bmenu {
@@ -981,10 +981,10 @@
   }
   .mi.on,
   .mi:hover {
-    background: color-mix(in srgb, var(--lavender, #c9b8f0) 30%, transparent);
+    background: color-mix(in srgb, var(--lavender) 30%, transparent);
   }
   .mi.del {
-    color: #a8434f;
+    color: var(--alert-ink);
   }
   .ic {
     display: grid;
@@ -1063,7 +1063,7 @@
     cursor: pointer;
   }
   .turn button:hover {
-    background: color-mix(in srgb, var(--lavender, #c9b8f0) 40%, var(--panel));
+    background: color-mix(in srgb, var(--lavender) 40%, var(--panel));
   }
   .bubble,
   .tbar,
@@ -1140,12 +1140,12 @@
   }
   .bubble .study,
   .tbar .study {
-    color: #a8434f;
+    color: var(--alert-ink);
     font-weight: 600;
   }
   .bubble .study.on,
   .tbar .study.on {
-    background: var(--rose-soft, #fbe3e2);
+    background: var(--rose-soft);
   }
   .sw {
     display: inline-flex;
@@ -1158,7 +1158,7 @@
     height: 18px;
     padding: 0;
     border-radius: 50%;
-    box-shadow: inset 0 0 0 1px rgba(59, 48, 51, 0.12);
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--charcoal) 12%, transparent);
   }
   .bubble .pal {
     min-width: 26px;
@@ -1166,7 +1166,7 @@
     font-size: 13px;
   }
   .bubble .dot.none {
-    background: linear-gradient(135deg, transparent 44%, #c25a64 45% 55%, transparent 56%), var(--surface) !important;
+    background: linear-gradient(135deg, transparent 44%, var(--alert-ink) 45% 55%, transparent 56%), var(--surface) !important;
   }
   .bubble .dot:hover {
     transform: scale(1.25);
@@ -1175,7 +1175,7 @@
     width: 1px;
     height: 18px;
     margin: 0 3px;
-    background: var(--hairline, rgba(0, 0, 0, 0.1));
+    background: var(--hairline);
   }
   .lin {
     width: 260px;

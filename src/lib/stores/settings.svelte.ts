@@ -1,4 +1,5 @@
 import { loadDoc, saveDoc } from "../tauri";
+import { THEMES, themeById, type ThemeId } from "../themes";
 
 export type Settings = {
   name: string;
@@ -18,11 +19,12 @@ export type Settings = {
   retention: number;
   /** keep cards in an exam's course from being scheduled past the evening before it */
   examAware: boolean;
-  /** look: frosted glass (default since Nov 16) or the original solid pastel */
-  theme: "glass" | "pastel";
+  /** look: one of the 15 themes in src/lib/themes.ts (Mosaic = the frosted glass, default) */
+  theme: ThemeId;
   /** spacing: spacious (default), original, compact */
   density: "spacious" | "original" | "compact";
-  /** flashcards in notes: soft background on card lines, arrow pill colour, cloze colour */
+  /** flashcards in notes: soft background on card lines, arrow pill colour, cloze colour
+   *  ("theme" = the theme's own colours) */
   cardBg: boolean;
   arrowColor: string;
   clozeColor: string;
@@ -31,6 +33,8 @@ export type Settings = {
 /** Arrow pill colours: [one way, both ways, card tint one way, card tint both ways].
  *  "mosaic" is the original pink / periwinkle pair. Card lines are tinted to match the arrow. */
 export const ARROW_COLOURS: Record<string, [string, string, string, string]> = {
+  /** the theme's own colours (no override); the swatch shows Mosaic's */
+  theme: ["linear-gradient(135deg, #e3949b, #c58bd6)", "linear-gradient(135deg, #8b9be8, #c58bd6)", "", ""],
   mosaic: ["linear-gradient(135deg, #e3949b, #c58bd6)", "linear-gradient(135deg, #8b9be8, #c58bd6)", "#f2b8b5", "#b9c2f0"],
   rose: ["#e3949b", "#d07f87", "#f2b8b5", "#eaa5ab"],
   lavender: ["#a993e0", "#8f78cf", "#c9b8f0", "#b9a5e8"],
@@ -41,6 +45,7 @@ export const ARROW_COLOURS: Record<string, [string, string, string, string]> = {
 };
 /** Cloze colours: [fill, underline]. */
 export const CLOZE_COLOURS: Record<string, [string, string]> = {
+  theme: ["#fbe29a", "#d9a93a"],
   butter: ["#fbe29a", "#d9a93a"],
   rose: ["#f6c9c7", "#d98a91"],
   sage: ["#cfe5dd", "#7fb3a6"],
@@ -63,18 +68,23 @@ export const DEFAULT_SETTINGS: Settings = {
   newPerDay: 20,
   retention: 0.9,
   examAware: true,
-  theme: "glass",
+  theme: "mosaic",
   density: "spacious",
   cardBg: true,
-  arrowColor: "mosaic",
-  clozeColor: "butter",
+  arrowColor: "theme",
+  clozeColor: "theme",
 };
 
 export const settings = $state<Settings>({ ...DEFAULT_SETTINGS });
 
 export async function loadSettings() {
-  const saved = await loadDoc<Partial<Settings>>("settings");
+  const saved = await loadDoc<Partial<Settings> & { theme?: string }>("settings");
   Object.assign(settings, DEFAULT_SETTINGS, saved ?? {});
+  // Nov 17: "glass" became Mosaic, the solid "pastel" look was retired; the old default arrow and
+  // cloze colours (mosaic / butter) now mean "follow the theme"
+  if (!THEMES.some((t) => t.id === settings.theme)) settings.theme = "mosaic";
+  if (settings.arrowColor === "mosaic") settings.arrowColor = "theme";
+  if (settings.clozeColor === "butter") settings.clozeColor = "theme";
   applyLook();
 }
 
@@ -83,17 +93,26 @@ export function applyLook() {
   if (typeof document === "undefined") return;
   const root = document.documentElement;
   root.dataset.theme = settings.theme;
+  root.dataset.family = themeById(settings.theme).family;
   root.dataset.density = settings.density;
   root.dataset.cardbg = settings.cardBg === false ? "off" : "on";
-  const [a1, a2, t1, t2] = ARROW_COLOURS[settings.arrowColor] ?? ARROW_COLOURS.mosaic;
-  root.style.setProperty("--arrow-bg", a1);
-  root.style.setProperty("--arrow2-bg", a2);
-  const tint = (c: string) => `linear-gradient(90deg, color-mix(in srgb, ${c} ${settings.arrowColor === "charcoal" ? 12 : 18}%, transparent), transparent 85%)`;
-  root.style.setProperty("--card-bg", tint(t1));
-  root.style.setProperty("--card-bg2", tint(t2));
-  const [c1, c2] = CLOZE_COLOURS[settings.clozeColor] ?? CLOZE_COLOURS.butter;
-  root.style.setProperty("--cloze-bg", c1);
-  root.style.setProperty("--cloze-line", c2);
+  // flashcard colours: the theme's own unless she picked some
+  const props = ["--arrow-bg", "--arrow2-bg", "--card-bg", "--card-bg2", "--cloze-bg", "--cloze-line"];
+  if (settings.arrowColor === "theme" || !ARROW_COLOURS[settings.arrowColor]) props.slice(0, 4).forEach((p) => root.style.removeProperty(p));
+  else {
+    const [a1, a2, t1, t2] = ARROW_COLOURS[settings.arrowColor];
+    root.style.setProperty("--arrow-bg", a1);
+    root.style.setProperty("--arrow2-bg", a2);
+    const tint = (c: string) => `linear-gradient(90deg, color-mix(in srgb, ${c} ${settings.arrowColor === "charcoal" ? 12 : 18}%, transparent), transparent 85%)`;
+    root.style.setProperty("--card-bg", tint(t1));
+    root.style.setProperty("--card-bg2", tint(t2));
+  }
+  if (settings.clozeColor === "theme" || !CLOZE_COLOURS[settings.clozeColor]) props.slice(4).forEach((p) => root.style.removeProperty(p));
+  else {
+    const [c1, c2] = CLOZE_COLOURS[settings.clozeColor];
+    root.style.setProperty("--cloze-bg", c1);
+    root.style.setProperty("--cloze-line", c2);
+  }
 }
 
 export async function saveSettings(patch: Partial<Settings>) {

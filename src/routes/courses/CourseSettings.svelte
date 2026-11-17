@@ -197,7 +197,7 @@
     padding: 0;
   }
   dialog::backdrop {
-    background: rgba(59, 48, 51, 0.2);
+    background: var(--scrim);
   }
   form {
     display: grid;
@@ -357,7 +357,7 @@
     font-size: 14px;
   }
   .tot.bad {
-    color: #a8434f;
+    color: var(--alert-ink);
   }
   .scale summary {
     cursor: pointer;
@@ -400,7 +400,7 @@
   }
   .error {
     background: var(--rose-soft);
-    color: #8f3b45;
+    color: var(--alert-ink);
     border-radius: var(--radius-sm);
     padding: 8px 12px;
   }
@@ -415,6 +415,6 @@
   }
   .danger {
     background: var(--rose-soft);
-    color: #8f3b45;
+    color: var(--alert-ink);
   }
 </style>

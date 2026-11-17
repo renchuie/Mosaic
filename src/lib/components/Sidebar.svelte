@@ -281,7 +281,7 @@
   }
   .streak.lit {
     background: var(--butter);
-    color: var(--charcoal);
+    color: var(--ink-on-color);
   }
   .streak b {
     font-size: 13px;
@@ -301,7 +301,7 @@
     margin-top: 4px;
     border-radius: 50%;
     background: var(--rose);
-    color: var(--charcoal);
+    color: var(--ink-on-color);
     font-weight: 600;
   }
 

@@ -190,13 +190,13 @@
     font-weight: 600;
   }
   .pill.due {
-    background: color-mix(in srgb, var(--rose, #f2b8b5) 55%, transparent);
+    background: color-mix(in srgb, var(--rose) 55%, transparent);
   }
   .pill.new {
     background: var(--panel);
   }
   .pill.ok {
-    background: color-mix(in srgb, var(--sage, #a9cdc3) 50%, transparent);
+    background: color-mix(in srgb, var(--sage) 50%, transparent);
   }
   .cards {
     gap: 6px;
@@ -236,7 +236,7 @@
   .q :global(.gap) {
     padding: 0 4px;
     border-radius: 5px;
-    background: color-mix(in srgb, var(--butter, #f7e3b0) 85%, #ffd66e);
+    background: color-mix(in srgb, var(--butter) 85%, #ffd66e);
   }
   .st {
     justify-self: start;
@@ -249,10 +249,10 @@
   }
   .st.review,
   .st.learning {
-    background: color-mix(in srgb, var(--rose, #f2b8b5) 50%, transparent);
+    background: color-mix(in srgb, var(--rose) 50%, transparent);
   }
   .st.later {
-    background: color-mix(in srgb, var(--sage, #a9cdc3) 45%, transparent);
+    background: color-mix(in srgb, var(--sage) 45%, transparent);
   }
   .review {
     display: flex;

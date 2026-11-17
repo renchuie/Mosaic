@@ -99,7 +99,7 @@
     padding: 0;
   }
   dialog::backdrop {
-    background: rgba(59, 48, 51, 0.2);
+    background: var(--scrim);
   }
   .wrap {
     display: grid;

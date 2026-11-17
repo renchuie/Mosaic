@@ -56,7 +56,7 @@
     color: var(--text);
   }
   .toolbar .study {
-    color: #a8434f;
+    color: var(--alert-ink);
     font-weight: 700;
   }
   .hl {
@@ -71,10 +71,10 @@
     min-height: 0;
     padding: 0;
     border-radius: 50%;
-    box-shadow: inset 0 0 0 1px rgba(59, 48, 51, 0.1);
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--charcoal) 10%, transparent);
   }
   .toolbar .dot.none {
-    background: linear-gradient(135deg, transparent 44%, #c25a64 45% 55%, transparent 56%), var(--surface) !important;
+    background: linear-gradient(135deg, transparent 44%, var(--alert-ink) 45% 55%, transparent 56%), var(--surface) !important;
   }
   .toolbar .dot:hover {
     transform: scale(1.25);

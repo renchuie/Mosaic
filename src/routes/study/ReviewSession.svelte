@@ -222,13 +222,13 @@
     font-variant-numeric: tabular-nums;
   }
   .n-new {
-    color: #7a5bbf;
+    color: var(--link-ink);
   }
   .n-learn {
-    color: #a8434f;
+    color: var(--alert-ink);
   }
   .n-rev {
-    color: #3f7366;
+    color: var(--go-ink);
   }
   .center {
     text-align: center;
@@ -304,7 +304,7 @@
   }
   .front :global(.lk),
   .back :global(.lk) {
-    color: #6b4fb3;
+    color: var(--link-ink);
   }
   .front :global(code),
   .back :global(code) {
@@ -360,7 +360,7 @@
   kbd {
     padding: 1px 7px;
     border-radius: 6px;
-    background: rgba(255, 253, 251, 0.2);
+    background: color-mix(in srgb, var(--white) 20%, transparent);
     font-family: var(--font-body);
     font-size: 11.5px;
     opacity: 0.8;

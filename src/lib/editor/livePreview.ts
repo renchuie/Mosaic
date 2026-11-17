@@ -508,7 +508,7 @@ export const livePreviewTheme = EditorView.theme({
   ".cm-callout-info, .cm-callout-question": { backgroundColor: "color-mix(in srgb, #b9d4ee 40%, transparent)" },
   ".cm-callout-badge": { fontWeight: "700" },
   ".cm-codeline": { fontFamily: "ui-monospace, monospace", fontSize: "0.9em", backgroundColor: "var(--chip)", paddingLeft: "14px !important" },
-  ".cm-mdlink": { color: "#5b4bb0", textDecoration: "underline", textUnderlineOffset: "3px", cursor: "pointer" },
+  ".cm-mdlink": { color: "var(--link-ink)", textDecoration: "underline", textUnderlineOffset: "3px", cursor: "pointer" },
   ".cm-hl-rose": { backgroundColor: "color-mix(in srgb, var(--rose) 60%, transparent) !important" },
   ".cm-hl-sage": { backgroundColor: "color-mix(in srgb, var(--sage) 60%, transparent) !important" },
   ".cm-hl-peach": { backgroundColor: "color-mix(in srgb, var(--peach) 70%, transparent) !important" },

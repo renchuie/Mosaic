@@ -56,8 +56,20 @@ The full vision, principles and what she likes or dislikes in each inspiration a
 
 Built from her choices on the design canvas. This section wins where the older "Design" section
 below disagrees.
-- **Themes** (Settings → Appearance; `settings.theme`, `<html data-theme>`): `glass` (default)
-  and `pastel` (the original solid look). Glass = colour blooms on `--backdrop`, translucent white
+- **Themes** (Nov 17, 15 of them; Settings → Appearance picker with live mini previews;
+  `settings.theme`, `<html data-theme data-family>`; list + picker data in `src/lib/themes.ts`):
+  Glass = Mosaic (the Nov 16 frosted glass, default), Pink, Green, Blue, Purple; Neutral = Linen,
+  Stone, Oat, Plain, Default; Dark = Catppuccin (Mocha), Tokyo Night, Rosé Pine, Gruvbox,
+  Everforest (official palettes). The old solid "pastel" theme was retired (saved "glass" /
+  "pastel" open as Mosaic). In `tokens.css` each family has ONE shared block that builds every
+  token from a few base colours (`--t-*`); a theme block only sets those. Dark themes remap the
+  pastel palette (`--rose`, `--sage-soft`, `--white`, `--charcoal` …) to the theme's own colours,
+  so components follow without their own dark rules, and set `color-scheme: dark`. Tokens for
+  meaning: `--alert-ink`, `--go-ink`, `--link-ink`, `--scrim`, `--ink-on-color` (text on a bright
+  pill), `--hero` / `--on-hero` (the dark hero cards). Don't hard-code colours in components; use
+  these. Flashcard arrow / card / cloze colours follow the theme (`arrowColor` / `clozeColor`
+  "theme", the default) unless she picks her own. Highlights, cell tints, callouts and the
+  course headers are tinted into the page in dark themes. Glass = colour blooms on `--backdrop`, translucent white
   `--panel` / `--surface`, a thin bright `--edge` (the one exception to "no outlines") and
   `--blur`. **Only the big layers blur** (main panel, rail, dialogs, menus); cards are plain
   translucent white on the already-blurred panel. Backdrop blur is costly to repaint in WebKitGTK,

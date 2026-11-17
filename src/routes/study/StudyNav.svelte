@@ -50,7 +50,7 @@
     padding: 1px 7px;
     border-radius: var(--radius-pill);
     background: var(--sage);
-    color: var(--charcoal);
+    color: var(--ink-on-color);
     font-size: 12px;
     font-weight: 700;
     text-align: center;

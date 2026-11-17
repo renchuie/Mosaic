@@ -172,8 +172,8 @@
     min-height: 38px;
     padding: 0 14px;
     border-radius: var(--radius-pill);
-    background: var(--lavender, #f6f2ff);
-    background: color-mix(in srgb, #cdb4f7 25%, var(--white));
+    background: var(--lavender);
+    background: color-mix(in srgb, var(--lavender) 25%, var(--white));
     font-size: 13.5px;
     font-weight: 600;
     cursor: pointer;
@@ -187,7 +187,7 @@
     font-size: 13.5px;
     padding: 8px 12px;
     border-radius: 12px;
-    background: color-mix(in srgb, #cdb4f7 22%, var(--white));
+    background: color-mix(in srgb, var(--lavender) 22%, var(--white));
   }
   .setup {
     display: grid;
@@ -251,7 +251,7 @@
     display: block;
     height: 100%;
     border-radius: inherit;
-    background: color-mix(in srgb, var(--c) 75%, #3b3033);
+    background: color-mix(in srgb, var(--c) 75%, var(--charcoal));
   }
   .cat {
     display: grid;
@@ -327,7 +327,7 @@
     font-variant-numeric: tabular-nums;
   }
   .wif {
-    background: color-mix(in srgb, #cdb4f7 30%, var(--white));
+    background: color-mix(in srgb, var(--lavender) 30%, var(--white));
   }
   .sl {
     color: var(--text-muted);
@@ -341,7 +341,7 @@
   }
   .p i {
     font-style: normal;
-    color: #7a5bbf;
+    color: var(--link-ink);
   }
   .p small {
     font-size: 10.5px;
@@ -414,7 +414,7 @@
     border: 0;
     border-radius: 10px;
     background: var(--rose-soft);
-    color: #8f3b45;
+    color: var(--alert-ink);
     font-weight: 500;
   }
   .add {

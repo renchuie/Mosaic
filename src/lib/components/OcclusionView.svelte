@@ -35,11 +35,11 @@
     place-items: center;
     border-radius: 6px;
     background: #e9e1d6;
-    box-shadow: inset 0 0 0 1.5px rgba(59, 48, 51, 0.25);
+    box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--charcoal) 25%, transparent);
     font-size: 20px;
     font-weight: 700;
     line-height: 1;
-    color: #8f3b45;
+    color: var(--alert-ink);
   }
   .m.target {
     background: var(--rose);
