@@ -209,11 +209,23 @@ Markdown" view, the `<>` chip on the note header).
   Outline, Cards in this note with status and "Review this note", Backlinks, Links + Linked to).
   Linked references and unlinked mentions under the note. `plainText()` in `notes.ts` cleans
   previews.
-- Tucked panels (her pick, canvas "Tucked panels: A + C combined"): icon strips on both edges;
-  an icon slides its panel over the note as a sheet (click away / Esc closes); 📌 pins it beside
-  the note (left 250px, right 280px; pins need room: left > 1000px, right > 960px or 1240px with
-  both); focus (button or Ctrl+\) hides the strips, leaving glowing edges whose icons float out on
-  hover. `localStorage` "mosaic.notePanels" {pinL, pinR, focus} per machine.
+- Roomier layout (Nov 17, her pick of all four ideas on canvas board "Roomier note page"): an open
+  note fills the main panel as ONE sheet (App makes `main` flush for `#/study/notes/<rel>`; Study
+  hides its tab bar there). A slim top bar holds notes list / search / + note, the compact Study
+  tabs (`<StudyNav compact />`), the note's title once the header scrolls away, save status, page
+  width (Readable 860 / Wide 1120 / Full; front matter `width: wide|full`, Readable writes
+  nothing; CSS var `--note-box` sizes `.mosaic-doc`, the header and the references), ✎ (keep the
+  formatting toolbar showing), the right panel icons and writing mode. The header is one line:
+  icon, title, chips, `<>` and ⋯ (add / change cover lives in ⋯; a faint icon button appears on
+  hover); covers are a 76px band. The formatting toolbar only floats at the bottom (while typing,
+  or always when ✎ is on). A panel icon slides its panel over the note as a sheet (click away /
+  Esc); 📌 pins it beside the note as a column (pins need room: left > 1000px, right > 960px or
+  1240px with both). **Writing mode** (button or Ctrl+\; `ui.writing` in
+  `src/lib/stores/ui.svelte.ts`, not remembered): the rail slides off to a glowing left edge and
+  the top bar hides; touching the left edge brings the rail back, the window's top edge brings
+  the top bar back (App's `.redge` / `.tedge`, NotesView reads `.shell:has(.tedge:hover)`); pills
+  show where she is; Esc the editor didn't use, Ctrl+\ or the pill leaves; leaving the note page
+  ends it. `localStorage` "mosaic.notePanels" {pinL, pinR, tools} per machine.
 - Browser preview exposes `window.__notes` (sample notes only) so UI tests can read saved text.
 - After her first test round (Nov 16): cloze "retyping" (typing over or erasing a whole cloze keeps
   typing inside it until the cursor moves, → or Esc; plugin in the Cloze mark); images are flow
@@ -225,8 +237,8 @@ Markdown" view, the `<>` chip on the note header).
   "One card each / All in one card" for lines with several clozes (sets `c1` on all); highlight
   shortcuts Ctrl+Shift+1…6 (yellow, rose, sage, peach, lavender, blue), Ctrl+Shift+0 removes;
   table bar adds rows above/below and columns left/right; selection toolbar waits for mouse-up;
-  course chip is a Mosaic menu (no native select); `NoteToolbar.svelte` is shared by the header
-  and a floating bar at the bottom shown while typing once the header has scrolled away.
+  course chip is a Mosaic menu (no native select); `NoteToolbar.svelte` is the floating bar at the
+  bottom (since Nov 17 the only place it shows; see "Roomier layout").
 - List-card arrows (an arrow ending a line whose next line is indented deeper) get class `list`
   from the decoration plugin and show a right-then-down arrow icon (the arrow node renders both SVGs; CSS picks).
   Cloze pairing bar (`.cbar`, cursor in a cloze on a line with 2+ clozes): Own card / existing

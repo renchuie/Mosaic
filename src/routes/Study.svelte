@@ -27,8 +27,8 @@
   const libItem = $derived(route.rest.startsWith("cards/library/") ? route.rest.slice("cards/library/".length) : null);
 </script>
 
-<div class="study">
-  {#if !scope}<StudyNav />{/if}
+<div class="study" class:fill={!!noteRel}>
+  {#if !scope && !noteRel}<StudyNav />{/if}
   {#if scope}
     {#key route.rest}<ReviewSession {scope} {cram} />{/key}
   {:else if route.rest.startsWith("cards/library")}
@@ -50,5 +50,10 @@
   .study {
     display: grid;
     min-width: 0;
+  }
+  /* an open note fills the (flush) main panel */
+  .study.fill {
+    height: 100%;
+    grid-template-rows: minmax(0, 1fr);
   }
 </style>

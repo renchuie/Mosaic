@@ -1,7 +1,9 @@
 <script lang="ts">
-  // The note page (N1b). Panels are tucked into slim icon strips on both edges; an icon slides
-  // its panel OVER the note as a sheet, 📌 pins it beside the note, and focus mode hides the strips
-  // too (glowing edges, icons float out on hover). Pins and focus are remembered per machine.
+  // The note page (N1b; roomier layout Nov 17). The note fills the main panel as one sheet under a
+  // slim top bar (Study tabs, notes list / search, page width, toolbar pin, side panel icons,
+  // writing mode). A panel icon slides its panel OVER the note as a sheet; 📌 pins it beside the
+  // note as a column. Writing mode (Ctrl+\) hides the rail and the top bar until the mouse touches
+  // the left or top edge. Pins and the toolbar pin are remembered per machine; page width per note.
   import Icon from "../../lib/components/Icon.svelte";
   import BlockEditor from "../../lib/components/BlockEditor.svelte";
   import NoteEditor from "../../lib/components/NoteEditor.svelte";
@@ -20,6 +22,8 @@
   import NoteHead from "./NoteHead.svelte";
   import NoteToolbar from "./NoteToolbar.svelte";
   import NoteSide, { PANELS, type Panel } from "./NoteSide.svelte";
+  import StudyNav from "./StudyNav.svelte";
+  import { ui } from "../../lib/stores/ui.svelte";
 
   let { rel }: { rel: string | null } = $props();
 
@@ -257,12 +261,14 @@
   }
 
   // ---- panels ----------------------------------------------------------------------------------
-  type Saved = { pinL: boolean; pinR: Panel | null; focus: boolean };
+  type Saved = { pinL: boolean; pinR: Panel | null; tools: boolean };
   const loadPanels = (): Saved => {
+    const base: Saved = { pinL: false, pinR: null, tools: false };
     try {
-      return { pinL: false, pinR: null, focus: false, ...JSON.parse(localStorage.getItem("mosaic.notePanels") ?? "{}") };
+      const v = JSON.parse(localStorage.getItem("mosaic.notePanels") ?? "{}");
+      return { pinL: !!v.pinL, pinR: v.pinR ?? null, tools: !!v.tools };
     } catch {
-      return { pinL: false, pinR: null, focus: false };
+      return base;
     }
   };
   let panels = $state<Saved>(loadPanels());
@@ -274,13 +280,11 @@
   });
   let sheetL = $state(false);
   let sheetR = $state<Panel | null>(null);
-  let floatL = $state(false);
-  let floatR = $state(false);
   let width = $state(1200);
   const roomL = $derived(width > 1000);
   const roomR = $derived(width > (panels.pinL ? 1240 : 960));
-  const pinL = $derived(panels.pinL && roomL && !panels.focus);
-  const pinR = $derived(panels.pinR && roomR && !panels.focus ? panels.pinR : null);
+  const pinL = $derived(panels.pinL && roomL && !ui.writing);
+  const pinR = $derived(panels.pinR && roomR && !ui.writing ? panels.pinR : null);
   let treeHost = $state<HTMLElement>();
 
   function openLeft(search = false) {
@@ -301,19 +305,31 @@
   }
   function pinLeft() {
     panels.pinL = true;
-    panels.focus = false;
     sheetL = false;
   }
   function pinRight(p: Panel) {
     panels.pinR = p;
-    panels.focus = false;
     sheetR = null;
   }
-  function toggleFocus() {
-    panels.focus = !panels.focus;
+  function toggleWriting() {
+    ui.writing = !ui.writing;
     sheetL = false;
     sheetR = null;
   }
+  // leaving the note page ends writing mode (after this tick: no state changes mid-teardown)
+  $effect(() => () => queueMicrotask(() => (ui.writing = false)));
+
+  // ---- page width (front matter `width: wide | full`; Readable is the default and writes nothing) ----
+  const WIDTH_NAMES = ["readable", "wide", "full"] as const;
+  type Width = (typeof WIDTH_NAMES)[number];
+  const WIDTHS: Record<Width, string> = { readable: "860px", wide: "1120px", full: "100%" };
+  const WIDTH_TIPS: Record<Width, string> = {
+    readable: "Readable: a comfortable line length for writing",
+    wide: "Wide: more room for tables and long card lists",
+    full: "Full: the whole page, for big comparison tables",
+  };
+  const noteWidth = $derived<Width>(meta.width === "wide" || meta.width === "full" ? meta.width : "readable");
+  const setWidth = (w: Width) => w !== noteWidth && setMeta({ width: w === "readable" ? undefined : w });
   const back = $derived(rel ? backlinks(rel) : []);
   // badge on the cards icon: cards in this note due now
   const dueHere = $derived.by(() => {
@@ -326,14 +342,15 @@
     }).length;
   });
 
-  // ---- floating toolbar: shown at the bottom while she types and the header has scrolled away ----
+  // ---- floating toolbar (at the bottom while she types, or always when pinned with ✎) and the
+  // title that moves into the top bar once the header has scrolled away ----
   let scrollEl = $state<HTMLElement>();
   let headHidden = $state(false);
   let typing = $state(false);
   let typingTimer = 0;
   function checkHead() {
-    const tb = scrollEl?.querySelector(".nh .toolbar");
-    headHidden = !!(tb && scrollEl && tb.getBoundingClientRect().bottom < scrollEl.getBoundingClientRect().top + 4);
+    const t = scrollEl?.querySelector(".nh .title");
+    headHidden = !!(t && scrollEl && t.getBoundingClientRect().bottom < scrollEl.getBoundingClientRect().top + 4);
   }
   function setTyping(on: boolean) {
     window.clearTimeout(typingTimer);
@@ -368,122 +385,121 @@
     if (e.key === "Escape" && (sheetL || sheetR)) {
       sheetL = false;
       sheetR = null;
+    } else if (e.key === "Escape" && ui.writing && !e.defaultPrevented && !document.querySelector(".nh .pop")) {
+      // Esc the editor didn't use (a menu, cloze retyping) leaves writing mode
+      ui.writing = false;
     }
     if ((e.ctrlKey || e.metaKey) && e.key === "\\" && rel && note) {
       e.preventDefault();
-      toggleFocus();
+      toggleWriting();
     }
   }}
 />
 
-<div class="nwrap" bind:clientWidth={width}>
+<div class="nwrap" class:full={!!(rel && note)} class:pad={!!rel && !note} bind:clientWidth={width}>
   {#if rel && note}
-    <div class="npage" class:focus={panels.focus}>
-      {#if panels.focus}
-        <!-- svelte-ignore a11y_no_static_element_interactions -->
-        <div class="edge l" onmouseenter={() => (floatL = true)} onmouseleave={() => (floatL = false)}>
-          {#if floatL}
-            <div class="float">
-              <button type="button" class="ico" title="Notes" onclick={() => openLeft()}><Icon name="note" size={18} /></button>
-              <button type="button" class="ico" title="Search notes" onclick={() => openLeft(true)}><Icon name="search" size={18} /></button>
-            </div>
-          {/if}
+    <div class="npage" class:writing={ui.writing} class:typing style="--note-box: {WIDTHS[noteWidth]}">
+      <div class="topbar">
+        <button type="button" class="ico" class:on={sheetL || pinL} title="Notes" aria-label="Notes" onclick={() => openLeft()}><Icon name="note" size={18} /></button>
+        <button type="button" class="ico" title="Search notes" aria-label="Search notes" onclick={() => openLeft(true)}><Icon name="search" size={18} /></button>
+        <button type="button" class="ico plus" title="New note" aria-label="New note" onclick={() => { newMode = "note"; newFolder = dirOf(rel!); newOpen = true; }}>+</button>
+        <StudyNav compact />
+        <div class="where" class:show={headHidden} aria-hidden={!headHidden}>
+          {#if meta.icon}<span class="wi">{meta.icon}</span>{/if}<b>{title}</b>{#if meta.course}<span class="wc">· {meta.course}</span>{/if}
         </div>
-      {:else}
-        <nav class="strip" aria-label="Notes panels">
-          <button type="button" class="ico" class:on={sheetL || pinL} title="Notes" aria-label="Notes" onclick={() => openLeft()}><Icon name="note" size={18} /></button>
-          <button type="button" class="ico" title="Search notes" aria-label="Search notes" onclick={() => openLeft(true)}><Icon name="search" size={18} /></button>
-          <span class="sp"></span>
-          <button type="button" class="ico" title="New note" aria-label="New note" onclick={() => { newMode = "note"; newFolder = dirOf(rel!); newOpen = true; }}>+</button>
-        </nav>
-      {/if}
-
-      {#if pinL}
-        <aside class="pinned left" bind:this={treeHost}>
-          <div class="ph"><b>Notes</b><button type="button" class="x" title="Unpin" aria-label="Unpin notes" onclick={() => (panels.pinL = false)}>📌</button></div>
-          <NoteTree current={rel} onnew={(f) => { newMode = "note"; newFolder = f; newOpen = true; }} onnewfolder={() => { newMode = "folder"; newFolder = dirOf(rel!); newOpen = true; }} />
-        </aside>
-      {/if}
-
-      <section class="center">
-        {#if typing && headHidden && !source}
-          <div class="floatbar"><NoteToolbar floating onrun={(c, a) => blocks?.run(c, a)} /></div>
+        <span class="grow"></span>
+        <span class="st" class:bad={status === "conflict" || status === "error"} class:busy={status === "saving"}>
+          {status === "saved" ? "Saved" : status === "saving" ? "Saving…" : status === "conflict" ? "Changed elsewhere" : "Couldn't save"}
+        </span>
+        <div class="seg" role="group" aria-label="Page width">
+          {#each WIDTH_NAMES as w}
+            <button type="button" class:on={noteWidth === w} aria-pressed={noteWidth === w} title={WIDTH_TIPS[w]} onclick={() => setWidth(w)}>{w[0].toUpperCase() + w.slice(1)}</button>
+          {/each}
+        </div>
+        {#if !source}
+          <button type="button" class="ico" class:on={panels.tools} title={panels.tools ? "Toolbar: always showing" : "Toolbar: only while typing (click to keep it showing)"} aria-label="Formatting toolbar" aria-pressed={panels.tools} onclick={() => (panels.tools = !panels.tools)}><Icon name="pen" size={17} /></button>
         {/if}
-        <div class="scroll" bind:this={scrollEl} onscroll={checkHead}>
-          <NoteHead {rel} {meta} bind:title {status} {errorText} {source} {dirs}
-            coverUrl={(s) => imageUrl(rel!, s)}
-            onmeta={setMeta} onrename={doRename} onmove={doMove} ondelete={doDelete} ontoggleSource={toggleSource}
-            onrun={(c, a) => blocks?.run(c, a)} oncoverfile={coverFile} ontheirs={takeTheirs} onmine={() => flush(true)} />
-          <div class="edwrap" class:src={source}>
-            {#key `${loadedRel}#${version}`}
-              {#if source}
-                <NoteEditor bind:this={cm} value={body} onchange={cmChanged} onopenlink={openLink}
-                  linkNames={() => allNotes().map(linkName)} tagNames={allTags}
-                  imageUrl={(src) => imageUrl(rel!, src)} onpasteimage={(d, ext) => savePastedImage(rel!, d, ext)} />
-              {:else}
-                <BlockEditor bind:this={blocks} value={body} onchange={changed} onopenlink={openLink} onfocuschange={setTyping} onleave={leaveFor(loadedRel!)}
-                  linkNames={() => allNotes().map(linkName)} tagNames={allTags}
-                  imageUrl={(src) => imageUrl(rel!, src)} onpasteimage={(d, ext) => savePastedImage(rel!, d, ext)} />
-              {/if}
-            {/key}
-          </div>
-          {#if !source}
-            <footer class="refs">
-              <h3>Linked references <span class="n">{back.length}</span></h3>
-              {#if back.length}
-                <div class="rgrid">
-                  {#each back as b (b.e.rel)}<a href={noteHref(b.e.rel)}><b>{b.e.p.title}</b>{#if b.context}<span>{plainText(b.context)}</span>{/if}</a>{/each}
-                </div>
-              {:else}
-                <p class="muted">No notes link here yet. Type <kbd>[[</kbd> in another note and pick “{title}”.</p>
-              {/if}
-              <button type="button" class="more" onclick={() => (showMentions = !showMentions)}>{showMentions ? "▾" : "▸"} Unlinked mentions</button>
-              {#if showMentions}
-                {#if mentions.length}
+        <span class="sep"></span>
+        {#each PANELS as p}
+          <button type="button" class="ico" class:on={sheetR === p.id || pinR === p.id} title={p.label} aria-label={p.label} onclick={() => openRight(p.id)}>
+            <Icon name={p.icon} size={18} />
+            {#if p.id === "cards" && dueHere}<i class="badge">{dueHere}</i>{/if}
+            {#if p.id === "backlinks" && back.length}<i class="badge soft">{back.length}</i>{/if}
+          </button>
+        {/each}
+        <button type="button" class="ico" class:on={ui.writing} title={ui.writing ? "Leave writing mode (Ctrl+\\)" : "Writing mode: hide everything but the note (Ctrl+\\)"} aria-label="Writing mode" aria-pressed={ui.writing} onclick={toggleWriting}><Icon name="focus" size={18} /></button>
+      </div>
+
+      {#if ui.writing}
+        <div class="wpill l" class:quiet={typing}>
+          <button type="button" onclick={toggleWriting}>‹ {dirOf(rel) || "Notes"}{#if meta.course && meta.course !== dirOf(rel)} · {meta.course}{/if}</button>
+          <span class="st">{status === "saved" ? "Saved" : status === "saving" ? "Saving…" : "Not saved"}</span>
+        </div>
+        <button type="button" class="wpill r" class:quiet={typing} onclick={toggleWriting}>Ctrl+\ or Esc to leave writing mode</button>
+      {/if}
+
+      <div class="body">
+        {#if pinL}
+          <aside class="pinned left" bind:this={treeHost}>
+            <div class="ph"><b>Notes</b><button type="button" class="x" title="Unpin" aria-label="Unpin notes" onclick={() => (panels.pinL = false)}>📌</button></div>
+            <NoteTree current={rel} onnew={(f) => { newMode = "note"; newFolder = f; newOpen = true; }} onnewfolder={() => { newMode = "folder"; newFolder = dirOf(rel!); newOpen = true; }} />
+          </aside>
+        {/if}
+
+        <section class="center">
+          {#if (typing || panels.tools) && !source}
+            <div class="floatbar"><NoteToolbar floating onrun={(c, a) => blocks?.run(c, a)} /></div>
+          {/if}
+          <div class="scroll" bind:this={scrollEl} onscroll={checkHead}>
+            <NoteHead {rel} {meta} bind:title {status} {errorText} {source} {dirs}
+              coverUrl={(s) => imageUrl(rel!, s)}
+              onmeta={setMeta} onrename={doRename} onmove={doMove} ondelete={doDelete} ontoggleSource={toggleSource}
+              oncoverfile={coverFile} ontheirs={takeTheirs} onmine={() => flush(true)} />
+            <div class="edwrap" class:src={source}>
+              {#key `${loadedRel}#${version}`}
+                {#if source}
+                  <NoteEditor bind:this={cm} value={body} onchange={cmChanged} onopenlink={openLink}
+                    linkNames={() => allNotes().map(linkName)} tagNames={allTags}
+                    imageUrl={(src) => imageUrl(rel!, src)} onpasteimage={(d, ext) => savePastedImage(rel!, d, ext)} />
+                {:else}
+                  <BlockEditor bind:this={blocks} value={body} onchange={changed} onopenlink={openLink} onfocuschange={setTyping} onleave={leaveFor(loadedRel!)}
+                    linkNames={() => allNotes().map(linkName)} tagNames={allTags}
+                    imageUrl={(src) => imageUrl(rel!, src)} onpasteimage={(d, ext) => savePastedImage(rel!, d, ext)} />
+                {/if}
+              {/key}
+            </div>
+            {#if !source}
+              <footer class="refs">
+                <h3>Linked references <span class="n">{back.length}</span></h3>
+                {#if back.length}
                   <div class="rgrid">
-                    {#each mentions as m (m.e.rel)}<a href={noteHref(m.e.rel)}><b>{m.e.p.title}</b><span>{m.snip}</span></a>{/each}
+                    {#each back as b (b.e.rel)}<a href={noteHref(b.e.rel)}><b>{b.e.p.title}</b>{#if b.context}<span>{plainText(b.context)}</span>{/if}</a>{/each}
                   </div>
                 {:else}
-                  <p class="muted">No other note mentions “{title}” without linking it.</p>
+                  <p class="muted">No notes link here yet. Type <kbd>[[</kbd> in another note and pick “{title}”.</p>
                 {/if}
-              {/if}
-            </footer>
-          {/if}
-        </div>
-      </section>
+                <button type="button" class="more" onclick={() => (showMentions = !showMentions)}>{showMentions ? "▾" : "▸"} Unlinked mentions</button>
+                {#if showMentions}
+                  {#if mentions.length}
+                    <div class="rgrid">
+                      {#each mentions as m (m.e.rel)}<a href={noteHref(m.e.rel)}><b>{m.e.p.title}</b><span>{m.snip}</span></a>{/each}
+                    </div>
+                  {:else}
+                    <p class="muted">No other note mentions “{title}” without linking it.</p>
+                  {/if}
+                {/if}
+              </footer>
+            {/if}
+          </div>
+        </section>
 
-      {#if pinR}
-        <aside class="pinned right">
-          <div class="ph"><b>{label(pinR)}</b><button type="button" class="x" title="Unpin" aria-label="Unpin panel" onclick={() => (panels.pinR = null)}>📌</button></div>
-          <div class="pbody"><NoteSide which={pinR} {note} {meta} {titleLines} ongotoline={gotoLine} ongotoheading={gotoHeading} onopenlink={openLink} /></div>
-        </aside>
-      {/if}
-
-      {#if panels.focus}
-        <!-- svelte-ignore a11y_no_static_element_interactions -->
-        <div class="edge r" onmouseenter={() => (floatR = true)} onmouseleave={() => (floatR = false)}>
-          {#if floatR}
-            <div class="float">
-              {#each PANELS as p}
-                <button type="button" class="ico" title={p.label} onclick={() => openRight(p.id)}><Icon name={p.icon} size={18} />{#if p.id === "cards" && dueHere}<i class="badge">{dueHere}</i>{/if}</button>
-              {/each}
-              <button type="button" class="ico" title="Leave focus (Ctrl+\)" onclick={toggleFocus}><Icon name="focus" size={18} /></button>
-            </div>
-          {/if}
-        </div>
-      {:else}
-        <nav class="strip" aria-label="Note panels">
-          {#each PANELS as p}
-            <button type="button" class="ico" class:on={sheetR === p.id || pinR === p.id} title={p.label} aria-label={p.label} onclick={() => openRight(p.id)}>
-              <Icon name={p.icon} size={18} />
-              {#if p.id === "cards" && dueHere}<i class="badge">{dueHere}</i>{/if}
-              {#if p.id === "backlinks" && back.length}<i class="badge soft">{back.length}</i>{/if}
-            </button>
-          {/each}
-          <span class="sp"></span>
-          <button type="button" class="ico" title="Focus: hide the strips too (Ctrl+\)" aria-label="Focus" onclick={toggleFocus}><Icon name="focus" size={18} /></button>
-        </nav>
-      {/if}
+        {#if pinR}
+          <aside class="pinned right">
+            <div class="ph"><b>{label(pinR)}</b><button type="button" class="x" title="Unpin" aria-label="Unpin panel" onclick={() => (panels.pinR = null)}>📌</button></div>
+            <div class="pbody"><NoteSide which={pinR} {note} {meta} {titleLines} ongotoline={gotoLine} ongotoheading={gotoHeading} onopenlink={openLink} /></div>
+          </aside>
+        {/if}
+      </div>
 
       {#if sheetL || sheetR}
         <button type="button" class="scrim" aria-label="Close panel" onclick={() => { sheetL = false; sheetR = null; }}></button>
@@ -492,7 +508,7 @@
         <aside class="sheet left" bind:this={treeHost}>
           <div class="ph">
             <b>Notes</b>
-            {#if roomL}<button type="button" class="x" title="Pin beside the note" aria-label="Pin" onclick={pinLeft}>📌</button>{/if}
+            {#if roomL && !ui.writing}<button type="button" class="x" title="Pin beside the note" aria-label="Pin" onclick={pinLeft}>📌</button>{/if}
             <button type="button" class="x" aria-label="Close" onclick={() => (sheetL = false)}>×</button>
           </div>
           <NoteTree current={rel} onnew={(f) => { newMode = "note"; newFolder = f; newOpen = true; sheetL = false; }} onnewfolder={() => { newMode = "folder"; newFolder = dirOf(rel!); newOpen = true; sheetL = false; }} />
@@ -502,7 +518,7 @@
         <aside class="sheet right">
           <div class="ph">
             <b>{label(sheetR)}</b>
-            {#if roomR}<button type="button" class="x" title="Pin beside the note" aria-label="Pin" onclick={() => pinRight(sheetR!)}>📌</button>{/if}
+            {#if roomR && !ui.writing}<button type="button" class="x" title="Pin beside the note" aria-label="Pin" onclick={() => pinRight(sheetR!)}>📌</button>{/if}
             <button type="button" class="x" aria-label="Close" onclick={() => (sheetR = null)}>×</button>
           </div>
           <div class="pbody"><NoteSide which={sheetR} {note} {meta} {titleLines} ongotoline={gotoLine} ongotoheading={gotoHeading} onopenlink={openLink} /></div>
@@ -510,6 +526,7 @@
       {/if}
     </div>
   {:else}
+    {#if rel}<StudyNav />{/if}
     <div class="notes homeview">
       <aside class="left">
         <NoteTree current={rel} onnew={(f) => { newMode = "note"; newFolder = f; newOpen = true; }} onnewfolder={() => { newMode = "folder"; newFolder = ""; newOpen = true; }} />
@@ -532,35 +549,184 @@
     container-type: inline-size;
     min-width: 0;
   }
+  .nwrap.full {
+    height: 100%;
+  }
+  .nwrap.pad {
+    padding: var(--main-pad);
+  }
+  /* the note page: one sheet filling the main panel (App makes main flush for note routes) */
   .npage {
     position: relative;
     display: flex;
-    gap: 10px;
-    height: calc(100vh - 190px);
-    min-height: 480px;
-  }
-  .strip {
-    flex: none;
-    width: 52px;
-    display: flex;
     flex-direction: column;
+    height: 100%;
+    min-height: 0;
+    background: var(--surface);
+  }
+  .topbar {
+    flex: none;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    min-height: 56px;
+    padding: 8px 14px;
+    box-sizing: border-box;
+    border-bottom: 1px solid var(--hairline);
+    overflow-x: auto;
+    scrollbar-width: none;
+    transition: transform 0.3s var(--spring, ease), opacity 0.2s;
+  }
+  .topbar :global(.snav) {
+    margin-left: 8px;
+  }
+  .topbar .grow {
+    flex: 1;
+    min-width: 8px;
+  }
+  .topbar .sep {
+    flex: none;
+    width: 1px;
+    height: 20px;
+    margin: 0 4px;
+    background: var(--hairline);
+  }
+  .ico.plus {
+    font-size: 20px;
+  }
+  .where {
+    display: flex;
     align-items: center;
     gap: 6px;
-    padding: 8px 0;
-    border-radius: 20px;
+    min-width: 0;
+    margin-left: 12px;
+    font-size: 14px;
+    white-space: nowrap;
+    opacity: 0;
+    transform: translateY(6px);
+    transition: opacity 0.2s, transform 0.25s var(--spring, ease);
+    pointer-events: none;
+  }
+  .where.show {
+    opacity: 1;
+    transform: none;
+  }
+  .where b {
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .where .wc {
+    color: var(--text-muted);
+  }
+  .st {
+    flex: none;
+    margin-right: 6px;
+    font-size: 12.5px;
+    color: var(--text-muted);
+    white-space: nowrap;
+  }
+  .st.busy {
+    opacity: 0.7;
+  }
+  .st.bad {
+    color: var(--alert-ink);
+    font-weight: 600;
+  }
+  .seg {
+    flex: none;
+    display: inline-flex;
+    gap: 2px;
+    margin-right: 4px;
+    padding: 3px;
+    border-radius: 999px;
+    background: var(--chip);
+  }
+  .seg button {
+    min-height: 28px;
+    padding: 0 10px;
+    border: 0;
+    border-radius: 999px;
+    background: none;
+    font: inherit;
+    font-size: 12.5px;
+    font-weight: 600;
+    color: var(--text-muted);
+    cursor: pointer;
+  }
+  .seg button.on {
     background: var(--surface);
-    border: var(--edge, 0);
+    color: var(--text);
     box-shadow: var(--shadow);
-    animation: stripin 0.35s var(--spring, ease) backwards;
   }
-  @keyframes stripin {
-    from {
-      opacity: 0;
-      transform: scaleY(0.92);
-    }
-  }
-  .sp {
+  .body {
     flex: 1;
+    min-height: 0;
+    display: flex;
+  }
+  /* writing mode: the top bar hides above the page and drops back in when the mouse touches the top */
+  .writing .topbar {
+    position: absolute;
+    z-index: 10;
+    top: 0;
+    left: 0;
+    right: 0;
+    background: var(--surface-float, var(--surface));
+    box-shadow: var(--shadow-lift);
+    transform: translateY(-100%);
+    opacity: 0;
+  }
+  :global(.shell:has(.tedge:hover)) .writing .topbar,
+  .writing .topbar:hover,
+  .writing .topbar:has(:focus-visible) {
+    transform: none;
+    opacity: 1;
+  }
+  .writing .center {
+    padding-top: 40px;
+  }
+  .wpill {
+    position: absolute;
+    z-index: 6;
+    top: 12px;
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    padding: 0 12px;
+    min-height: 32px;
+    border: var(--edge, 0);
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--surface-float, var(--surface)) 85%, transparent);
+    box-shadow: var(--shadow);
+    font: inherit;
+    font-size: 12.5px;
+    color: var(--text-muted);
+    opacity: 0.85;
+    transition: opacity 0.3s;
+  }
+  .wpill.l {
+    left: 16px;
+  }
+  .wpill.r {
+    right: 16px;
+    cursor: pointer;
+  }
+  .wpill button {
+    border: 0;
+    background: none;
+    padding: 0;
+    font: inherit;
+    color: var(--text);
+    cursor: pointer;
+  }
+  .wpill .st {
+    margin: 0;
+    opacity: 0.7;
+  }
+  .wpill.quiet {
+    opacity: 0;
+  }
+  .wpill:hover {
+    opacity: 1;
   }
   .ico {
     position: relative;
@@ -607,17 +773,12 @@
     color: var(--text);
   }
   .center {
+    position: relative;
     flex: 1;
     min-width: 0;
     display: flex;
     flex-direction: column;
-    border-radius: var(--radius);
-    background: var(--surface);
-    box-shadow: var(--shadow);
     overflow: hidden;
-  }
-  .center {
-    position: relative;
   }
   .floatbar {
     position: absolute;
@@ -647,28 +808,28 @@
     height: calc(100% - 200px);
     min-height: 420px;
   }
+  /* a pinned panel is a column of the sheet, beside the note */
   .pinned {
     flex: none;
     display: flex;
     flex-direction: column;
     min-height: 0;
-    border-radius: 22px;
-    background: var(--surface);
-    border: var(--edge, 0);
-    box-shadow: var(--shadow);
-    padding: 12px;
+    padding: 14px;
+    box-sizing: border-box;
+    background: color-mix(in srgb, var(--panel) 40%, transparent);
     animation: pinin 0.3s var(--spring, ease) backwards;
   }
   .pinned.left {
-    width: 250px;
+    width: 260px;
+    border-right: 1px solid var(--hairline);
   }
   .pinned.right {
-    width: 280px;
+    width: 290px;
+    border-left: 1px solid var(--hairline);
   }
   @keyframes pinin {
     from {
       opacity: 0;
-      transform: translateY(8px);
     }
   }
   .pinned :global(.tree),
@@ -706,7 +867,7 @@
   }
   .scrim {
     position: absolute;
-    inset: 0;
+    inset: 56px 0 0;
     z-index: 8;
     border: 0;
     background: none;
@@ -715,8 +876,8 @@
   .sheet {
     position: absolute;
     z-index: 9;
-    top: 0;
-    bottom: 0;
+    top: 64px;
+    bottom: 8px;
     display: flex;
     flex-direction: column;
     padding: 14px;
@@ -729,20 +890,20 @@
     box-sizing: border-box;
   }
   .sheet.left {
-    left: 62px;
+    left: 8px;
     width: 270px;
     animation: slideL 0.32s var(--spring, ease) backwards;
   }
   .sheet.right {
-    right: 62px;
+    right: 8px;
     width: 310px;
     animation: slideR 0.32s var(--spring, ease) backwards;
   }
-  .focus .sheet.left {
-    left: 22px;
+  .writing .sheet {
+    top: 8px;
   }
-  .focus .sheet.right {
-    right: 22px;
+  .writing .scrim {
+    inset: 0;
   }
   @keyframes slideL {
     from {
@@ -756,49 +917,9 @@
       transform: translateX(24px);
     }
   }
-  .edge {
-    position: relative;
-    flex: none;
-    width: 12px;
-    border-radius: 999px;
-    background: linear-gradient(180deg, transparent, color-mix(in srgb, var(--lavender) 70%, transparent), transparent);
-    opacity: 0.7;
-    transition: opacity 0.2s;
-    z-index: 7;
-  }
-  .edge.r {
-    background: linear-gradient(180deg, transparent, color-mix(in srgb, #8b9be8 60%, transparent), transparent);
-  }
-  .edge:hover {
-    opacity: 1;
-  }
-  .float {
-    position: absolute;
-    top: 50%;
-    display: grid;
-    gap: 6px;
-    padding: 8px;
-    border-radius: 20px;
-    background: var(--surface-float, var(--surface));
-    border: var(--edge, 0);
-    box-shadow: 0 18px 40px -18px rgba(40, 44, 80, 0.45);
-    transform: translateY(-50%);
-    animation: pop 0.2s var(--spring, ease) backwards;
-  }
-  .edge.l .float {
-    left: 0;
-  }
-  .edge.r .float {
-    right: 0;
-  }
-  @keyframes pop {
-    from {
-      opacity: 0;
-      scale: 0.9;
-    }
-  }
   .refs {
-    max-width: 780px;
+    max-width: var(--note-box, 780px);
+    box-sizing: border-box;
     margin: 0 auto;
     padding: 18px 40px 60px;
     border-top: 1px solid var(--hairline);
@@ -900,6 +1021,11 @@
     padding: 30px;
     text-align: center;
   }
+  @container (max-width: 1100px) {
+    .seg {
+      display: none;
+    }
+  }
   @container (max-width: 680px) {
     .notes {
       grid-template-columns: minmax(0, 1fr);
@@ -907,9 +1033,6 @@
     }
     .notes .left {
       max-height: 260px;
-    }
-    .strip {
-      width: 44px;
     }
     .sheet.left,
     .sheet.right {

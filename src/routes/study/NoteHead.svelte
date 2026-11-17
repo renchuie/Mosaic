@@ -19,7 +19,6 @@
 
 <script lang="ts">
   import Icon from "../../lib/components/Icon.svelte";
-  import NoteToolbar from "./NoteToolbar.svelte";
   import type { Meta } from "../../lib/notes";
   import { courseByName, courseNames } from "../../lib/stores/courses.svelte";
   import { allTags, dirOf } from "../../lib/stores/notes.svelte";
@@ -38,7 +37,6 @@
     onmove,
     ondelete,
     ontoggleSource,
-    onrun,
     oncoverfile,
     ontheirs,
     onmine,
@@ -56,7 +54,6 @@
     onmove: (folder: string) => void;
     ondelete: () => void;
     ontoggleSource: () => void;
-    onrun: (cmd: string, arg?: string) => void;
     oncoverfile: (file: File) => void;
     ontheirs: () => void;
     onmine: () => void;
@@ -100,27 +97,13 @@
   {/if}
 
   <div class="inner">
-    {#if !cover || !icon}
-      <div class="adds">
-        {#if !icon}<button type="button" onclick={() => (pick = "icon")}><Icon name="smile" size={14} /> Add icon</button>{/if}
-        {#if !cover}<button type="button" onclick={() => onmeta({ cover: "lilac" })}><Icon name="image" size={14} /> Add cover</button>{/if}
-      </div>
-    {/if}
-
     <div class="titlerow">
       {#if icon}
         <button type="button" class="icon" class:over={!!cover} title="Change icon" onclick={() => (pick = pick === "icon" ? null : "icon")}>{icon}</button>
+      {:else}
+        <button type="button" class="icon ghost" title="Add an icon" aria-label="Add an icon" onclick={() => (pick = "icon")}><Icon name="smile" size={18} /></button>
       {/if}
-      <div class="tcol">
-        <div class="crumbs">
-          <span>{dirOf(rel) || "Notes"}</span>
-          <span class="st" class:bad={status === "conflict" || status === "error"} class:busy={status === "saving"}>
-            {status === "saved" ? "Saved" : status === "saving" ? "Saving…" : status === "conflict" ? "Changed elsewhere" : "Couldn't save"}
-          </span>
-        </div>
-        <input class="title" bind:value={title} aria-label="Note title" spellcheck="false" onblur={onrename} onkeydown={(e) => e.key === "Enter" && e.currentTarget.blur()} />
-      </div>
-    </div>
+      <input class="title" bind:value={title} aria-label="Note title" title="{dirOf(rel) || 'Notes'} / {title}" spellcheck="false" onblur={onrename} onkeydown={(e) => e.key === "Enter" && e.currentTarget.blur()} />
 
     <div class="chips">
       <div class="mwrap">
@@ -151,9 +134,8 @@
           onblur={() => { addTag(); addingTag = false; }} />
         <datalist id="note-tags">{#each allTags().filter((t) => !tags.includes(t)) as t}<option value={t}></option>{/each}</datalist>
       {:else}
-        <button type="button" class="chip add" onclick={() => (addingTag = true)}>+ Tag</button>
+        <button type="button" class="chip add" title="Add a tag" aria-label="Add a tag" onclick={() => (addingTag = true)}>+ Tag</button>
       {/if}
-      <span class="grow"></span>
       <button type="button" class="chip more" class:on={source} title={source ? "Back to the page view" : "Edit as Markdown"} onclick={ontoggleSource}><Icon name="code" size={14} /></button>
       <div class="mwrap">
         <button type="button" class="chip more" aria-label="More" onclick={() => (pick = pick === "menu" ? null : "menu")}><Icon name="dots" size={16} /></button>
@@ -163,7 +145,12 @@
               <select value={dirOf(rel)} onchange={(e) => { onmove(e.currentTarget.value); pick = null; }}>{#each dirs as d}<option value={d}>{d || "Notes (top level)"}</option>{/each}</select>
             </label>
             {#if icon}<button type="button" class="mi" onclick={() => { onmeta({ icon: undefined }); pick = null; }}>Remove icon</button>{/if}
-            {#if cover}<button type="button" class="mi" onclick={() => { onmeta({ cover: undefined }); pick = null; }}>Remove cover</button>{/if}
+            {#if cover}
+              <button type="button" class="mi" onclick={() => { pick = "cover"; }}>Change cover…</button>
+              <button type="button" class="mi" onclick={() => { onmeta({ cover: undefined }); pick = null; }}>Remove cover</button>
+            {:else}
+              <button type="button" class="mi" onclick={() => { onmeta({ cover: "lilac" }); pick = null; }}>Add a cover</button>
+            {/if}
             {#if confirmDel}
               <button type="button" class="mi del" onclick={ondelete}>Move to trash (.trash in the Notes folder)</button>
             {:else}
@@ -172,6 +159,7 @@
           </div>
         {/if}
       </div>
+    </div>
     </div>
 
     {#if status === "conflict"}
@@ -184,9 +172,6 @@
       <div class="conflict" role="alert"><span>{errorText}</span></div>
     {/if}
 
-    {#if !source}
-      <NoteToolbar {onrun} />
-    {/if}
   </div>
 
   {#if pick === "icon"}
@@ -227,7 +212,7 @@
   }
   .cover {
     position: relative;
-    height: 120px;
+    height: 76px;
     animation: coverin 0.5s var(--ease-out, ease) backwards;
   }
   @keyframes coverin {
@@ -248,8 +233,7 @@
   .cbtns:focus-within {
     opacity: 1;
   }
-  .cbtns button,
-  .adds button {
+  .cbtns button {
     display: inline-flex;
     align-items: center;
     gap: 6px;
@@ -263,86 +247,76 @@
     color: var(--text-muted);
     cursor: pointer;
   }
-  .cbtns button:hover,
-  .adds button:hover {
+  .cbtns button:hover {
     color: var(--text);
     background: var(--surface);
   }
   .inner {
-    max-width: 860px;
+    max-width: var(--note-box, 860px);
+    box-sizing: border-box;
     margin: 0 auto;
-    padding: 14px 40px 8px;
+    padding: 22px 40px 12px;
     display: grid;
     gap: 8px;
   }
-  .adds {
-    display: flex;
-    gap: 6px;
-    height: 30px;
-    opacity: 0;
-    transition: opacity 0.2s;
-  }
-  .nh:hover .adds,
-  .adds:focus-within {
-    opacity: 1;
-  }
-  .hascover .adds {
-    position: absolute;
-    top: 10px;
-    left: 20px;
-  }
   .titlerow {
+    position: relative;
     display: flex;
-    align-items: flex-end;
-    gap: 14px;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px 12px;
   }
   .icon {
     flex: none;
-    width: 62px;
-    height: 62px;
+    width: 46px;
+    height: 46px;
     border: var(--edge, 0);
-    border-radius: 18px;
+    border-radius: 14px;
     background: var(--surface);
-    box-shadow: 0 10px 22px -12px rgba(40, 44, 80, 0.4);
-    font-size: 32px;
+    box-shadow: 0 8px 18px -10px rgba(40, 44, 80, 0.4);
+    font-size: 24px;
     line-height: 1;
     cursor: pointer;
-    transition: transform 0.25s var(--spring, ease);
+    transition: transform 0.25s var(--spring, ease), opacity 0.2s;
   }
   .icon:hover {
     transform: rotate(-6deg) scale(1.06);
   }
   .icon.over {
-    margin-top: -46px;
+    align-self: flex-start;
+    margin-top: -36px;
   }
-  .tcol {
-    flex: 1;
-    min-width: 0;
-  }
-  .crumbs {
-    display: flex;
-    gap: 10px;
-    justify-content: space-between;
-    font-size: 12.5px;
+  .icon.ghost {
+    position: absolute;
+    left: -42px;
+    top: 50%;
+    margin-top: -17px;
+    display: grid;
+    place-items: center;
+    width: 34px;
+    height: 34px;
+    box-shadow: none;
+    border: 0;
+    background: var(--panel);
     color: var(--text-muted);
+    opacity: 0;
   }
-  .st.busy {
-    opacity: 0.7;
-  }
-  .st.bad {
-    color: var(--alert-ink);
-    font-weight: 600;
+  .nh:hover .icon.ghost,
+  .icon.ghost:focus-visible {
+    opacity: 1;
   }
   .title {
-    width: 100%;
+    flex: 1 1 260px;
+    min-width: 0;
     border: 0;
     background: none;
     padding: 0;
     font: inherit;
-    font-size: 30px;
+    font-size: 28px;
     font-weight: 700;
     line-height: 1.25;
     color: var(--text);
+    text-overflow: ellipsis;
   }
   .title:focus {
     outline: none;
@@ -464,9 +438,6 @@
     color: var(--text);
     outline: none;
   }
-  .grow {
-    flex: 1;
-  }
   .chip.more {
     width: 32px;
     padding: 0;
@@ -547,11 +518,11 @@
   }
   .emoji {
     left: 40px;
-    top: 70px;
+    top: 64px;
     width: 340px;
   }
   .hascover .emoji {
-    top: 150px;
+    top: 120px;
   }
   .grid {
     display: grid;
@@ -582,7 +553,7 @@
   }
   .covers {
     right: 14px;
-    top: 96px;
+    top: 60px;
     width: 320px;
   }
   .cgrid {
@@ -624,7 +595,7 @@
   }
   @container (max-width: 700px) {
     .inner {
-      padding: 12px 18px 8px;
+      padding: 16px 18px 8px;
     }
   }
 </style>

@@ -1,7 +1,8 @@
 /* Mosaic note page content (BlockEditor). Plain CSS on the editor's own classes (.b-*). */
 
 .mosaic-doc {
-  max-width: 780px;
+  max-width: var(--note-box, 780px);
+  box-sizing: border-box;
   margin: 0 auto;
   padding: 10px 40px 80px;
   outline: none;

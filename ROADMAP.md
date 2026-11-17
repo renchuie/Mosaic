@@ -226,3 +226,6 @@ Add things here as they come up (date, page, what happened). Each one is either 
   and table upgrades (column widths, lists inside cells, cell colours).
 - Nov 16 · Renamed to **Mosaic** ("your student life in full view") and gave it the **glass
   tiles** app icon (option C). Done now, since both were small.
+- Nov 17 · Note page felt "weird and small" with all the boxes. Mockups on the canvas ("Roomier
+  note page": one sheet, compact header, page width, writing mode); she loved all four, so all
+  four were built now (the note page is daily use).
