@@ -788,3 +788,27 @@ button.dot[data-color] {
     display: none;
   }
 }
+
+/* table flashcards (Nov 18): key column tinted, skipped columns faded, a dot on each card cell */
+.mosaic-doc table.cards td.kc,
+.mosaic-doc table.cards th.kc,
+.mosaic-doc .cards table td.kc,
+.mosaic-doc .cards table th.kc {
+  background-image: linear-gradient(color-mix(in srgb, var(--sage-deep) 14%, transparent), color-mix(in srgb, var(--sage-deep) 14%, transparent));
+}
+.mosaic-doc td.skipc,
+.mosaic-doc th.skipc {
+  opacity: 0.5;
+}
+.mosaic-doc td.cc::before {
+  content: "";
+  position: absolute;
+  top: 7px;
+  right: 7px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--rose-deep);
+  opacity: 0.8;
+  pointer-events: none;
+}

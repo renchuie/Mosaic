@@ -581,7 +581,8 @@ const ColumnRules = Extension.create({
 
 const MTable = Table.extend({
   addAttributes() {
-    return { ...this.parent?.(), cards: { default: false, rendered: false }, aligns: hidden(null) };
+    // copts: flashcard options from the ▾ Flashcards menu (mode, dir, skip, key)
+    return { ...this.parent?.(), cards: { default: false, rendered: false }, aligns: hidden(null), copts: hidden(null) };
   },
 }).configure({ resizable: true, cellMinWidth: 60, lastColumnResizable: false });
 // cells hold lines, bullets, numbers and to-dos (joined with <br> in the file) and can have a colour
@@ -1099,7 +1100,25 @@ function decorations(doc: PMNode): DecorationSet {
           out.push(Decoration.node(at, at + last.nodeSize, { class: "b-src" }));
         }
       }
-      if (name === "table" && node.attrs.cards) out.push(Decoration.node(pos, pos + node.nodeSize, { class: "cards" }));
+      if (name === "table" && node.attrs.cards) {
+        out.push(Decoration.node(pos, pos + node.nodeSize, { class: "cards" }));
+        // the key column is tinted, skipped columns fade, and each cell that makes a card gets a dot
+        const o = (node.attrs.copts ?? {}) as { key?: number; skip?: number[] };
+        const kc = o.key ?? 0;
+        const skip = new Set(o.skip ?? []);
+        let rp = pos + 1;
+        let keyFilled = false;
+        node.forEach((row, _o, ri) => {
+          let cp = rp + 1;
+          keyFilled = !!row.child(Math.min(kc, row.childCount - 1))?.textContent.trim();
+          row.forEach((cell, _o2, ci) => {
+            const cls = ci === kc ? "kc" : skip.has(ci) ? "skipc" : ri > 0 && keyFilled && cell.textContent.trim() ? "cc" : "";
+            if (cls) out.push(Decoration.node(cp, cp + cell.nodeSize, { class: cls }));
+            cp += cell.nodeSize;
+          });
+          rp += row.nodeSize;
+        });
+      }
       if (node.isTextblock && !node.type.spec.code) {
         node.forEach((child, off) => {
           if (!child.isText || child.marks.some((m) => m.type.name === "code" || m.type.name === "link")) return;

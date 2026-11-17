@@ -656,9 +656,54 @@
   }
 
   let cellPick = $state(false);
+  let cardMenu = $state(false);
   $effect(() => {
-    if (!tableBar) cellPick = false;
+    if (!tableBar) {
+      cellPick = false;
+      cardMenu = false;
+    }
   });
+  type TOpts = { mode?: "cell" | "row" | "cloze"; dir?: "fwd" | "both" | "rev"; skip?: number[]; key?: number };
+  /** the table's columns, its flashcard options and how many cards it makes (same rules as cards.ts) */
+  function tableCardInfo(n: PMNode): { header: string[]; copts: TOpts; count: number } {
+    const o = (n.attrs.copts ?? {}) as TOpts;
+    const rows: string[][] = [];
+    n.forEach((r) => {
+      const cells: string[] = [];
+      r.forEach((c) => cells.push(c.textContent.trim()));
+      rows.push(cells);
+    });
+    const header = rows[0] ?? [];
+    const kc = Math.min(o.key ?? 0, Math.max(0, header.length - 1));
+    const skip = new Set(o.skip ?? []);
+    const asked = header.map((_h, i) => i).filter((i) => i !== kc && !skip.has(i) && header[i]);
+    let count = 0;
+    for (const r of rows.slice(1)) {
+      if (!r[kc]) continue;
+      const f = asked.filter((i) => r[i]).length;
+      if (!f) continue;
+      count += o.mode === "row" ? 1 : o.mode === "cloze" ? f : o.dir === "both" ? 2 * f : f;
+    }
+    return { header, copts: o, count };
+  }
+  /** Change the table's flashcard options (defaults are left out of the file). */
+  function setCopts(patch: Partial<TOpts>) {
+    if (!editor || !tableBar) return;
+    const next: Record<string, unknown> = { ...tableBar.copts, ...patch };
+    if (next.mode === "cell") delete next.mode;
+    if (next.dir === "fwd") delete next.dir;
+    if (next.key === 0) delete next.key;
+    if (Array.isArray(next.skip) && !next.skip.length) delete next.skip;
+    const node = editor.state.doc.nodeAt(tableBar.pos);
+    if (node) editor.view.dispatch(editor.state.tr.setNodeMarkup(tableBar.pos, undefined, { ...node.attrs, copts: Object.keys(next).length ? next : null }));
+  }
+  function toggleSkip(i: number) {
+    if (!tableBar) return;
+    const s = new Set(tableBar.copts.skip ?? []);
+    if (s.has(i)) s.delete(i);
+    else s.add(i);
+    setCopts({ skip: [...s].sort((a, b) => a - b) });
+  }
   /** The cells of the table the cursor is in, with their row and column. */
   function tableCells(): { pos: number; node: PMNode; row: number; col: number }[] {
     if (!editor || !tableBar) return [];
@@ -773,7 +818,7 @@
           if (Array.isArray(c.attrs.colwidth) && c.attrs.colwidth.some((x: unknown) => typeof x === "number")) sized = true;
           return !sized && c.type.name === "tableRow";
         });
-        return { y: r.top - w.top, x: r.left - w.left, cards: !!n.attrs.cards, pos: rf.before(d), sized };
+        return { y: r.top - w.top, x: r.left - w.left, cards: !!n.attrs.cards, pos: rf.before(d), sized, ...tableCardInfo(n) };
       }
     }
     return null;
@@ -1179,7 +1224,46 @@
         <button type="button" title="Even out: the selected columns (drag across their cells) share the space equally; with nothing selected, all columns do. Columns you sized and didn't select keep their width." onclick={evenOut}>⇔ Even out</button>
       {/if}
       <span class="sep"></span>
-      <button type="button" class="study" class:on={tableBar.cards} onclick={() => editor?.chain().focus().updateAttributes("table", { cards: !tableBar.cards }).run()}>{tableBar.cards ? "✓ " : ""}Flashcards</button>
+      <!-- ▾ Flashcards: on / off, and how the table becomes cards (canvas "New flashcard types") -->
+      <span class="cwrap">
+        <button type="button" class="study" class:on={tableBar.cards} aria-expanded={cardMenu} onclick={() => { cardMenu = !cardMenu; cellPick = false; }}>{tableBar.cards ? `▾ Flashcards · ${tableBar.count}` : "▾ Flashcards"}</button>
+        {#if cardMenu}
+          <span class="fpop" role="menu">
+            <label class="fon"><input type="checkbox" checked={tableBar.cards} onchange={() => editor?.chain().updateAttributes("table", { cards: !tableBar?.cards }).run()} /> Make flashcards from this table</label>
+            {#if tableBar.cards}
+              <span class="flbl">Cards</span>
+              <span class="fseg">
+                {#each [["cell", "Each cell"], ["row", "Each row"], ["cloze", "Cloze rows"]] as [v, l]}
+                  <button type="button" class:on={(tableBar.copts.mode ?? "cell") === v} onclick={() => setCopts({ mode: v as TOpts["mode"] })}>{l}</button>
+                {/each}
+              </span>
+              {#if (tableBar.copts.mode ?? "cell") === "cell"}
+                <span class="flbl">Direction</span>
+                <span class="fseg">
+                  {#each [["fwd", "→ Ask the fact"], ["both", "⇄ Both"], ["rev", "← Which row?"]] as [v, l]}
+                    <button type="button" class:on={(tableBar.copts.dir ?? "fwd") === v} onclick={() => setCopts({ dir: v as TOpts["dir"] })}>{l}</button>
+                  {/each}
+                </span>
+              {/if}
+              <span class="flbl">Columns to ask about</span>
+              <span class="fchips">
+                {#each tableBar.header as h, i}
+                  {#if i !== (tableBar.copts.key ?? 0)}
+                    <button type="button" class:off={(tableBar.copts.skip ?? []).includes(i)} aria-pressed={!(tableBar.copts.skip ?? []).includes(i)} onclick={() => toggleSkip(i)}>{h || `Column ${i + 1}`}</button>
+                  {/if}
+                {/each}
+              </span>
+              <span class="flbl">Key column (what each row is about)</span>
+              <span class="fseg wrap">
+                {#each tableBar.header as h, i}
+                  <button type="button" class:on={(tableBar.copts.key ?? 0) === i} onclick={() => setCopts({ key: i, skip: (tableBar?.copts.skip ?? []).filter((x) => x !== i) })}>{h || `Column ${i + 1}`}</button>
+                {/each}
+              </span>
+              <span class="fcount"><b>{tableBar.count} {tableBar.count === 1 ? "card" : "cards"}</b> · review history stays with each cell when you change these</span>
+            {/if}
+          </span>
+        {/if}
+      </span>
       <button type="button" onclick={() => editor?.chain().focus().deleteTable().run()} title="Delete table">✕</button>
     </div>
   {/if}
@@ -1310,6 +1394,95 @@
   .cwrap {
     position: relative;
   }
+  .fpop {
+    position: absolute;
+    top: calc(100% + 6px);
+    right: 0;
+    z-index: 7;
+    display: grid;
+    gap: 8px;
+    width: 340px;
+    padding: 12px 14px;
+    border-radius: 16px;
+    background: var(--surface-float, var(--surface));
+    /* a menu: blurs what's under it so the table's text doesn't show through */
+    -webkit-backdrop-filter: var(--blur, blur(14px));
+    backdrop-filter: var(--blur, blur(14px));
+    box-shadow: var(--shadow-lift);
+    border: var(--edge, 0);
+    font-size: 13px;
+    animation: pop 0.16s var(--spring, ease) backwards;
+  }
+  .fon {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .flbl {
+    margin-top: 2px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+  }
+  .fseg {
+    display: inline-flex;
+    gap: 2px;
+    padding: 3px;
+    border-radius: 999px;
+    background: var(--chip);
+    width: max-content;
+    max-width: 100%;
+  }
+  .fseg.wrap {
+    flex-wrap: wrap;
+    border-radius: 14px;
+  }
+  .tbar .fseg button {
+    min-width: 0;
+    height: 28px;
+    padding: 0 10px;
+    border-radius: 999px;
+    font-size: 12.5px;
+    font-weight: 600;
+    color: var(--text-muted);
+  }
+  .tbar .fseg button.on {
+    background: var(--surface);
+    color: var(--text);
+    box-shadow: var(--shadow);
+  }
+  .fchips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+  }
+  .tbar .fchips button {
+    min-width: 0;
+    height: 28px;
+    padding: 0 11px;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--lavender) 35%, transparent);
+    color: var(--text);
+    font-size: 12.5px;
+    font-weight: 600;
+  }
+  .tbar .fchips button.off {
+    background: var(--chip);
+    color: var(--text-muted);
+    text-decoration: line-through;
+  }
+  .fcount {
+    font-size: 12.5px;
+    color: var(--text-muted);
+    line-height: 1.45;
+  }
+  .fcount b {
+    color: var(--alert-ink);
+  }
   .cpop {
     position: absolute;
     top: calc(100% + 6px);
@@ -1321,6 +1494,8 @@
     padding: 8px;
     border-radius: 14px;
     background: var(--surface-float, var(--surface));
+    -webkit-backdrop-filter: var(--blur, blur(14px));
+    backdrop-filter: var(--blur, blur(14px));
     box-shadow: var(--shadow-lift);
     border: var(--edge, 0);
     animation: pop 0.16s var(--spring, ease) backwards;

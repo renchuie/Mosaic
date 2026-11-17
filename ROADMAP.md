@@ -264,7 +264,7 @@ Add things here as they come up (date, page, what happened). Each one is either 
   writing real Ther IV notes in it):
   1. Tables shake-down: she tests (lists / cards in cells, tables in columns and halves, pasting
      from Docs, undo after resize / Even out, wide tables, `:: table` after moving cells).
-  2. Concept and descriptor cards (RemNote style) — mockup first.
+  2. Concept and descriptor cards (RemNote style). **Done Nov 18** (option A: bold term + :::).
   3. Reverse card ← (`A <:: Q`). **Done Nov 18.**
   4. Images in the editor: test pass (paste, resize, under bullets, columns, halves, cells, drag).
   5. Fold headings (collapse everything under a heading).
@@ -273,4 +273,6 @@ Add things here as they come up (date, page, what happened). Each one is either 
   8. Paste check into columns / halves / tables.
   9. Print / export a note to PDF, keeping columns and side by side.
   10. Collapsible callouts (`> [!note]-`).
-  11. Table flashcards fleshed out (her ask) — in the same mockup as 2.
+  11. Table flashcards fleshed out (her ask). **Done Nov 18** (▾ Flashcards menu: each cell / each
+      row / cloze rows, → ⇄ ←, skip columns, key column).
+  12. Big, pretty review cards (her ask, canvas "Flashcards in review"). **Done Nov 18.**

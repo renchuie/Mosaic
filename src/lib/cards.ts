@@ -36,6 +36,24 @@ export type NoteCard = {
   /** descriptor / table cell: the concept (or row) it is about, and the property asked */
   concept?: string;
   prop?: string;
+  /** table "← which row?": the key column's header ("Agent"), for "Which agent?" */
+  ask?: string;
+  /** table "each row": the row's asked cells, [column, value] */
+  rows?: [string, string][];
+  /** table "cloze rows": the row as a mini table, `hide` = which cell is the gap */
+  grid?: { header: string[]; cells: string[]; hide: number };
+};
+
+/** Table flashcard options (the table bar's ▾ Flashcards menu; saved in the mosaic-table line as "c"). */
+export type TableCardOpts = {
+  /** cell: one card per cell (default) · row: one card per row · cloze: the row with one cell hidden */
+  mode?: "cell" | "row" | "cloze";
+  /** fwd: ask the fact (default) · both: also "which row?" · rev: only "which row?" (cell mode) */
+  dir?: "fwd" | "both" | "rev";
+  /** columns not asked about */
+  skip?: number[];
+  /** the key column (what each row is about), default 0 */
+  key?: number;
 };
 
 export const ID_RE = /\s*<!--sd:([a-z0-9]{4,})-->/;
@@ -91,16 +109,24 @@ function children(ls: Line[], k: number): Line[] {
 const TABLE_RE = /^::\s*table\b/i;
 const cells = (row: string) => row.trim().replace(/^\||\|$/g, "").split("|").map((c) => c.trim());
 
-/** The table right under a ":: table" line: header and body rows. */
-function tableAfter(ls: Line[], k: number): { header: string[]; rows: string[][] } | null {
+/** The table right under a ":: table" line: header and body rows, and its card options. */
+function tableAfter(ls: Line[], k: number): { header: string[]; rows: string[][]; opts: TableCardOpts } | null {
   let j = k + 1;
   while (j < ls.length && !ls[j].text.trim()) j++;
-  // the editor's hidden line for column widths and cell colours sits right above the table
-  if (j < ls.length && /^\s*<!--\s*mosaic-table\b/.test(ls[j].raw)) j++;
+  // the editor's hidden line for column widths, cell colours and card options sits right above
+  let opts: TableCardOpts = {};
+  if (j < ls.length && /^\s*<!--\s*mosaic-table\b/.test(ls[j].raw)) {
+    try {
+      const m = /^\s*<!--\s*mosaic-table\s+(\{.*?\})\s*-->/.exec(ls[j].raw);
+      const c = m ? JSON.parse(m[1]).c : null;
+      if (c && typeof c === "object") opts = c;
+    } catch {}
+    j++;
+  }
   const tl: string[] = [];
   for (; j < ls.length && /^\s*\|/.test(ls[j].raw); j++) tl.push(ls[j].raw);
   if (tl.length < 3 || !/^\s*\|?\s*:?-+/.test(tl[1])) return null;
-  return { header: cells(tl[0]), rows: tl.slice(2).map(cells) };
+  return { header: cells(tl[0]), rows: tl.slice(2).map(cells), opts };
 }
 
 /** Short stable hash so a table cell keeps its review history while the row/column names stay the same. */
@@ -123,6 +149,55 @@ function kindOf(ls: Line[], k: number): "card" | "cloze" | "list" | "table" | "d
   return /\{\{[^{}]+\}\}/.test(l.text) ? "cloze" : null;
 }
 
+/** The cards a table makes, by its options (see TableCardOpts). Keys: a cell ":t<hash(row|col)>"
+ *  (unchanged from before the options), its reverse ":t<hash>r", a row ":tr<hash(row)>", a cloze
+ *  cell ":tc<hash(row|col)>". */
+function tableCards(t: { header: string[]; rows: string[][]; opts: TableCardOpts }, key: (sfx: string) => string, l: Line, context: string[]): NoteCard[] {
+  const out: NoteCard[] = [];
+  const strip = (s: string) => s.replace(/\*\*/g, "").trim();
+  const cellText = (s: string) => s.replace(/<br\s*\/?>/gi, "\n").trim();
+  const mode = t.opts.mode ?? "cell";
+  const dir = t.opts.dir ?? "fwd";
+  const kc = Math.min(Math.max(0, t.opts.key ?? 0), Math.max(0, t.header.length - 1));
+  const skip = new Set(t.opts.skip ?? []);
+  const asked = t.header.map((h, i) => i).filter((i) => i !== kc && !skip.has(i) && t.header[i]?.trim());
+  const keyName = strip(t.header[kc] ?? "");
+  for (const row of t.rows) {
+    const name = strip(row[kc] ?? "");
+    if (!name) continue;
+    const filled = asked.filter((ci) => row[ci]?.trim());
+    if (!filled.length) continue;
+    const id = (col: string) => hash(`${name.toLowerCase()}|${strip(col).toLowerCase()}`);
+    if (mode === "row") {
+      const cols = filled.map((ci) => strip(t.header[ci]));
+      out.push({
+        key: key(`:tr${hash(name.toLowerCase())}`), lineId: l.id, kind: "table", line: l.i, context,
+        front: `**${name}**: ${cols.join(" and ").toLowerCase()}?`,
+        back: filled.map((ci) => `- **${strip(t.header[ci])}:** ${cellText(row[ci]).replace(/\n/g, " ")}`).join("\n"),
+        concept: name, rows: filled.map((ci) => [strip(t.header[ci]), cellText(row[ci])] as [string, string]),
+      });
+      continue;
+    }
+    for (const ci of filled) {
+      const col = strip(t.header[ci]);
+      const val = cellText(row[ci]);
+      if (mode === "cloze") {
+        const shown = [kc, ...asked];
+        out.push({
+          key: key(`:tc${id(col)}`), lineId: l.id, kind: "table", line: l.i, context,
+          front: shown.map((i) => (i === ci ? `${strip(t.header[i])}: [...]` : `${strip(t.header[i])}: ${cellText(row[i] ?? "").replace(/\n/g, " ")}`)).join(" · "),
+          back: val, concept: name, prop: col,
+          grid: { header: shown.map((i) => strip(t.header[i])), cells: shown.map((i) => cellText(row[i] ?? "")), hide: shown.indexOf(ci) },
+        });
+        continue;
+      }
+      if (dir !== "rev") out.push({ key: key(`:t${id(col)}`), lineId: l.id, kind: "table", line: l.i, context, front: `**${name}** › ${col}`, back: val, concept: name, prop: col });
+      if (dir !== "fwd") out.push({ key: key(`:t${id(col)}r`), lineId: l.id, kind: "table", line: l.i, context, front: `${col}: ${val.replace(/\n/g, " ")}`, back: name, rev: true, concept: name, prop: col, ask: keyName });
+    }
+  }
+  return out;
+}
+
 export function extractCards(body: string): NoteCard[] {
   const ls = lines(body);
   const out: NoteCard[] = [];
@@ -142,21 +217,7 @@ export function extractCards(body: string): NoteCard[] {
     const kind = kindOf(ls, k);
     const key = (suffix = "") => (l.id ? l.id + suffix : `new-${l.i}${suffix}`);
     if (kind === "table") {
-      const t = tableAfter(ls, k)!;
-      const strip = (s: string) => s.replace(/\*\*/g, "").trim();
-      for (const row of t.rows) {
-        const name = row[0]?.trim();
-        if (!name) continue;
-        t.header.forEach((col, ci) => {
-          if (ci === 0 || !row[ci]?.trim() || !col.trim()) return;
-          out.push({
-            key: key(`:t${hash(`${strip(name).toLowerCase()}|${strip(col).toLowerCase()}`)}`),
-            lineId: l.id, kind: "table",
-            front: `**${strip(name)}** · ${strip(col)}?`, back: row[ci].replace(/<br\s*\/?>/gi, "\n").trim(),
-            context: [...context, ...(t.header[0] ? [t.header[0]] : [])], line: l.i,
-          });
-        });
-      }
+      out.push(...tableCards(tableAfter(ls, k)!, (sfx) => key(sfx), l, context));
       return;
     }
     if (kind === "card" || kind === "desc") {

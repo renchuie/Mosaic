@@ -140,7 +140,11 @@
       case "list":
         return { label: "List", icon: "→•", tone: "var(--sage-deep)" };
       case "table":
-        return { label: "Table", icon: "▦", tone: "var(--link-ink)" };
+        return {
+          label: c.grid ? "Table row · cloze" : c.rows ? "Table row" : c.rev ? `Which ${(c.ask || "row").toLowerCase()}?` : "Table",
+          icon: "▦",
+          tone: "var(--link-ink)",
+        };
       case "concept":
         return c.rev ? { label: "Which concept?", icon: "◆", tone: "var(--sage-deep)" } : { label: "Concept", icon: "◆", tone: "var(--sage-deep)" };
       case "descriptor":
@@ -193,6 +197,19 @@
       <div class="q" class:cloze={current.card.kind === "cloze"} class:big={current.card.kind === "concept" && !current.card.rev}>
         {#if current.card.kind === "concept" && !current.card.rev}
           <span class="cpt">{@html cardHtml(current.card.front, img)}</span>
+        {:else if current.card.kind === "table" && current.card.grid}
+          <table class="mini">
+            <thead><tr>{#each current.card.grid.header as h}<th>{h}</th>{/each}</tr></thead>
+            <tbody><tr>
+              {#each current.card.grid.cells as cell, i}
+                <td>{#if i === current.card.grid.hide}{#if shown}<mark>{@html cardHtml(cell, img)}</mark>{:else}<span class="gap">[…]</span>{/if}{:else if i === 0}<b>{@html cardHtml(cell, img)}</b>{:else}{@html cardHtml(cell, img)}{/if}</td>
+              {/each}
+            </tr></tbody>
+          </table>
+        {:else if current.card.kind === "table" && current.card.rev}
+          <span class="muted-lbl">{current.card.prop}:</span> {@html cardHtml(current.card.front.replace(/^[^:]*:\s*/, ""), img)}
+        {:else if current.card.kind === "table" && current.card.concept && !current.card.rows}
+          <span class="path"><b>{@html cardHtml(current.card.concept, img)}</b><span class="ar">›</span><span>{@html cardHtml(current.card.prop ?? "", img)}</span></span>
         {:else if current.card.kind === "descriptor" && current.card.concept}
           <span class="path"><span class="cpt">{@html cardHtml(current.card.concept, img)}</span><span class="ar">›</span><span>{@html cardHtml(current.card.prop ?? "", img)}</span></span>
         {:else}
@@ -203,10 +220,12 @@
         <div class="occwrap"><OcclusionView src={img(current.card.image)} masks={current.card.masks} target={current.card.target} reveal={shown} /></div>
       {/if}
       {#if current.card.kind === "list" && !shown}<p class="hint">List card: recall every item, then show the answer.</p>{/if}
-      {#if shown && !inPlace && current.card.back.trim()}
+      {#if shown && !inPlace && !current.card.grid && current.card.back.trim()}
         <div class="divider">Answer</div>
         <div class="a" class:list={current.card.kind === "list" || /^\s*- /m.test(current.card.back)}>
           {#if current.card.kind === "concept" && current.card.rev}<span class="cpt">{@html cardHtml(current.card.back, img)}</span>
+          {:else if current.card.rows}
+            <dl class="kv">{#each current.card.rows as [k, v]}<dt>{k}</dt><dd>{@html cardHtml(v, img)}</dd>{/each}</dl>
           {:else}{@html cardHtml(current.card.back, img)}{/if}
         </div>
       {/if}
@@ -416,6 +435,59 @@
   .q :global(p),
   .a :global(p) {
     margin: 0 0 0.3em;
+  }
+  /* table cards */
+  .muted-lbl {
+    color: var(--text-muted);
+    font-weight: 500;
+  }
+  .kv {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 10px 22px;
+    margin: 0;
+  }
+  .kv dt {
+    padding-top: 0.2em;
+    font-size: 0.72em;
+    font-weight: 700;
+    color: var(--text-muted);
+  }
+  .kv dd {
+    margin: 0;
+  }
+  .kv :global(p) {
+    margin: 0;
+  }
+  .mini {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    border-radius: 18px;
+    overflow: hidden;
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--text) 12%, transparent);
+    font-size: 0.72em;
+    font-weight: 500;
+  }
+  .mini th,
+  .mini td {
+    padding: 12px 18px;
+    text-align: left;
+    vertical-align: top;
+    border-right: 1px solid color-mix(in srgb, var(--text) 8%, transparent);
+  }
+  .mini th {
+    font-size: 0.68em;
+    font-weight: 700;
+    color: var(--text-muted);
+    background: color-mix(in srgb, var(--link-ink) 9%, transparent);
+  }
+  .mini th:last-child,
+  .mini td:last-child {
+    border-right: 0;
+  }
+  .mini :global(p) {
+    margin: 0;
   }
   .q.big {
     font-size: 38px;

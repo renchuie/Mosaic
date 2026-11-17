@@ -671,6 +671,15 @@ Recall Labs. Decisions she approved:
   "hide one" mode. Card title is the Header field.
 - Table cards in notes: a Markdown table with `:: table` on the line above makes one card per filled
   cell (row header + column header → cell), key `id:t<hash(row|col)>`, so drug comparison tables work.
+  Since Nov 18 the table bar's "▾ Flashcards · N" menu (on / off = the `:: table` line) has options,
+  saved as `"c"` in the table's mosaic-table line (`TableCardOpts` in cards.ts, table attr `copts`,
+  defaults left out): `mode` cell (default; front "Row › Column") / row (one list card per row,
+  `rows` field shown as Column / value pairs, key `:tr<hash(row)>`) / cloze (the row as a mini table
+  with one cell hidden, `grid` field, key `:tc<hash>`); `dir` fwd / both / rev (cell mode; reverse
+  "Which <key column>?" key `:t<hash>r`); `skip` columns; `key` column (default 0). Forward cell
+  keys are unchanged, so old reviews keep their history. In the editor the key column is tinted,
+  skipped columns fade and every card cell gets a small dot (decoration plugin). The count uses
+  `tableCardInfo()` in BlockEditor (same rules as `tableCards()` in cards.ts).
 - Exam-aware (Settings in Cards, default on): when a course has an exam coming, a review's due date
   is capped at the evening before it (if that is more than 1 h away). Course-level for now, so a
   Ther IV card counts for both Exam 4 and Exam 5; linking a deck to one exam is a possible later step.

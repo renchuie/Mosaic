@@ -327,7 +327,8 @@ export const COLS_OPEN = /^\s*<!--\s*mosaic-cols(?:\s+(\{.*?\}))?\s*-->\s*$/;
 export const COL_SEP = /^\s*<!--\s*mosaic-col\s*-->\s*$/;
 export const COLS_CLOSE = /^\s*<!--\s*\/mosaic-cols\s*-->\s*$/;
 export const TABLE_META = /^\s*<!--\s*mosaic-table\s+(\{.*?\})\s*-->\s*$/;
-type TableMeta = { w?: (number | null)[]; bg?: Record<string, string> };
+/** w: column widths · bg: cell colours · c: flashcard options (cards.ts TableCardOpts) */
+type TableMeta = { w?: (number | null)[]; bg?: Record<string, string>; c?: Record<string, unknown> };
 function readMeta(line: string): TableMeta | null {
   const m = TABLE_META.exec(line);
   if (!m) return null;
@@ -546,7 +547,7 @@ export function parseBlocks(lines: string[]): PMNode[] {
         bg: typeof meta?.bg?.[`${r},${c}`] === "string" ? meta!.bg![`${r},${c}`] : null,
       });
       push(
-        block("table", { cards: !!cardsLine, sid: cardsLine?.sid ?? null, aligns: aligns.length === n ? aligns : null }, [
+        block("table", { cards: !!cardsLine, sid: cardsLine?.sid ?? null, aligns: aligns.length === n ? aligns : null, copts: meta?.c && typeof meta.c === "object" ? meta.c : null }, [
           { type: "tableRow", content: pad(head).map((c, ci) => cell("tableHeader", c, at(0, ci))) },
           ...body.map((r, ri) => ({ type: "tableRow", content: pad(r).map((c, ci) => cell("tableCell", c, at(ri + 1, ci))) })),
         ]),
@@ -749,13 +750,15 @@ function serializeBlocks(nodes: PMNode[], seen: Set<string>, owners: Owner[], ba
         const meta: TableMeta = {};
         if (w.length) meta.w = w;
         if (Object.keys(bg).length) meta.bg = bg;
+        const copts = n.attrs?.copts as Record<string, unknown> | null | undefined;
+        if (copts && Object.keys(copts).length) meta.c = copts;
         if (n.attrs?.cards) {
           const sid = n.attrs?.sid as string | null;
           owners.push({ line, path: here });
           out.push(":: table" + (sid && !seen.has(sid) ? ` <!--sd:${sid}-->` : ""));
           if (sid) seen.add(sid);
         }
-        if (meta.w || meta.bg) out.push(`<!--mosaic-table ${JSON.stringify(meta)}-->`);
+        if (meta.w || meta.bg || meta.c) out.push(`<!--mosaic-table ${JSON.stringify(meta)}-->`);
         const aligns = Array.isArray(n.attrs?.aligns) && (n.attrs.aligns as string[]).length === ncol ? (n.attrs.aligns as string[]) : Array(ncol).fill("---");
         const row = (r: string[]) => `| ${r.join(" | ")} |`;
         out.push(row(cells[0] ?? Array(ncol).fill("")), row(aligns), ...cells.slice(1).map(row));
