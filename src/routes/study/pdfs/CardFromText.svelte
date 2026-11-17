@@ -202,7 +202,7 @@
     background: var(--chip);
   }
   .w.on {
-    background: color-mix(in srgb, var(--sage) 70%, white);
+    background: color-mix(in srgb, var(--sage) 70%, var(--white));
     font-weight: 600;
   }
   .prev {

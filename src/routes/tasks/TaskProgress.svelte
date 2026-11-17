@@ -158,7 +158,8 @@
   }
   .sub {
     font-size: 13.5px;
-    color: var(--peach);
+    /* peach that stays readable on a dark hero AND on the frosted white one */
+    color: color-mix(in srgb, var(--peach) 50%, var(--on-hero));
   }
   .pstats {
     list-style: none;

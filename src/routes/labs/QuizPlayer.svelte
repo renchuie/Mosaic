@@ -411,7 +411,7 @@
     width: 56px;
     height: 56px;
     border-radius: 18px;
-    background: color-mix(in srgb, var(--lavender) 45%, white);
+    background: color-mix(in srgb, var(--lavender) 45%, var(--white));
     flex: none;
     animation: tick-pop 0.6s var(--spring) backwards;
   }

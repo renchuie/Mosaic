@@ -448,7 +448,7 @@
     padding: 0 8px;
     border-radius: var(--radius-pill);
     background: var(--col);
-    color: var(--charcoal);
+    color: var(--ink-on-color);
     font-size: 14px;
     font-weight: 700;
   }
@@ -671,6 +671,7 @@
     background: color-mix(in srgb, var(--white) 50%, transparent);
   }
   .empty {
+    color: var(--muted-on-tint);
     font-size: 13.5px;
     text-align: center;
     padding: 10px 0;
@@ -681,7 +682,7 @@
     border: 0;
     border-radius: 12px;
     background: transparent;
-    color: var(--text-muted);
+    color: var(--muted-on-tint);
     font-size: 14px;
     text-align: left;
     padding: 0 8px;

@@ -355,7 +355,7 @@
   }
   .time {
     font-size: 12px;
-    color: var(--text-muted);
+    color: var(--muted-on-tint);
     flex-shrink: 0;
     white-space: nowrap;
     overflow: hidden;

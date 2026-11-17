@@ -231,7 +231,8 @@
     font-weight: 600;
   }
   .big span:last-child {
-    color: var(--peach);
+    /* peach that stays readable on a dark hero AND on the frosted white one */
+    color: color-mix(in srgb, var(--peach) 50%, var(--on-hero));
   }
   .go {
     display: grid;
@@ -250,7 +251,7 @@
     font-weight: 600;
   }
   .go .muted {
-    color: color-mix(in srgb, var(--white) 70%, transparent);
+    color: color-mix(in srgb, var(--on-hero) 72%, transparent);
   }
   .small {
     font-size: 13.5px;

@@ -70,7 +70,10 @@ below disagrees.
   so components follow without their own dark rules, and set `color-scheme: dark`. Tokens for
   meaning: `--alert-ink`, `--go-ink`, `--link-ink`, `--scrim`, `--ink-on-color` (text on a bright
   pill), `--hero` / `--on-hero` (the dark hero cards). Don't hard-code colours in components; use
-  these. Flashcard arrow / card / cloze colours follow the theme (`arrowColor` / `clozeColor`
+  these. Secondary text on a coloured tint uses `--muted-on-tint` (76% of `--text`), not
+  `--text-muted`; mix tints with `var(--white)`, never plain `white` / `#fff` (dark themes remap
+  `--white`; a plain white mix stays light). Nov 18 contrast audit (Playwright script over every
+  page in all 15 themes) fixed those. Flashcard arrow / card / cloze colours follow the theme (`arrowColor` / `clozeColor`
   "theme", the default) unless she picks her own. Highlights, cell tints, callouts and the
   course headers are tinted into the page in dark themes. After her Nov 17 feedback ("the frosted
   themes aren't the clean look of the mockup"): big feature cards use tokens `--feature` (greeting

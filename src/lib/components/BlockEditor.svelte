@@ -1239,7 +1239,7 @@
       <div class="mh">Callout type</div>
       {#each visibleCallouts() as [k, t] (k)}
         <button type="button" class="mi" class:on={editor?.state.doc.nodeAt(calloutMenu.pos)?.attrs.kind === k} onclick={() => setCalloutKind(k)}>
-          <span class="ic" style="background: color-mix(in srgb, {t.color} 60%, white)">{t.icon}</span>{t.label}
+          <span class="ic" style="background: color-mix(in srgb, {t.color} 60%, var(--white))">{t.icon}</span>{t.label}
         </button>
       {/each}
       <button type="button" class="mi edit" onclick={() => { calloutMenu = null; styleManager.tab = "callouts"; styleManager.open = true; }}><span class="ic">🎨</span>Edit styles…</button>

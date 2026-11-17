@@ -515,7 +515,7 @@
     color: var(--charcoal);
   }
   .ic.sage { background: var(--sage-soft); }
-  .ic.lav { background: color-mix(in srgb, var(--lavender) 40%, white); }
+  .ic.lav { background: color-mix(in srgb, var(--lavender) 40%, var(--white)); }
   .ic.peach { background: var(--peach-soft); }
   .ic.butter { background: var(--butter-soft); }
   .ic.rose { background: var(--rose-soft); }
@@ -808,7 +808,7 @@
   .fbar {
     width: 100%;
     border-radius: 10px;
-    background: color-mix(in srgb, var(--lavender) 55%, white);
+    background: color-mix(in srgb, var(--lavender) 55%, var(--white));
     transform-origin: bottom;
     animation: grow-up 0.6s var(--spring) backwards;
   }

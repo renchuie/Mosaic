@@ -231,7 +231,7 @@
     background: var(--sage-soft);
   }
   .kind.quiz {
-    background: color-mix(in srgb, var(--lavender) 40%, white);
+    background: color-mix(in srgb, var(--lavender) 40%, var(--white));
   }
   .what {
     display: grid;

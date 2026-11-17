@@ -33,6 +33,9 @@
   --field: var(--ivory);
   --text: var(--charcoal);
   --text-muted: var(--mauve);
+  /* secondary text sitting on a coloured tint (course tiles, board columns, event cards): a bit
+     stronger than --text-muted so it stays readable on tints in every theme, dark ones included */
+  --muted-on-tint: color-mix(in srgb, var(--text) 76%, transparent);
   --hairline: rgba(59, 48, 51, 0.09);
   --chip: rgba(59, 48, 51, 0.06);
   --primary: var(--charcoal);

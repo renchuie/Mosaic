@@ -466,7 +466,7 @@
   }
   .ct small {
     font-size: 12px;
-    color: var(--text-muted);
+    color: var(--muted-on-tint);
   }
   .ct small.bad {
     color: var(--alert-ink);
@@ -589,6 +589,9 @@
   }
   .c-info b {
     font-weight: 500;
+  }
+  .c-info .muted {
+    color: var(--muted-on-tint);
   }
   .first .muted {
     color: var(--text);

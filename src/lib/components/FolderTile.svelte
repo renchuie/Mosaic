@@ -30,7 +30,7 @@
   {#each sheets.slice(0, 2) as s, i}
     <span class="sheet s{i}" class:page={pages} aria-hidden="true">
       {#if pages}
-        <em style="background: {s.head ?? 'color-mix(in srgb, var(--c) 45%, white)'}"></em><i></i><i class="short"></i><i class="hl"></i><i></i><i class="short"></i>
+        <em style="background: {s.head ?? 'color-mix(in srgb, var(--c) 45%, var(--white))'}"></em><i></i><i class="short"></i><i class="hl"></i><i></i><i class="short"></i>
       {:else}
         <b>{s.title}</b>{#if s.text}<span>{s.text}</span>{/if}
       {/if}
@@ -179,11 +179,11 @@
 
   /* open: coloured, sheets out */
   .fold.open .back {
-    background: color-mix(in srgb, var(--c) 70%, #fff);
+    background: color-mix(in srgb, var(--c) 70%, var(--white));
   }
   .fold.open .front {
     top: 86px;
-    background: linear-gradient(165deg, color-mix(in srgb, var(--c) 40%, color-mix(in srgb, var(--white) 80%, transparent)), color-mix(in srgb, var(--c) 75%, #fff));
+    background: linear-gradient(165deg, color-mix(in srgb, var(--c) 40%, color-mix(in srgb, var(--white) 80%, transparent)), color-mix(in srgb, var(--c) 75%, var(--white)));
   }
   .fold.open .line {
     color: var(--text);

@@ -515,7 +515,7 @@
     border: 0;
     border-radius: 50%;
     background: none;
-    color: var(--text-muted);
+    color: var(--muted-on-tint);
     cursor: pointer;
   }
   .chip.tag button:hover {

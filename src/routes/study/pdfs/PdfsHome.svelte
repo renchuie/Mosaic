@@ -48,7 +48,7 @@
           name: d.split("/").pop()!,
           color: courseByName(c)?.[1].color ?? "#C9B5F5",
           lines: [`${files.length} ${files.length === 1 ? "PDF" : "PDFs"}${marked ? ` · ${marked} with marks` : ""}`, size(files.reduce((n, f) => n + f.size, 0))],
-          sheets: byRead.slice(0, 2).map(() => ({ head: `color-mix(in srgb, ${courseByName(c)?.[1].color ?? "#C9B5F5"} 45%, white)` })),
+          sheets: byRead.slice(0, 2).map(() => ({ head: `color-mix(in srgb, ${courseByName(c)?.[1].color ?? "#C9B5F5"} 45%, var(--white))` })),
           open: !!lastRead && under(d, lastRead),
         };
       });
@@ -229,7 +229,7 @@
     width: 36px;
     height: 36px;
     border-radius: 12px;
-    background: color-mix(in srgb, var(--t) 70%, white);
+    background: color-mix(in srgb, var(--t) 70%, var(--white));
   }
   .bar {
     height: 6px;
@@ -344,7 +344,7 @@
     width: 32px;
     height: 32px;
     border-radius: 10px;
-    background: color-mix(in srgb, var(--t) 55%, white);
+    background: color-mix(in srgb, var(--t) 55%, var(--white));
     flex: none;
   }
   .nm {

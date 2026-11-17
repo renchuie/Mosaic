@@ -381,7 +381,7 @@
     height: 36px;
     flex: none;
     border-radius: 12px;
-    background: color-mix(in srgb, var(--lavender) 40%, white);
+    background: color-mix(in srgb, var(--lavender) 40%, var(--white));
   }
   .qsub {
     font-size: 13px;
