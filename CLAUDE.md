@@ -69,7 +69,12 @@ below disagrees.
   pill), `--hero` / `--on-hero` (the dark hero cards). Don't hard-code colours in components; use
   these. Flashcard arrow / card / cloze colours follow the theme (`arrowColor` / `clozeColor`
   "theme", the default) unless she picks her own. Highlights, cell tints, callouts and the
-  course headers are tinted into the page in dark themes. Glass = colour blooms on `--backdrop`, translucent white
+  course headers are tinted into the page in dark themes. After her Nov 17 feedback ("the frosted
+  themes aren't the clean look of the mockup"): big feature cards use tokens `--feature` (greeting
+  hero) and `--spot` (next-exam card) with `--on-*`, `--spot-track`, `--spot-btn`; in Glass they
+  are frosted white with a bloom of the theme's colours (no orange hero, no dark block); the four
+  one-hue Glass themes remap the pastel palette and `--g-*` to shades of their hue; Mosaic's
+  `--g-*` are pale washes; waves are faint. Glass = colour blooms on `--backdrop`, translucent white
   `--panel` / `--surface`, a thin bright `--edge` (the one exception to "no outlines") and
   `--blur`. **Only the big layers blur** (main panel, rail, dialogs, menus); cards are plain
   translucent white on the already-blurred panel. Backdrop blur is costly to repaint in WebKitGTK,

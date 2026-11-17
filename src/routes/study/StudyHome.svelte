@@ -177,7 +177,7 @@
         </div>
         <div class="ex-row">
           <svg width="92" height="92" viewBox="0 0 92 92" role="img" aria-label="Readiness {ready?.pct ?? 0} percent">
-            <circle cx="46" cy="46" r="38" fill="none" stroke="rgba(255,255,255,.16)" stroke-width="10" />
+            <circle cx="46" cy="46" r="38" fill="none" stroke="var(--spot-track)" stroke-width="10" />
             <circle cx="46" cy="46" r="38" fill="none" stroke="var(--sage)" stroke-width="10" stroke-linecap="round" stroke-dasharray={ring((ready?.pct ?? 0) / 100, 38)} transform="rotate(-90 46 46)" />
             <text x="46" y="52" text-anchor="middle" font-size="20" font-weight="600" fill="currentColor">{ready?.pct ?? "–"}{ready?.pct !== null ? "%" : ""}</text>
           </svg>
@@ -410,8 +410,10 @@
     gap: 20px;
     padding: calc(var(--card-pad) + 4px);
     border-radius: calc(var(--radius) + 4px);
-    background: linear-gradient(135deg, var(--rose), var(--peach) 55%, var(--butter));
-    color: var(--charcoal);
+    background: var(--feature);
+    color: var(--on-feature);
+    border: var(--edge);
+    box-shadow: var(--shadow);
     animation: pop-in var(--t-slow) var(--spring) backwards;
     min-width: 0;
   }
@@ -447,7 +449,7 @@
     animation: pop-in 0.45s var(--spring) backwards;
   }
   .day.exam {
-    color: #8a3d46;
+    color: var(--alert-ink);
     font-weight: 600;
     background: color-mix(in srgb, var(--white) 50%, transparent);
   }
@@ -459,9 +461,8 @@
 
   /* next exam */
   .exam {
-    background: var(--primary);
-    color: var(--on-primary);
-    border: 0;
+    background: var(--spot);
+    color: var(--on-spot);
   }
   .exam h2 {
     font-size: 22px;
@@ -470,7 +471,7 @@
     align-self: flex-start;
     padding: 4px 10px;
     border-radius: var(--radius-pill);
-    background: color-mix(in srgb, var(--white) 16%, transparent);
+    background: var(--spot-track);
     font-size: 12.5px;
     font-weight: 600;
   }
@@ -491,8 +492,8 @@
   }
   .ex-btn {
     align-self: flex-start;
-    background: var(--on-primary);
-    color: var(--primary);
+    background: var(--spot-btn);
+    color: var(--on-spot-btn);
     margin-top: auto;
   }
 

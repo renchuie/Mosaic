@@ -54,6 +54,14 @@
   /* the dark hero cards (Today's progress, Due now) and the text on them */
   --hero: radial-gradient(120% 150% at 0% 0%, #5a4a4e 0%, var(--charcoal) 58%);
   --on-hero: #fbf6f0;
+  /* big feature cards: the greeting hero (--feature) and the next-exam spotlight (--spot) */
+  --feature: linear-gradient(135deg, var(--rose), var(--peach) 55%, var(--butter));
+  --on-feature: var(--charcoal);
+  --spot: var(--primary);
+  --on-spot: var(--on-primary);
+  --spot-track: color-mix(in srgb, var(--on-primary) 16%, transparent);
+  --spot-btn: var(--on-primary);
+  --on-spot-btn: var(--primary);
 
   /* tone gradients for cards */
   --g-rose: linear-gradient(140deg, #f9d5d0 0%, #f2b8b5 100%);
@@ -109,17 +117,37 @@
   --chip: color-mix(in srgb, var(--t-text) 6%, transparent);
   --primary: var(--t-text);
   --on-primary: #ffffff;
+  --charcoal: var(--t-text);
+  --mauve: var(--t-muted);
   --track: color-mix(in srgb, var(--t-text) 8%, transparent);
   --accent: var(--t-accent);
   --edge: 1px solid rgba(255, 255, 255, 0.75);
   --blur: blur(24px) saturate(160%);
   --scrim: rgba(35, 38, 58, 0.18);
+  --feature:
+    radial-gradient(70% 130% at 0% 0%, color-mix(in srgb, var(--t-b1) 80%, transparent), transparent 62%),
+    radial-gradient(60% 120% at 100% 100%, color-mix(in srgb, var(--t-b2) 75%, transparent), transparent 60%),
+    rgba(255, 255, 255, 0.55);
+  --on-feature: var(--t-text);
+  --spot: radial-gradient(90% 120% at 100% 0%, color-mix(in srgb, var(--t-b3) 65%, transparent), transparent 62%), rgba(255, 255, 255, 0.66);
+  --on-spot: var(--t-text);
+  --spot-track: color-mix(in srgb, var(--t-text) 9%, transparent);
+  --spot-btn: var(--primary);
+  --on-spot-btn: var(--on-primary);
+  --hero: var(--spot);
+  --on-hero: var(--t-text);
   --shadow: 0 1px 2px rgba(40, 44, 80, 0.04), 0 12px 30px -16px rgba(40, 44, 80, 0.22), inset 0 1px 0 rgba(255, 255, 255, 0.6);
   --shadow-lift: 0 2px 4px rgba(40, 44, 80, 0.05), 0 22px 40px -18px rgba(40, 44, 80, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.7);
 }
 :root[data-theme="mosaic"] {
   --t-b1: #ffd6e4; --t-b2: #d5e1ff; --t-b3: #cff2e6; --t-b4: #ffefc9; --t-base: #f2f1f8;
   --t-text: #23263a; --t-muted: #555a72; --t-accent: var(--periwinkle);
+  /* pale washes instead of strong pastels, so the page stays calm (her Nov 17 feedback) */
+  --g-rose: linear-gradient(140deg, #fdf0ef, #f9dcda);
+  --g-peach: linear-gradient(140deg, #fef4ea, #fbe5d1);
+  --g-sage: linear-gradient(140deg, #eff7f3, #dceee6);
+  --g-butter: linear-gradient(140deg, #fefaee, #fbf0d3);
+  --g-sunset: linear-gradient(120deg, #fcebee, #fdf1e6 55%, #eef0fd);
 }
 /* one-colour glass: blooms, accent, flashcards and even the text keep to one hue */
 :root[data-theme="pink"] {
@@ -149,6 +177,26 @@
   --card-bg2: linear-gradient(90deg, color-mix(in srgb, var(--t-accent2) 14%, transparent), transparent 85%);
   --cloze-bg: var(--t-hl);
   --cloze-line: var(--t-accent);
+  /* tiles, icons, dots and bars all in shades of the one hue */
+  --rose: color-mix(in srgb, var(--t-accent) 45%, white);
+  --rose-deep: var(--t-accent);
+  --rose-soft: color-mix(in srgb, var(--t-accent) 15%, white);
+  --peach: color-mix(in srgb, var(--t-accent) 32%, white);
+  --peach-soft: color-mix(in srgb, var(--t-accent) 10%, white);
+  --sage: color-mix(in srgb, var(--t-accent2) 50%, white);
+  --sage-deep: var(--t-accent2);
+  --sage-soft: color-mix(in srgb, var(--t-accent2) 14%, white);
+  --butter: var(--t-hl);
+  --butter-soft: color-mix(in srgb, var(--t-hl) 45%, white);
+  --lavender: color-mix(in srgb, var(--t-accent) 38%, white);
+  --periwinkle: var(--t-accent);
+  --alert-ink: color-mix(in srgb, var(--t-accent2) 70%, var(--t-text));
+  --go-ink: color-mix(in srgb, var(--t-accent2) 70%, var(--t-text));
+  --g-rose: linear-gradient(140deg, color-mix(in srgb, var(--t-accent) 14%, white), color-mix(in srgb, var(--t-accent) 30%, white));
+  --g-peach: linear-gradient(140deg, color-mix(in srgb, var(--t-accent) 10%, white), color-mix(in srgb, var(--t-accent) 22%, white));
+  --g-sage: linear-gradient(140deg, color-mix(in srgb, var(--t-accent2) 12%, white), color-mix(in srgb, var(--t-accent2) 26%, white));
+  --g-butter: linear-gradient(140deg, color-mix(in srgb, var(--t-hl) 40%, white), var(--t-hl));
+  --g-sunset: linear-gradient(120deg, color-mix(in srgb, var(--t-accent) 14%, white), color-mix(in srgb, var(--t-hl) 60%, white));
 }
 
 /* ---- Neutral: solid paper-like panels, hairline edges, one quiet accent ------------------ */
@@ -179,6 +227,13 @@
   --card-bg2: linear-gradient(90deg, color-mix(in srgb, var(--t-accent) 10%, transparent), transparent 85%);
   --cloze-bg: var(--t-hl);
   --cloze-line: var(--t-accent);
+  --feature: linear-gradient(135deg, color-mix(in srgb, var(--t-accent) 14%, var(--t-surface)), var(--t-surface) 72%);
+  --on-feature: var(--t-text);
+  --spot: var(--t-surface);
+  --on-spot: var(--t-text);
+  --spot-track: color-mix(in srgb, var(--t-text) 9%, transparent);
+  --spot-btn: var(--primary);
+  --on-spot-btn: var(--on-primary);
 }
 :root[data-theme="linen"] {
   --t-bg: #ede7df; --t-panel: #f7f3ee; --t-surface: #fffdfa; --t-line: #e8e0d5; --t-text: #2e2925; --t-muted: #7f766e;
@@ -280,6 +335,13 @@
   --card-bg2: linear-gradient(90deg, color-mix(in srgb, var(--t-accent2, var(--t-purple)) 13%, transparent), transparent 85%);
   --cloze-bg: color-mix(in srgb, var(--t-blue) 28%, var(--t-surface));
   --cloze-line: var(--t-blue);
+  --feature: linear-gradient(135deg, color-mix(in srgb, var(--t-accent) 22%, var(--t-surface)), color-mix(in srgb, var(--t-yellow) 8%, var(--t-surface)));
+  --on-feature: var(--t-text);
+  --spot: color-mix(in srgb, var(--t-accent) 13%, var(--t-surface));
+  --on-spot: var(--t-text);
+  --spot-track: color-mix(in srgb, var(--t-text) 14%, transparent);
+  --spot-btn: var(--primary);
+  --on-spot-btn: var(--on-primary);
 }
 :root[data-theme="catppuccin"] {
   --t-bg: #11111b; --t-panel: #181825; --t-surface: #1e1e2e; --t-line: #313244; --t-text: #cdd6f4; --t-muted: #a6adc8;

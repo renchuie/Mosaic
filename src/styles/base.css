@@ -288,3 +288,6 @@ input[type="date"].empty {
 :root[data-family="dark"] svg.wave path {
   opacity: 0.22;
 }
+:root[data-family="glass"] svg.wave path {
+  opacity: 0.32;
+}
