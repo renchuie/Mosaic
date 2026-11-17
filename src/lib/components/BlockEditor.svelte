@@ -1023,9 +1023,9 @@
   {#if handle && !blockMenu}
     <!-- in a column after the first, + and ⠿ stack so the handle fits in the gap (and clears the divider line) -->
     <div class="handle" class:stack={!!handle.stack} style="top: {handle.y}px{handle.x !== null ? `; left: ${handle.x}px` : ''}">
-      <button type="button" class="hb" title="Add a block below" aria-label="Add a block below" onmousedown={(e) => e.preventDefault()} onclick={plus}>+</button>
+      <button type="button" class="hb" title="Add a block below" aria-label="Add a block below" onmousedown={(e) => e.preventDefault()} onclick={plus}><svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><path d="M8 3v10M3 8h10" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" fill="none" /></svg></button>
       <button type="button" class="hb grip" title="Drag to move · click for options" aria-label="Block options" draggable="true"
-        ondragstart={dragStart} ondragend={() => { dragging = false; sideDrop = null; }} onclick={openBlockMenu}>⠿</button>
+        ondragstart={dragStart} ondragend={() => { dragging = false; sideDrop = null; }} onclick={openBlockMenu}><svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><g fill="currentColor"><circle cx="5.5" cy="3.5" r="1.4" /><circle cx="10.5" cy="3.5" r="1.4" /><circle cx="5.5" cy="8" r="1.4" /><circle cx="10.5" cy="8" r="1.4" /><circle cx="5.5" cy="12.5" r="1.4" /><circle cx="10.5" cy="12.5" r="1.4" /></g></svg></button>
     </div>
   {/if}
 
@@ -1207,7 +1207,10 @@
     z-index: 3;
     animation: fadein 0.15s var(--ease-out, ease) backwards;
   }
+  /* both handle buttons draw an icon centred in the same box, so + and the grip line up exactly */
   .hb {
+    display: grid;
+    place-items: center;
     width: 24px;
     height: 26px;
     border: 0;
@@ -1225,7 +1228,6 @@
   }
   .grip {
     cursor: grab;
-    font-size: 14px;
   }
   .scrim {
     position: fixed;

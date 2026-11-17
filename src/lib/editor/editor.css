@@ -630,11 +630,9 @@ button.dot[data-color] {
   grid-auto-flow: column;
   gap: calc(var(--doc-pad, 40px) * 2);
 }
-/* columns run down the page like a newspaper: room to write from the start, and the empty space
-   under a shorter column is part of it (a click there writes on at the end of that column) */
-.mosaic-doc .b-cols {
-  min-height: 14em;
-}
+/* columns fit their content (Nov 18: the 14em minimum left a big gap; the newspaper layout is
+   "side by side" now). The empty space under a shorter column is still part of it: a click there
+   writes on at the end of that column. */
 .mosaic-doc .b-col {
   min-width: 0;
   cursor: text;
