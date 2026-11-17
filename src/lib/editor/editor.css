@@ -28,8 +28,9 @@
   position: relative;
   min-height: 1.7em;
   padding: 1px var(--cp, 0px) 1px calc(var(--ind, 0) * 1.6em + var(--cp, 0px));
-  margin-left: calc(-1 * var(--cp, 0px));
 }
+/* (Nov 17) a flashcard line's tint starts at the text edge like callouts and tables do; it used to
+   reach --cp out into the margin, which looked off next to them */
 .mosaic-doc .b-li {
   padding-left: calc(var(--ind, 0) * 1.6em + 1.6em + var(--cp, 0px));
 }
