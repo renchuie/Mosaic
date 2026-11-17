@@ -471,6 +471,9 @@
 
   // ---- block handle ------------------------------------------------------------------------
   let handle = $state<{ y: number; pos: number; h: number; x: number | null } | null>(null);
+  /** the block the handle belongs to, in screen coordinates (to keep the handle while the mouse
+   *  travels from the line to it, e.g. across the gap left of a column) */
+  let handleFor: { left: number; top: number; bottom: number } | null = null;
   let blockMenu = $state<{ pos: number; y: number; type: string; clozes: number; together: boolean; cols: number | null; line: boolean } | null>(null);
   /** The block under the mouse: a top-level block, or a block inside a column. */
   function blockAt(x: number, y: number): { pos: number; dom: HTMLElement; node: PMNode } | null {
@@ -513,6 +516,9 @@
   }
   function onMove(e: MouseEvent) {
     if (blockMenu || dragging) return;
+    if ((e.target as HTMLElement).closest?.(".handle")) return;
+    // on the way from a line to its handle (the strip just left of the line): keep it
+    if (handle && handleFor && e.clientY >= handleFor.top - 4 && e.clientY <= handleFor.bottom + 4 && e.clientX < handleFor.left + 8 && e.clientX > handleFor.left - 64) return;
     const b = blockAt(e.clientX, e.clientY);
     if (!b) return;
     const wr = wrap.getBoundingClientRect();
@@ -522,6 +528,7 @@
     const inCol = columnsOf(b.pos) !== null && b.node.type.name !== "columns";
     const first = inCol && !(b.dom.closest(".b-col")?.previousElementSibling);
     handle = { y: br.top - wr.top + Math.min(br.height, lh) / 2, pos: b.pos, h: br.height, x: inCol && !first ? br.left - wr.left - 52 : null };
+    handleFor = { left: br.left, top: br.top, bottom: br.top + Math.max(Math.min(br.height, lh), 26) };
   }
   let dragging = false;
   function dragStart(e: DragEvent) {
