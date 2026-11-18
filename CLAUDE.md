@@ -335,8 +335,9 @@ Markdown" view, the `<>` chip on the note header).
   snaps to the selection while she drags (no transition: smooth and free), and glides 0.12s only
   when the selection jumps without the mouse (Ctrl+A growing). After her Nov 18 recording showed
   the always-on glide stuttering. Table bar: rows / columns, 🎨 Colour, ⇔ Even out, Flashcards. Enter inside a cell adds a line (Tab moves to the next cell).
-  The bar stays on screen (Nov 18: never above the visible top of the note's `.scroll`, never past
-  the right edge; it sits over the header row when the table is at the top) and steps aside after a
+  The bar floats just above the cell she's in (Nov 18, her ask; `$anchorCell` for cell selections),
+  just below it when there's no room above the visible top of the note's `.scroll`, and never past
+  the right edge and steps aside after a
   click off the table (`tbarOff`, back on the next selection change); a click outside the 🎨 / ▾
   Flashcards popups or Esc closes them. The popup sets `white-space: normal` (the bar's nowrap would push its text
   out sideways); it never scrolls, and opens upward (`fpopUp`) when there isn't room below.

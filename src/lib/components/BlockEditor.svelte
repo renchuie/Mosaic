@@ -965,12 +965,22 @@
           if (Array.isArray(c.attrs.colwidth) && c.attrs.colwidth.some((x: unknown) => typeof x === "number")) sized = true;
           return !sized && c.type.name === "tableRow";
         });
-        // keep the bar on screen: never above the visible top of the page (it would hide under the
-        // note's top bar), never past the right edge (tables in the right column / half)
+        // the bar sits just above the cell she's in (Nov 18, her ask: it was fixed at the table's
+        // corner), or just below it when there's no room above (the note's top bar); never past the
+        // right edge (tables in the right column / half)
+        let cell: HTMLElement | null = null;
+        const sel = editor.state.selection as { $anchorCell?: { pos: number } };
+        const cellPos = sel.$anchorCell ? sel.$anchorCell.pos : (() => {
+          for (let k = rf.depth; k > d; k--) if (/^table(Cell|Header)$/.test(rf.node(k).type.name)) return rf.before(k);
+          return -1;
+        })();
+        if (cellPos >= 0) cell = editor.view.nodeDOM(cellPos) as HTMLElement | null;
+        const cr = cell?.getBoundingClientRect?.() ?? r;
         const scroller = wrap.closest(".scroll") as HTMLElement | null;
         const visTop = scroller ? scroller.getBoundingClientRect().top - w.top : -Infinity;
-        const y = Math.max(r.top - w.top, visTop + tbarH + 10);
-        const x = Math.max(0, Math.min(r.left - w.left, w.width - tbarW - 8));
+        let y = cr.top - w.top;
+        if (y - tbarH - 10 < visTop) y = cr.bottom - w.top + tbarH + 12; // no room above: below the cell
+        const x = Math.max(0, Math.min(cr.left - w.left, w.width - tbarW - 8));
         return { y, x, cards: !!n.attrs.cards, pos: rf.before(d), sized, ...tableCardInfo(n) };
       }
     }
