@@ -122,6 +122,12 @@ after the other:
   question callouts and the answer key, so I can check myself without scrolling.
 - **Case | workup:** a patient case on the left; on the right, short-answer questions to work it
   up (assessment, plan, monitoring).
+- **Disease | Drugs (the whole lecture):** put everything below the Learning objectives in one
+  split: the disease sections on the left (pathophysiology, diagnosis, treatment approach and
+  guidelines, patient cases) and the drug sections on the right (one `##` per drug or class:
+  mechanism, dosing, levels, ADRs, monitoring, interactions). Each half holds full `##` sections
+  with `---` between them; a Check Yourself toggle goes below the split, full width. Inside this
+  layout there are no other splits (use tables for two-way comparisons).
 
 How to write it (exactly):
 

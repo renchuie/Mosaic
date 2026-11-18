@@ -438,6 +438,10 @@ Markdown" view, the `<>` chip on the note header).
   Several splits in one note work (her prompt uses one per section for two-way comparisons); a
   split only keeps the 60vh writing room when it ends the note (`.b-pages:last-child` in
   editor.css), otherwise it is as tall as its halves.
+  Her "Disease | Drugs" layout (Nov 18): the whole lecture below the Learning objectives in one
+  split, disease sections left (incl. choosing therapy, guidelines, cases), drug sections right;
+  full `##` sections, `---`, tables and callouts inside halves parse and keep their context
+  (scratchpad `tstest/t40.ts`). Her prompt picks it when both parts have 2+ sections.
   The guide ends with "Reference: everything Mosaic can and can't do" (note features,
   interactivity limits, the flashcard and review system, quizzes / library / PDFs / labs, limits)
   and a brainstorming prompt, so Claude can invent activities that are buildable. Update both parts
