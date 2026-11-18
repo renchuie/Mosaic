@@ -57,13 +57,15 @@
     <!-- the Mosaic tiles in the theme's own colours (Nov 18, her pick "D · Accent glow"): two tiles in
          the text colour, the front one in the theme's accent, on a soft chip. The colourful glass
          icon stays the app icon in the launcher. -->
+    <!-- the Mosaic M (Nov 18, her pick "M3"): two leaning tiles in --text, the low diamond in the
+         theme's accent, on a --chip square, so it fits every theme -->
     <svg viewBox="0 0 120 120" aria-hidden="true">
       <rect width="120" height="120" rx="28" fill="var(--chip)" />
-      <g fill="var(--text)">
-        <rect x="20" y="30" width="46" height="46" rx="12" fill-opacity=".16" transform="rotate(-8 43 53)" />
-        <rect x="50" y="22" width="46" height="46" rx="12" fill-opacity=".28" transform="rotate(6 73 45)" />
+      <g transform="translate(18 18) scale(0.7)">
+        <rect x="14" y="24" width="26" height="80" rx="9" fill="var(--text)" fill-opacity=".22" transform="rotate(-8 27 64)" />
+        <rect x="80" y="24" width="26" height="80" rx="9" fill="var(--text)" fill-opacity=".34" transform="rotate(8 93 64)" />
+        <rect x="46" y="48" width="28" height="28" rx="6" fill="var(--accent)" transform="rotate(45 60 62)" />
       </g>
-      <rect x="38" y="52" width="46" height="46" rx="12" fill="var(--accent)" />
     </svg>
   </a>
 

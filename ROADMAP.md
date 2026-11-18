@@ -307,3 +307,5 @@ Add things here as they come up (date, page, what happened). Each one is either 
       toolbar always or while typing; a note can keep its own header and width. **Done Nov 18.**
   17. Settings reorganised (her pick A on canvas "A cleaner Settings page", line icons, no emoji):
       side list of groups, one group at a time, rows, search. **Done Nov 18.**
+  18. New app icon and rail logo (her pick "M3": the Mosaic M, from her mosaic photo and sketches
+      on the canvas). **Done Nov 18.**

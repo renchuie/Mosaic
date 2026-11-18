@@ -41,12 +41,14 @@ The full vision, principles and what she likes or dislikes in each inspiration a
   Hyprland class, `~/.local/share/studydesk/` and the webview data dir (where lab progress lives
   in localStorage). Changing the identifier would move all of that; don't, unless migrating on
   purpose. The sync folder default also keeps its old name ("Study Desk Sync").
-- App icon (chosen Nov 16, option C "glass tiles"): frosted white tiles on a pink→periwinkle→mint
-  gradient. Source `packaging/studydesk.svg` (viewBox 120); the PNGs in `src-tauri/icons/` and
-  `packaging/studydesk.png` are rendered from it with Playwright. The rail logo inside the app is
-  NOT the coloured icon since Nov 18 (her pick "D · Accent glow", canvas "Rail logo that fits every
-  theme"): the same three tiles on a `--chip` square, the back two in `--text` at 16% / 28%, the
-  front one in `--accent`, so it follows every theme (inline SVG in `Sidebar.svelte`).
+- App icon (Nov 18, her pick "M3" on canvas "The Mosaic M", after boards IconMosaic / IconE /
+  IconSwirl / IconSimple / IconM / IconMix; replaced Nov 16's "glass tiles"): an M made of two
+  leaning pill-ish tiles (26×80, rx 9, ±8°) with a diamond tile low in the middle (28, rx 6, at
+  y 62), white on #8A74DE purple with a #FFD7E4 diamond. Source `packaging/studydesk.svg` (viewBox
+  120, glyph at translate(18 18) scale(.7)); the PNGs in `src-tauri/icons/` and
+  `packaging/studydesk.png` are rendered from it with Playwright (transparent corners). The rail
+  logo (`Sidebar.svelte`, inline SVG) is the same M on a `--chip` square: legs in `--text` at
+  22% / 34%, diamond in `--accent`, so it follows every theme. Keep the two in step.
 - App data: JSON files in `~/.local/share/studydesk/`, written atomically from Rust. Anything that
   should follow her between PC and laptop goes in the synced store (see "Sync" below), not in its
   own JSON file. Machine-only data (settings, scan cache, labs tree) stays local.
