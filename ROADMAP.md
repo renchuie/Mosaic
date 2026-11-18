@@ -316,3 +316,8 @@ Add things here as they come up (date, page, what happened). Each one is either 
       pick 10). **Done Nov 18.**
   21. Split notes: "Side by side, each half scrolls" view (her pick 6), chosen from a small menu on
       the split button. **Done Nov 18.**
+  22. Nov 19 · Ctrl+Z inside a cloze doesn't work for her (WebKitGTK). Could not reproduce in
+      Chromium: ~30 undo / redo / shortcut cases pass there (typing over, erasing, retyping, mid-word,
+      blanks by click and by Tab, `{{…}}` input rule, two-cloze lines with the pairing bar, hints,
+      marks, highlights, headings, to-dos, indent, arrows, paste, after autosave). Waiting on her exact
+      steps or a WebKitGTK run (needs xdotool in the test container). **Open.**
