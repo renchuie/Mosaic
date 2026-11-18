@@ -715,7 +715,8 @@ Recall Labs. Decisions she approved:
   `Question ::` with indented bullets below = list card. Nested list cards (Nov 18, her ask,
   RemNote-style; `listBack()`): an item that is a card of its own shows in its parent's answer as
   clean text (`front`, or `front: back`, no separator), and a nested LIST card's sub-items are left
-  out of the parent (they are its own answer); its breadcrumb includes the parent. Node test
+  out of the parent (they are its own answer); its breadcrumb includes the parent (any line with lines
+  indented under it counts as a parent, bulleted or not). Node test
   `tstest/test21.ts`. `Field ::` with nothing after it (the drug
   template) is not a card. Code blocks are skipped. Context = heading path + up to two parent bullets.
 - Card syntax inside an inline `code` span is just text (`maskCode` in cards.ts; Nov 18: pasted

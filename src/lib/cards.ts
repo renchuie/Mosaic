@@ -297,8 +297,9 @@ export function extractCards(body: string): NoteCard[] {
         out.push({ key: key(`:c${gi + 1}`), lineId: l.id, kind: "cloze", front, back, context, line: l.i });
       });
     }
-    // lines that can own the lines indented under them (a bold line too: a concept without a card)
-    if (l.bullet || l.indent > 0 || /^\*\*[^*]+\*\*/.test(l.text)) parents.push({ indent: l.indent, text: l.text });
+    // lines that can own the lines indented under them (a bold line too: a concept without a card;
+    // and since Nov 18 any line with lines indented under it, e.g. an unbulleted "Topic ::")
+    if (l.bullet || l.indent > 0 || /^\*\*[^*]+\*\*/.test(l.text) || children(ls, k).length) parents.push({ indent: l.indent, text: l.text });
   });
   return out;
 }
