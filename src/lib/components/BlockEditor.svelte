@@ -980,7 +980,8 @@
         const visTop = scroller ? scroller.getBoundingClientRect().top - w.top : -Infinity;
         let y = cr.top - w.top;
         if (y - tbarH - 10 < visTop) y = cr.bottom - w.top + tbarH + 12; // no room above: below the cell
-        const x = Math.max(0, Math.min(cr.left - w.left, w.width - tbarW - 8));
+        // centred over the cell, kept inside the page
+        const x = Math.max(0, Math.min(cr.left - w.left + cr.width / 2 - tbarW / 2, w.width - tbarW - 8));
         return { y, x, cards: !!n.attrs.cards, pos: rf.before(d), sized, ...tableCardInfo(n) };
       }
     }
@@ -1844,6 +1845,10 @@
   .tbar {
     transform: translateY(calc(-100% - 6px));
     font-size: 12.5px;
+    /* pops in like the selection toolbar, then glides from cell to cell */
+    transform-origin: 50% 100%;
+    animation: pop 0.16s var(--spring, ease) backwards;
+    transition: top 0.18s var(--ease-out, ease), left 0.18s var(--ease-out, ease);
   }
   .cbar {
     transform: translateY(calc(-100% - 8px));
