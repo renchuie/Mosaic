@@ -7,6 +7,7 @@ mod notes;
 mod pdfs;
 mod store;
 mod sync;
+mod vault;
 
 /// Lets a test run start on a given page (STUDYDESK_ROUTE=labs) and print checks to stdout.
 #[tauri::command]
@@ -63,6 +64,10 @@ fn main() {
             pdfs::pdfs_open,
             sync::sync_write,
             sync::sync_read,
+            vault::vault_dirs,
+            vault::vault_create,
+            vault::vault_copy,
+            vault::vault_open,
             debug_route,
             debug_log,
             debug_quit,

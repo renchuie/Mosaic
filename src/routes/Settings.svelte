@@ -8,6 +8,7 @@
   import { sync, syncNow } from "../lib/stores/synced.svelte";
   import { refreshNotes } from "../lib/stores/notes.svelte";
   import { refreshPdfs } from "../lib/stores/pdfs.svelte";
+  import StoragePanel from "./settings/StoragePanel.svelte";
 
   let name = $state(settings.name);
   let root = $state(settings.labsRoot);
@@ -171,6 +172,8 @@
       </div>
     </div>
   </section>
+
+  <StoragePanel onchanged={() => { root = settings.labsRoot; notesRoot = settings.notesRoot; pdfRoot = settings.pdfRoot; syncOn = settings.syncEnabled; }} />
 
   <form class="card" onsubmit={save}>
     <h2 class="h2">You and your labs</h2>

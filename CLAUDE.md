@@ -868,6 +868,25 @@ Recall Labs. Decisions she approved:
 - Also: Study tab "PDFs" (`PdfsHome.svelte`: keep reading, course chips, search, folder groups),
   Study Home "Keep reading", course page "PDFs".
 
+## Local vault (Nov 18, her ask: "an option to have a local vault if someone doesn't want to sync")
+
+- Settings → "Where your files live" (`src/routes/settings/StoragePanel.svelte`): Google Drive
+  (default) or "This computer only" = a vault folder she names and places (default `~/Mosaic`,
+  in-app folder picker over Rust `vault_dirs`, no native dialog so it works the same on Windows)
+  holding `Notes/`, `Materials/`, `PDFs/` and a `.mosaic-vault` marker (`src-tauri/src/vault.rs`,
+  `vault_create`). Settings `storage` ("drive" | "local"), `vault`, `driveRoots` (the Drive
+  folders + sync setting before the switch, put back when switching back); in vault mode
+  `notesRoot` / `labsRoot` / `pdfRoot` are the vault's parts.
+- Each switch asks (her pick): copy the files over or start empty / just switch. `vault_copy`
+  keeps the folder structure (so lab folder links, PDF state and note paths carry over), keeps
+  mtimes (the notes cache stays valid), skips hidden folders (`.trash`), copies only `.pdf` files
+  (+ `.studydesk-originals`) from the PDF folder, NEVER overwrites (same name = skipped, counted)
+  and never deletes; Rust test `vault::tests`. Separately each person chooses (her pick) whether
+  app data (synced store: flashcard progress, calendar, tasks, courses…) keeps syncing through
+  Drive (`syncEnabled`). `vault_open` shows the folder (xdg-open / explorer / open).
+- `expand_home` falls back to `USERPROFILE` (Windows has no HOME) and accepts `~\`.
+- For friends (Sharing track): a first-run choice between Drive and a vault is still to do.
+
 ## Other decisions
 
 - Streak: a day counts if she opened a lab or checked off a study block. Activity heatmap feeds it.

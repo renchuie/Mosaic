@@ -98,13 +98,15 @@ struct CacheEntry {
 
 pub fn expand_home(p: &str) -> PathBuf {
     let p = p.trim();
-    if let Some(rest) = p.strip_prefix("~/") {
-        if let Some(home) = std::env::var_os("HOME") {
-            return PathBuf::from(home).join(rest);
+    // Windows has no HOME by default: USERPROFILE is C:\Users\<name>
+    let home = || std::env::var_os("HOME").or_else(|| std::env::var_os("USERPROFILE"));
+    if let Some(rest) = p.strip_prefix("~/").or_else(|| p.strip_prefix("~\\")) {
+        if let Some(h) = home() {
+            return PathBuf::from(h).join(rest);
         }
     } else if p == "~" {
-        if let Some(home) = std::env::var_os("HOME") {
-            return PathBuf::from(home);
+        if let Some(h) = home() {
+            return PathBuf::from(h);
         }
     }
     PathBuf::from(p)

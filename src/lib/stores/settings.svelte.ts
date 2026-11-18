@@ -36,6 +36,12 @@ export type Settings = {
   cardAlign?: "left" | "center";
   /** review screen: write your answer in a scratchpad before the card can be turned over */
   cardScratch?: boolean;
+  /** where notes, materials and PDFs live (Nov 18): "drive" = the Drive folders above (default),
+   *  "local" = a vault folder on this computer (`vault`, holding Notes / Materials / PDFs) */
+  storage?: "drive" | "local";
+  vault?: string;
+  /** the Drive folders and sync setting in use before switching to the vault, put back on return */
+  driveRoots?: { notesRoot: string; labsRoot: string; pdfRoot: string; syncEnabled: boolean };
 };
 
 /** Arrow pill colours: [one way, both ways, card tint one way, card tint both ways].

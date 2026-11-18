@@ -300,3 +300,6 @@ Add things here as they come up (date, page, what happened). Each one is either 
       delete), right-click a folder (new note / folder inside, rename, icon and colour, move to,
       delete), drag notes and folders onto folders, folder icons and colours on the Notes home.
       **Done Nov 18.**
+  15. Local vault option (her ask): Settings → Where your files live → This computer only (a vault
+      folder with Notes / Materials / PDFs; copy or start empty; app-data sync is a separate
+      choice). **Done Nov 18.** For friends: offer the choice on first run (Sharing track).
