@@ -3,7 +3,10 @@
 //! machine kept. The frontend builds the content (src/lib/backup.ts). A Drive folder is only created
 //! when its parent exists (same rule as the sync folder), so nothing lands under an empty mount point.
 
+use crate::notes::NotesState;
 use crate::sync::sync_dir;
+use std::path::Path;
+use tauri::State;
 use serde::Serialize;
 use std::fs;
 use std::io::Write;
@@ -104,6 +107,64 @@ pub async fn backup_prune(dir: String, machine: String, keep: usize) -> Result<u
     .map_err(|e| e.to_string())?
 }
 
+/// Copy every file under `src` that `dst` doesn't have yet (or has with another size). Pasted
+/// images never change once saved, so a daily backup only copies the new ones. Never deletes.
+pub fn copy_missing(src: &Path, dst: &Path) -> Result<usize, String> {
+    if !src.is_dir() {
+        return Ok(0);
+    }
+    let mut n = 0;
+    for e in fs::read_dir(src).map_err(|e| e.to_string())?.flatten() {
+        let name = e.file_name();
+        if name.to_string_lossy().starts_with('.') {
+            continue;
+        }
+        let (a, b) = (e.path(), dst.join(&name));
+        if a.is_dir() {
+            n += copy_missing(&a, &b)?;
+        } else {
+            let size = e.metadata().map(|m| m.len()).unwrap_or(0);
+            if fs::metadata(&b).map(|m| m.len()).ok() == Some(size) {
+                continue;
+            }
+            fs::create_dir_all(dst).map_err(|e| e.to_string())?;
+            let tmp = dst.join(format!(".{}.tmp", name.to_string_lossy()));
+            fs::copy(&a, &tmp).map_err(|e| e.to_string())?;
+            fs::rename(&tmp, &b).map_err(|e| e.to_string())?;
+            n += 1;
+        }
+    }
+    Ok(n)
+}
+
+fn notes_root(state: &State<'_, NotesState>) -> Result<std::path::PathBuf, String> {
+    state.root.lock().unwrap().clone().ok_or_else(|| "Notes folder not loaded yet".into())
+}
+
+/// The notes folder's pasted images (attachments/) into `<backup folder>/attachments/`.
+#[tauri::command]
+pub async fn backup_attachments(state: State<'_, NotesState>, dir: String) -> Result<usize, String> {
+    let root = notes_root(&state)?;
+    tauri::async_runtime::spawn_blocking(move || {
+        let d = sync_dir(&dir, true)?.ok_or("backup folder missing")?;
+        copy_missing(&root.join("attachments"), &d.join("attachments"))
+    })
+    .await
+    .map_err(|e| e.to_string())?
+}
+
+/// Put back pasted images the notes folder is missing (restoring a backup).
+#[tauri::command]
+pub async fn backup_restore_attachments(state: State<'_, NotesState>, dir: String) -> Result<usize, String> {
+    let root = notes_root(&state)?;
+    tauri::async_runtime::spawn_blocking(move || {
+        let Some(d) = sync_dir(&dir, false)? else { return Ok(0) };
+        copy_missing(&d.join("attachments"), &root.join("attachments"))
+    })
+    .await
+    .map_err(|e| e.to_string())?
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -136,6 +197,25 @@ mod tests {
         // a Drive folder whose parent is missing is refused, not created
         let missing = base.join("NoDrive").join("Backups").to_string_lossy().into_owned();
         assert!(tauri::async_runtime::block_on(backup_write(missing, "mosaic-backup-2026-11-01-pc.json".into(), "{}".into())).is_err());
+        let _ = fs::remove_dir_all(&base);
+    }
+
+    #[test]
+    fn images_copied_once() {
+        let base = std::env::temp_dir().join(format!("mosaic-att-{}", std::process::id()));
+        let _ = fs::remove_dir_all(&base);
+        let src = base.join("Notes/attachments");
+        fs::create_dir_all(src.join("sub")).unwrap();
+        fs::write(src.join("a.png"), b"png").unwrap();
+        fs::write(src.join("sub/b.png"), b"png2").unwrap();
+        let dst = base.join("Backups/attachments");
+        assert_eq!(copy_missing(&src, &dst).unwrap(), 2);
+        assert_eq!(copy_missing(&src, &dst).unwrap(), 0, "already there: nothing copied");
+        fs::write(src.join("c.png"), b"new").unwrap();
+        assert_eq!(copy_missing(&src, &dst).unwrap(), 1);
+        fs::remove_file(src.join("a.png")).unwrap();
+        assert_eq!(copy_missing(&dst, &src).unwrap(), 1, "restore brings back the missing one");
+        assert_eq!(fs::read(src.join("a.png")).unwrap(), b"png");
         let _ = fs::remove_dir_all(&base);
     }
 }

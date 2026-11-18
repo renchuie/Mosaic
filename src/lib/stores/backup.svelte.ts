@@ -54,6 +54,8 @@ export async function runBackup(force = false, timed = false): Promise<void> {
     let content = "";
     for (const p of places()) {
       try {
+        // pasted images: only new ones are copied, so this is cheap every time
+        if (notes.loaded) await invoke("backup_attachments", { dir: dirOf(p) }).catch((e) => console.error("backup images", e));
         if (!force) {
           const have = await invoke<BackupFile[]>("backup_list", { dir: dirOf(p) });
           if (have.some((f) => f.name === name)) {
@@ -119,6 +121,8 @@ export async function restoreBackup(b: Backup, what: RestoreWhat): Promise<{ not
   if (what.data) restoreColls(restoredColls($state.snapshot(db.colls), b, sync.machine || "computer", Date.now()));
   if (what.settings) await saveSettings(restoredSettings(b) as Partial<typeof settings>);
   if (what.notes && b.notes) {
+    // pasted images the notes folder is missing come back from the backup folders
+    for (const p of places()) await invoke("backup_restore_attachments", { dir: dirOf(p) }).catch(() => 0);
     const pv = preview(b);
     if (notes.editing && [...pv.notes!.changed].includes(notes.editing)) noteHooks.moved?.(null); // leave it first
     for (const rel of pv.notes!.missing) {

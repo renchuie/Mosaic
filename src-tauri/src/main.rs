@@ -68,6 +68,8 @@ fn main() {
             backup::backup_list,
             backup::backup_read,
             backup::backup_prune,
+            backup::backup_attachments,
+            backup::backup_restore_attachments,
             history::history_add,
             history::history_list,
             history::history_get,
