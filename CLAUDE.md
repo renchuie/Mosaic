@@ -407,7 +407,8 @@ Markdown" view, the `<>` chip on the note header).
   effect dispatches `REFRESH_MARKS` so the dots follow reviews.
 - Folding (Nov 18): a ▾ after a heading (shown on hover) folds everything under it up to the next
   heading of the same or a higher level or a `---` divider (her pick "1": a divider ends a
-  section), in the same page / half / column; folded it shows
+  section), in the same page / half / column (an empty heading gets no ▾: it sat on the cursor and
+  pushed the "Heading" hint aside); folded it shows
   "▸ N hidden". A view setting, never in the file: `mosaicFolding` plugin in blocks.ts, keys
   `level|text|nth`, remembered per note per machine in localStorage "mosaic.folds" (BlockEditor
   prop `foldKey` = the note's path). Callouts fold with the ⌄ in their header: attr `fold`, saved

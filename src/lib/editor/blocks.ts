@@ -1378,6 +1378,14 @@ function foldDecorations(doc: PMNode, folded: Set<string>): DecorationSet {
           finish();
           open = null;
         }
+        if (!hideAbove && !node.textContent.trim()) {
+          // an empty heading (still being typed) gets no ▾: it would sit on the cursor and push the
+          // "Heading" hint aside (Nov 18 bug); it isn't a section yet either
+          if (open) finish();
+          open = null;
+          pos += node.nodeSize;
+          return;
+        }
         if (!hideAbove) {
           if (open) finish();
           const base = `${level}|${node.textContent.trim()}`;
