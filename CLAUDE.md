@@ -403,12 +403,12 @@ Markdown" view, the `<>` chip on the note header).
   "i of n"; items with their own arrow skipped), and body cells of a `:: table` except the key and
   skipped columns (hint = column header). Tab / Shift-Tab inside or right after a gap, or Alt+↓ / ↑
   anywhere, jumps to the next / previous empty one (wraps; a cloze gets selected). Enter at the end
-  of a filled list item moves into the next empty sibling instead of adding a line. Empty items /
-  cells show their hint faintly (`.b-gap[data-gap]`). Each h1–h3 with gaps gets a badge "N left" /
-  "✓" and, on hover once something is filled, "Review" (`onReviewSection` → route
-  `#/study/cards/review/note:<rel>#<a › b>`; srs `Scope` note `section`, `underSection` matches the
-  card's heading context by prefix; new cards are not capped there). NotesView's top bar shows the
-  note's total ("N left" ring, click = first gap). Print hides the badges.
+  of a filled list item moves into the next empty sibling instead of adding a line. A heading
+  (h1–h3) with something filled under it gets a "Review" button on hover (`onReviewSection` →
+  route `#/study/cards/review/note:<rel>#<a › b>`; srs `Scope` note `section`, `underSection`
+  matches the card's heading context by prefix; new cards are not capped there). Removed Nov 19
+  at her ask ("too specific / too much"): the "N left" pills on headings, the top-bar counter, and
+  the "2 of 7" / column-name hints in empty items and cells. Don't bring them back unprompted.
 - Checklists in callouts (Nov 18, her "Listen for / confirm" lists): `- [ ]` lines inside a
   callout already parse and tick; the callout header shows "N to check" / "✓ all checked"
   (`.b-cticks`, counted in the callout node view's `paint`). Her prompt and the guide now write

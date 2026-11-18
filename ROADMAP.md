@@ -310,8 +310,8 @@ Add things here as they come up (date, page, what happened). Each one is either 
   18. New app icon and rail logo (her pick "M3": the Mosaic M, from her mosaic photo and sketches
       on the canvas). **Done Nov 18.**
   19. Guided-note helpers (her picks 1, 2, 7, 8 after the first full guided note): Tab / Alt+↓
-      jumps to the next empty gap, "N left" counter in the top bar and per heading, hints in
-      empty items ("2 of 7", column names in empty cells), Review from a heading. **Done Nov 18.**
+      jumps to the next empty gap, Review from a heading. **Done Nov 18.** The "N left" counters
+      and the hints in empty items / cells were removed Nov 19 at her ask (too much).
   20. "Listen for / confirm" items as checkboxes with an "N to check" count on the callout (her
       pick 10). **Done Nov 18.**
   21. Split notes: "Side by side, each half scrolls" view (her pick 6), chosen from a small menu on

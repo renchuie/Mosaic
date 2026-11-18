@@ -465,10 +465,8 @@ these pieces.
 - A split note can be read with each half scrolling on its own (her choice in the app; nothing to
   write for it).
 - Checkboxes can be ticked; a callout holding checkboxes shows "N to check" / "✓ all checked".
-- Gaps help her fill in: Tab jumps from one empty blank / answer / list item / table cell to the
-  next, empty list items show "2 of 7" and empty table cells their column name, each heading shows
-  how many gaps are left in it, and once some are filled she can review just that section's cards.
-  So: put blanks where the lecture actually says the fact, and give tables clear column headers.
+- Tab jumps from one empty blank / answer / list item / table cell to the next, and once some
+  are filled she can review just one section's cards from its heading.
 - Everything else is static text: there are no buttons, drop-downs, timers, drag-and-drop,
   matching games, scoring or scripts inside a note. Clozes show their answer in the note (they only
   hide in review).

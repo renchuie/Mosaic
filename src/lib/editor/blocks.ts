@@ -22,7 +22,6 @@ export type EditorOpts = {
   /** a card line's review status (by its card id), for the small dot at the end of the line */
   cardStatus?: (sid: string) => { s: "new" | "due" | "learning" | "later" | "known" | "paused"; tip: string } | null;
   /** guided notes: how many gaps are left (top-bar counter) and a section's Review button */
-  onGapCount?: (left: number, total: number) => void;
   onReviewSection?: (path: string[]) => void;
 };
 /** Meta for a transaction that only asks the line decorations to be worked out again
@@ -1645,7 +1644,7 @@ const Gaps = Extension.create<GapHooks>({
   addProseMirrorPlugins() {
     const o = this.options;
     return [
-      gapsPlugin({ onCount: (l, t) => o.onCount?.(l, t), onReview: (p) => o.onReview?.(p) }),
+      gapsPlugin({ onReview: (p) => o.onReview?.(p) }),
       new Plugin({
         props: {
           handleKeyDown(view, e) {
@@ -1673,7 +1672,7 @@ export function mosaicExtensions(opts: EditorOpts) {
     Image.configure({ imageUrl: opts.imageUrl }), Columns, Column, ColumnRules, Toggle, Pages, PageHalf, MTable, TableRow, MHeader, MCell,
     Wikilink, Arrow, InlineImage.configure({ imageUrl: opts.imageUrl }), HardBreak,
     Bold, Italic, Strike, Code, Highlight, Link, Cloze,
-    Hidden, Shortcuts, behaviour(opts), folding(opts), Gaps.configure({ onCount: opts.onGapCount, onReview: opts.onReviewSection }),
+    Hidden, Shortcuts, behaviour(opts), folding(opts), Gaps.configure({ onReview: opts.onReviewSection }),
     UndoRedo, Dropcursor.configure({ color: "var(--lavender, #c9b8f0)", width: 3 }), Gapcursor,
     Placeholder.configure({
       showOnlyCurrent: true,

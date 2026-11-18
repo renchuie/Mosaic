@@ -192,8 +192,6 @@ export const gapsKey = new PluginKey<{ info: GapInfo; deco: DecorationSet }>("mo
 export type GapHooks = {
   /** the section heading badge's Review button */
   onReview?: (path: string[]) => void;
-  /** after each change: how many gaps there are and how many are still empty */
-  onCount?: (left: number, total: number) => void;
 };
 
 function badge(sec: Section, hooks: GapHooks) {
@@ -201,14 +199,7 @@ function badge(sec: Section, hooks: GapHooks) {
     const el = document.createElement("span");
     el.className = "b-secgap";
     el.contentEditable = "false";
-    if (sec.total) {
-      const pill = document.createElement("span");
-      pill.className = sec.left ? "b-gapcount" : "b-gapcount done";
-      pill.textContent = sec.left ? `${sec.left} left` : "✓";
-      pill.title = sec.left ? `${sec.left} of ${sec.total} still to fill in` : "Everything here is filled in";
-      el.append(pill);
-    }
-    if (sec.total > sec.left) {
+    {
       const b = document.createElement("button");
       b.type = "button";
       b.className = "b-secreview";
@@ -228,41 +219,28 @@ function badge(sec: Section, hooks: GapHooks) {
 
 function decorate(doc: PMNode, info: GapInfo, hooks: GapHooks): DecorationSet {
   const out: Decoration[] = [];
-  for (const sl of info.slots) {
-    if (sl.filled || !sl.hint || (sl.kind !== "item" && sl.kind !== "cell")) continue;
-    const at = sl.from - 1; // the empty line holding the slot
-    const n = doc.nodeAt(at);
-    if (n?.isTextblock) out.push(Decoration.node(at, at + n.nodeSize, { class: "b-gap", "data-gap": sl.hint }));
-  }
+  // Nov 19 (her ask, "too much"): no "N left" pills and no hints in empty items / cells; a heading
+  // only gets a Review button (shown on hover) once something under it is filled in
   for (const sec of info.sections) {
-    if (sec.level > 3 || !sec.total) continue;
+    if (sec.level > 3 || !sec.total || sec.total === sec.left) continue;
     const h = doc.nodeAt(sec.pos);
     if (!h) continue;
-    out.push(Decoration.widget(sec.pos + h.nodeSize - 1, badge(sec, hooks), { side: 1, key: `sg${sec.pos}-${sec.left}-${sec.total}`, ignoreSelection: true }));
+    out.push(Decoration.widget(sec.pos + h.nodeSize - 1, badge(sec, hooks), { side: 1, key: `sg${sec.pos}-${sec.path.join("|")}`, ignoreSelection: true }));
   }
   return DecorationSet.create(doc, out);
 }
 
 export function gapsPlugin(hooks: GapHooks) {
-  let lastCount = "";
-  const report = (info: GapInfo) => {
-    const k = `${info.left}/${info.total}`;
-    if (k === lastCount) return;
-    lastCount = k;
-    queueMicrotask(() => hooks.onCount?.(info.left, info.total));
-  };
   return new Plugin<{ info: GapInfo; deco: DecorationSet }>({
     key: gapsKey,
     state: {
       init: (_c, state) => {
         const info = findGaps(state.doc);
-        report(info);
         return { info, deco: decorate(state.doc, info, hooks) };
       },
       apply: (tr, old, _o, state) => {
         if (!tr.docChanged) return old;
         const info = findGaps(state.doc);
-        report(info);
         return { info, deco: decorate(state.doc, info, hooks) };
       },
     },
