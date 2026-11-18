@@ -154,6 +154,8 @@ function tableAfter(ls: Line[], k: number): { header: string[]; rows: string[][]
       if (c && typeof c === "object") opts = c;
     } catch {}
     j++;
+    // blank lines between that line and the table are fine (Nov 18: Claude wrote one)
+    while (j < ls.length && !ls[j].text.trim()) j++;
   }
   const tl: string[] = [];
   for (; j < ls.length && /^\s*\|/.test(ls[j].raw); j++) tl.push(ls[j].raw);

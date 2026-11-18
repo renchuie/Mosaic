@@ -555,8 +555,15 @@ export function parseBlocks(lines: string[]): PMNode[] {
     // ":: table" + table
     const tableAt = (k: number) => k + 1 < lines.length && /^\s*\|/.test(lines[k]) && TABLE_SEP.test(lines[k + 1]) && lines[k + 1].includes("-");
     /** A table (with its optional mosaic-table line just above) starting at line k. */
-    const tableFrom = (k: number): { t: number; meta: TableMeta | null } | null =>
-      TABLE_META.test(lines[k] ?? "") && tableAt(k + 1) ? { t: k + 1, meta: readMeta(lines[k]) } : tableAt(k) ? { t: k, meta: null } : null;
+    const tableFrom = (k: number): { t: number; meta: TableMeta | null } | null => {
+      if (TABLE_META.test(lines[k] ?? "")) {
+        // blank lines between the mosaic-table line and its table are fine (Nov 18: Claude wrote one)
+        let t = k + 1;
+        while (t < lines.length && !lines[t].trim()) t++;
+        if (tableAt(t)) return { t, meta: readMeta(lines[k]) };
+      }
+      return tableAt(k) ? { t: k, meta: null } : null;
+    };
     let cardsLine: { sid: string | null } | null = null;
     let found = tableFrom(i);
     if ((m = /^::\s*table\b(.*)$/i.exec(line.trim()))) {
