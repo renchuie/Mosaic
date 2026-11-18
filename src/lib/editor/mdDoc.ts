@@ -648,7 +648,7 @@ export function mdToDoc(md: string): PMNode {
 /** Where each block ended up in the file: its first line and its path of child indexes. */
 export type Owner = { line: number; path: number[] };
 
-const LINE_START = /^(#{1,6}(\s|$)|[-*+](\s|$)|\d{1,9}[.)](\s|$)|>|\||```|~~~|\$\$|:: ?table|(?:-[ \t]*){3,}$|(?:\*[ \t]*){3,}$|(?:_[ \t]*){3,}$|<[a-zA-Z!/])/;
+const LINE_START = /^(#{1,6}(\s|$)|[-*+](\s|$)|\d{1,9}[.)](\s|$)|>|\||```|~~~|\$\$|:: ?table|(?:-[ \t]*){3,}$|(?:\*[ \t]*){3,}$|(?:_[ \t]*){3,}$|<(?!\/?mark\b)[a-zA-Z!/])/;
 
 function textLine(n: PMNode, seen: Set<string>): string {
   let s = serializeInline(n.content);

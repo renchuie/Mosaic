@@ -236,7 +236,21 @@ export function extractCards(body: string): NoteCard[] {
   const out: NoteCard[] = [];
   const heads: { level: number; text: string }[] = [];
   const parents: { indent: number; text: string }[] = [];
+  // a toggle holds its own heading: once it closes, the headings from before it apply again
+  // (Nov 18: a table after a closed toggle took the toggle's heading as its context)
+  const toggles: { level: number; text: string }[][] = [];
   ls.forEach((l, k) => {
+    if (/^<!--\s*mosaic-toggle\b/.test(l.text)) {
+      toggles.push(heads.slice());
+      parents.length = 0;
+      return;
+    }
+    if (/^<!--\s*\/mosaic-toggle\s*-->/.test(l.text)) {
+      const before = toggles.pop();
+      if (before) heads.splice(0, heads.length, ...before);
+      parents.length = 0;
+      return;
+    }
     const h = /^(#{1,6})\s+(.*)$/.exec(l.text);
     if (h && !l.bullet) {
       while (heads.length && heads[heads.length - 1].level >= h[1].length) heads.pop();

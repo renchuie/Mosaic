@@ -391,6 +391,14 @@ Markdown" view, the `<>` chip on the note header).
   "a · b" line per row, code gives a line per line, dividers / images are dropped (a pasted image
   FILE goes in as an inline image: in a cell it starts at most the cell's width and 200px tall, and its corner grip resizes it, saved as `![|width](src)` like block images, double-click the grip to fit); in a column, pasted columns / side by side open up into their
   blocks. Plain text with `<!--mosaic-` lines counts as Markdown.
+- Claude notes guide (Nov 18, her ask): `docs/claude-notes-guide.md` is the copy-ready section she
+  pastes into her Claude prompt for guided notes: front matter, headings, toggles, callout kinds,
+  highlight colours, tables, columns and every card syntax, with rules (no cards in callouts /
+  cells / code, no `<!--sd-->` ids). Keep it in step when note syntax changes; its examples were
+  checked with the parser (scratchpad `tstest/test23.ts`). That check found two fixes: a line
+  starting with `<mark class=…>` got a `\` on save (LINE_START in mdDoc.ts now skips `<mark`), and
+  card context after a closed toggle kept the toggle's heading (extractCards restores the headings
+  at `<!--/mosaic-toggle-->`).
 - Print / save as PDF (Nov 18): note ⋯ → "Print or save as PDF…" calls `window.print()` (the GTK
   print dialog; "Print to File" gives a PDF). `src/styles/print.css` keeps only `.printroot` (the
   note's `.scroll`): everything that neither holds it nor sits inside it is hidden, the frames
