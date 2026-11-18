@@ -246,6 +246,7 @@ export function extractCards(body: string): NoteCard[] {
   // a toggle holds its own heading: once it closes, the headings from before it apply again
   // (Nov 18: a table after a closed toggle took the toggle's heading as its context)
   const toggles: { level: number; text: string }[][] = [];
+  const splits: { level: number; text: string }[][] = [];
   ls.forEach((l, k) => {
     if (/^<!--\s*mosaic-toggle\b/.test(l.text)) {
       toggles.push(heads.slice());
@@ -255,6 +256,20 @@ export function extractCards(body: string): NoteCard[] {
     if (/^<!--\s*\/mosaic-toggle\s*-->/.test(l.text)) {
       const before = toggles.pop();
       if (before) heads.splice(0, heads.length, ...before);
+      parents.length = 0;
+      return;
+    }
+    // side by side (pages) and columns: each half / column, and what follows them, starts from the
+    // headings above the split, not the headings of the half or column before it
+    if (/^<!--\s*mosaic-(?:pages|cols)\b/.test(l.text)) {
+      splits.push(heads.slice());
+      parents.length = 0;
+      return;
+    }
+    if (/^<!--\s*mosaic-(?:page|col)\s*-->/.test(l.text) || /^<!--\s*\/mosaic-(?:pages|cols)\s*-->/.test(l.text)) {
+      const top = splits[splits.length - 1];
+      if (top) heads.splice(0, heads.length, ...top);
+      if (/^<!--\s*\//.test(l.text)) splits.pop();
       parents.length = 0;
       return;
     }

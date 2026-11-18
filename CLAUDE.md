@@ -429,6 +429,12 @@ Markdown" view, the `<>` chip on the note header).
   name (made unique); `importFiles` in noteOps (one file opens, several give a message); Notes home
   "Import" button and dropping .md files from the file manager onto Notes home (`dragHasFiles`),
   and a folder's right-click "Import notes here…".
+  Split note in the guide (Nov 18, her ask): "Split note (two pages side by side)" explains
+  `<!--mosaic-pages-->` / `<!--mosaic-page-->` / `<!--/mosaic-pages-->` with `width: full`, one per
+  note at the top level, four uses (compare two things, lecture | my notes, learn | test, case |
+  workup) and two examples (both parsed and imported in the preview). Fixed with it: card context
+  after a split (or columns) kept the last half's heading; extractCards now restores the headings
+  from above the split at each `<!--mosaic-page-->` / `<!--mosaic-col-->` and at the closer.
   The guide ends with "Reference: everything Mosaic can and can't do" (note features,
   interactivity limits, the flashcard and review system, quizzes / library / PDFs / labs, limits)
   and a brainstorming prompt, so Claude can invent activities that are buildable. Update both parts

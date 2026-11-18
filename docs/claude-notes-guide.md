@@ -107,6 +107,135 @@ right side
 
 Use 2 or 3 columns, only for short parallel content.
 
+### Split note (two pages side by side)
+
+Mosaic can split a note into two halves, a left page and a right page, shown side by side. It is
+like two notes on one screen. Use it when two things are best read next to each other, not one
+after the other:
+
+- **Compare two things:** Bipolar I | Bipolar II, typical | atypical antipsychotics, a drug |
+  its alternative, intoxication | withdrawal. Give both halves the same structure (same
+  subheadings, same activities in the same order) so I can read across.
+- **Lecture | my notes:** the guided activities on the left; on the right, the same `###`
+  subheadings with one or two empty bullets under each (`- `) for what the professor says out loud.
+- **Learn | test:** content with blanks on the left; on the right, practice questions as folded
+  question callouts and the answer key, so I can check myself without scrolling.
+- **Case | workup:** a patient case on the left; on the right, short-answer questions to work it
+  up (assessment, plan, monitoring).
+
+How to write it (exactly):
+
+```
+<!--mosaic-pages-->
+
+## Bipolar I
+
+...everything in the left page...
+
+<!--mosaic-page-->
+
+## Bipolar II
+
+...everything in the right page...
+
+<!--/mosaic-pages-->
+```
+
+Rules:
+
+- Add `width: full` to the front matter. The halves only sit side by side when the note is full
+  width; otherwise Mosaic shows them one above the other.
+- Each marker on its own line with a blank line before and after it. Left page first, then
+  `<!--mosaic-page-->`, then the right page.
+- One split per note, at the top level: never inside a toggle, callout, columns, list or table.
+- Start each half with its own heading (`##` or `###`) so both pages are labelled.
+- Anything can go in a half: text, lists, blanks and every card type, tables (`:: table` too),
+  callouts, toggle sections and 2 columns. Cards keep the heading of their own half.
+- Keep the halves about the same length, and tables in a half to 2 or 3 columns (each half is
+  narrow).
+- Content before and after the split is full width: for example the Learning objectives above it
+  and a "Check yourself" toggle below it.
+- Use columns (above) for a few short lines side by side inside a section. Use a split for two
+  whole pages. Don't split a note just because it's long.
+
+Example: compare two disorders.
+
+```
+---
+course: Therapeutics IV
+tags: [lecture, bipolar-disorder]
+date: 2026-11-18
+width: full
+---
+
+## Learning objectives
+
+- [ ] Tell bipolar I from bipolar II
+
+<!--mosaic-pages-->
+
+## Bipolar I
+
+- Requires at least one {{_____}} episode.
+- Psychosis possible: {{_____::yes / no}}
+
+First-line agents for acute mania ::
+  - 
+  - 
+
+<!--mosaic-page-->
+
+## Bipolar II
+
+- Requires a {{_____}} episode and a {{_____}} episode.
+- Psychosis possible: {{_____::yes / no}}
+
+First-line agents for bipolar depression ::
+  - 
+  - 
+
+<!--/mosaic-pages-->
+
+> [!success]- Answer key
+>
+> 1. manic
+> 2. yes
+> ...
+```
+
+Example: lecture on the left, my notes on the right.
+
+```
+<!--mosaic-pages-->
+
+## Lithium (slides)
+
+### Levels and dosing
+
+- Target level in acute mania: {{_____::mEq/L}}
+- Draw the trough {{_____::hours}} after the last dose.
+
+### Toxicity
+
+- Activated charcoal for lithium toxicity: {{_____::give / do not give}}
+
+<!--mosaic-page-->
+
+## My notes
+
+### Levels and dosing
+
+- 
+- 
+
+### Toxicity
+
+- 
+- 
+
+<!--/mosaic-pages-->
+```
+
 ## Flashcards inside the notes
 
 Mosaic makes flashcards from special lines. Make cards only for things worth memorising: about
@@ -305,9 +434,8 @@ these pieces.
   background colour (the app sets this).
 - **Columns:** 2 to 4 side-by-side columns at the top level of the note (not inside toggles,
   callouts or tables).
-- **Side by side:** the whole note can be split into two halves (left / right page), for example
-  "lecture notes | my questions" (`<!--mosaic-pages-->` left `<!--mosaic-page-->` right
-  `<!--/mosaic-pages-->`, shown side by side only in Full width).
+- **Split note (side by side):** two pages next to each other, for example "lecture | my notes"
+  or "drug A | drug B" (see "Split note" above; needs `width: full`; one per note, top level).
 - **Links:** `[[Note name]]`, `[[Note name|shown text]]`, `[[Note name#Heading]]`; links to a PDF
   page `[[folder/file.pdf#p3|Slides, p. 3]]` open the PDF at that page. `#tags` anywhere.
 - **Front matter:** `course`, `tags`, `date`, `icon` (emoji), `cover` (lilac, blush, peach, butter,
