@@ -263,11 +263,12 @@ export function serializeInline(nodes: PMNode[] = [], cell = false): string {
         while (k < stack.length && k < want.length && sameMark(stack[k].m, want[k])) k++;
         for (let j = stack.length - 1; j >= k; j--) out += close(stack[j].m, stack[j].opener);
         stack.length = k;
-        out += pend + t;
+        // right after an arrow (which writes its own space) a typed space adds nothing
+        out += pend + (nodesMerged[idx - 1]?.type === "arrow" ? "" : t);
         pend = "";
         return;
       }
-      lead = t.slice(0, t.length - t.trimStart().length);
+      lead = nodesMerged[idx - 1]?.type === "arrow" ? "" : t.slice(0, t.length - t.trimStart().length);
       const trail = t.slice(t.trimEnd().length);
       if (code) {
         const runs = core.match(/`+/g) ?? [];

@@ -417,6 +417,9 @@ Markdown" view, the `<>` chip on the note header).
   table, so the table, `:: table` and the comment showed as text: blank lines between `:: table`,
   the mosaic-table line and the table are now allowed in both `tableFrom` (mdDoc.ts) and
   `tableAfter` (cards.ts). An empty `>` line right after a callout title is harmless (dropped).
+  A concept still to be filled in (`Lithium ;;` with empty `;;;` descriptors under it) is no
+  card (`kindOf`; it used to become a list card of the property names); a space typed right after
+  an arrow pill isn't saved twice (serializeInline drops the text's leading space after an arrow).
   The guide ends with "Reference: everything Mosaic can and can't do" (note features,
   interactivity limits, the flashcard and review system, quizzes / library / PDFs / labs, limits)
   and a brainstorming prompt, so Claude can invent activities that are buildable. Update both parts

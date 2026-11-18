@@ -180,6 +180,9 @@ function kindOf(ls: Line[], k: number): "card" | "cloze" | "list" | "table" | "d
   if (c?.desc) return c.back || children(ls, k).length ? "desc" : null;
   if (c) {
     if (c.back) return "card";
+    // a concept still to be filled in ("Lithium ;;" with descriptors under it, guided notes) is
+    // no card yet: never a list card of its property names
+    if (c.concept) return null;
     return children(ls, k).length ? "list" : null; // "**Brand** ::" with nothing yet: not a card
   }
   // a non-global test: the shared global CLOZE_RE would carry lastIndex into later matchAll calls
