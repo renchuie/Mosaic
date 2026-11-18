@@ -968,6 +968,27 @@ Recall Labs. Decisions she approved:
   part; "Make a deck" creates a Mosaic deck (library + that tag) named by the last two parts;
   course guessed from the deck path. Preview-only hook `window.__ankiRead` stands in for the Rust
   read. Tested in the real app (Xvfb): 66 notes, 10 schedules, 3 review days, 1 deck.
+- Cards home + deck pages (Nov 19, her Nov 18 canvas pick "A + C combined": the deck list is the
+  home, each deck has its own page). `CardsView.svelte`: hero (Review all, Add card, Browse, Stats,
+  Import), exam strip, the deck list (Due / New / Total / Review per row, Anki-style): her own
+  decks, each course (▸ opens its notes; open rows remembered per machine in localStorage
+  "mosaic.deckOpen"), "Other notes" (notes with no course), Card library; side: Today and the next
+  2 weeks. The settings box left the page (it is in Settings → Flashcards). `DeckPage.svelte`
+  (`#/study/cards/deck/<scope>`): Review, Cram and the games, numbers (cards, mature, recall now,
+  suspended), next 2 weeks, a course's notes as sub-decks, the first 40 cards and "Browse all"
+  (`#/study/cards/browse?scope=<scope>`, a chip in Browse clears it). Scope strings everywhere:
+  `scopeKey` / `parseScope` / `scopeName` in srs (all | library | deck:<id> | course:<name> |
+  note:<rel>[#a › b]); the router already decodes, so don't decode again.
+- Games (practice only, never the schedule; `PlayView.svelte`, `#/study/cards/play/<type|test|match>/<scope>`,
+  fills the panel like Review; mode chips switch between them; `src/lib/play.ts` pure, node test
+  scratchpad `tstest/t71.ts`): `answerOf` (cloze = just the gap: back minus what the front shows;
+  lists / tables-as-rows / images can't be played), **Type it** (20 a round; `check`: short answers
+  whole with typos allowed, long ones by key words, words in brackets optional, the main clause
+  before the first ; or . is enough; Almost / Not quite + "I was right"; found words highlighted),
+  **Test** (4 options, keys 1–4; `distractors` = other answers in the deck, closest length and same
+  kind first), **Match** (6 pairs as 12 tiles, shorter answers preferred, +1 s per wrong pair, best
+  time per deck in synced collection `games` key `match:<scope>`). A miss comes back once at the end;
+  the end screen lists them. Finishing marks a study day (`markStudyDay("reviews")`), no review counts.
 
 ## Study S4 (built): card library
 

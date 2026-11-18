@@ -43,7 +43,7 @@
   const notePage = $derived(route.page === "study" && route.rest.startsWith("notes/"));
   const writing = $derived(ui.writing && notePage);
   // the review screen fills the panel: progress on top, card centred, rating buttons at the bottom
-  const fit = $derived(route.page === "study" && /^cards\/(review|cram)/.test(route.rest));
+  const fit = $derived(route.page === "study" && /^cards\/(review|cram|play)/.test(route.rest));
 </script>
 
 <div class="shell" class:writing>

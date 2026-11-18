@@ -6,6 +6,7 @@
   import CardBrowser from "./study/CardBrowser.svelte";
   import CardStats from "./study/CardStats.svelte";
   import DeckPage from "./study/DeckPage.svelte";
+  import PlayView from "./study/PlayView.svelte";
   import CardsView from "./study/CardsView.svelte";
   import ReviewSession from "./study/ReviewSession.svelte";
   import { parseScope, type Scope } from "../lib/stores/srs.svelte";
@@ -23,14 +24,21 @@
     if (!route.rest.startsWith("cards/review") && !cram) return null;
     return parseScope(route.rest.replace(/^cards\/(review|cram)\/?/, ""));
   });
+  // #/study/cards/play/<type|test|match>/<scope>
+  const play = $derived.by(() => {
+    const m = /^cards\/play\/(type|test|match)\/(.*)$/.exec(route.rest);
+    return m ? { mode: m[1] as "type" | "test" | "match", scope: parseScope(m[2]) } : null;
+  });
   // #/study/pdfs/<rel>?p=<page>
   const pdf = $derived(route.rest.startsWith("pdfs/") ? parsePdfRoute(route.rest.slice(5)) : null);
   const libItem = $derived(route.rest.startsWith("cards/library/") ? route.rest.slice("cards/library/".length) : null);
 </script>
 
-<div class="study" class:fill={notesPages || !!scope}>
-  {#if !scope && !notesPages}<StudyNav />{/if}
-  {#if scope}
+<div class="study" class:fill={notesPages || !!scope || !!play}>
+  {#if !scope && !notesPages && !play}<StudyNav />{/if}
+  {#if play}
+    {#key route.rest}<PlayView mode={play.mode} scope={play.scope} />{/key}
+  {:else if scope}
     {#key route.rest}<ReviewSession {scope} {cram} />{/key}
   {:else if route.rest.startsWith("cards/browse")}
     <CardBrowser />

@@ -349,3 +349,5 @@ Add things here as they come up (date, page, what happened). Each one is either 
   29. Nov 19 · F1 flashcards pulled forward (her "FLASHCARD SYSTEM TIME"), in her order: card
       browser (**Done**), decks + limits (**Done**), stats page (**Done**), smarter reviews (leeches, sibling burying,
       edit from review; **Done**), Anki .apkg import with review history (**Done**).
+  30. Nov 19 · Cards home as a deck list with a page per deck (her canvas pick "A + C combined") and
+      the practice games Type it / Test / Match (her Nov 18 list). **Done.**
