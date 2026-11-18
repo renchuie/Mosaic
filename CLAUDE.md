@@ -968,17 +968,32 @@ Recall Labs. Decisions she approved:
   part; "Make a deck" creates a Mosaic deck (library + that tag) named by the last two parts;
   course guessed from the deck path. Preview-only hook `window.__ankiRead` stands in for the Rust
   read. Tested in the real app (Xvfb): 66 notes, 10 schedules, 3 review days, 1 deck.
-- Cards home + deck pages (Nov 19, her Nov 18 canvas pick "A + C combined": the deck list is the
-  home, each deck has its own page). `CardsView.svelte`: hero (Review all, Add card, Browse, Stats,
-  Import), exam strip, the deck list (Due / New / Total / Review per row, Anki-style): her own
-  decks, each course (▸ opens its notes; open rows remembered per machine in localStorage
-  "mosaic.deckOpen"), "Other notes" (notes with no course), Card library; side: Today and the next
-  2 weeks. The settings box left the page (it is in Settings → Flashcards). `DeckPage.svelte`
-  (`#/study/cards/deck/<scope>`): Review, Cram and the games, numbers (cards, mature, recall now,
-  suspended), next 2 weeks, a course's notes as sub-decks, the first 40 cards and "Browse all"
-  (`#/study/cards/browse?scope=<scope>`, a chip in Browse clears it). Scope strings everywhere:
-  `scopeKey` / `parseScope` / `scopeName` in srs (all | library | deck:<id> | course:<name> |
-  note:<rel>[#a › b]); the router already decodes, so don't decode again.
+- Flashcards home + deck pages, built to her canvas board "Flashcards tab: A + C" (`FlashAC.dc.html`
+  on the design canvas; Nov 19 she pointed out the first build didn't match it: build FROM the
+  board, not from notes about it). The Study tab is called **Flashcards**, and on flashcard pages
+  StudyNav shows **Decks / Browse / Stats** on the right. Home (`CardsView.svelte`): hero "N due
+  today", New / Learning / To review + "~N min at your pace" (`pace()` in srs: seconds per review
+  over 30 days), dark "Study everything" (Space); the deck list (`DeckRows.svelte`, model in
+  `src/lib/stores/deckTree.svelte.ts`): columns New / Learn / Due, groups **My decks** (her decks,
+  nested via `Deck.parent`, + the card library), **From your notes** (one row per course =
+  scope `notes:<course>`, opening to its notes; pill = the course's next exam or "N notes"),
+  **Filtered** (scope `filter:missed` "Missed this week" = lapsed and seen in the last 7 days,
+  `filter:leech` "Keeps slipping" when any); ▸ / ▾ (open rows in localStorage "mosaic.deckOpen"),
+  icon tile tinted by course, exam pill "Exam 5 · 16 d" (`examOf`, `shortExam`), hover Study / ＋ /
+  ⚙; footer Add card (A) / Create deck / Import. Side: Exams (ring = `readiness()`: seen and due
+  again by the evening before the exam, of all), Next 7 days, Today (studied, remembered).
+  Deck page (`DeckPage.svelte`, `#/study/cards/deck/<scope>`): the deck tree on the left (hidden
+  under 820px), breadcrumb, icon + title + "N cards · course · linked to Exam N", Options /
+  Add card (a parent: Options / Sub-deck), boxes New ("of N waiting") / Learning ("back in N min")
+  / To review ("~N min") + dark Study now (Space), "Study a different way" chips (Cram [before
+  Exam N], Only cards I missed = `filter:missed|<scope>`, Review ahead 2 days = `filter:ahead|<scope>`,
+  Type the answers, Practice test, Match game), sub-decks in the home's rows, Cards table (Front /
+  Back / Type / State / Next, search, Open in Browse); side: exam ring (+ "Fit N before the exam"),
+  Next 7 days, Options. Sub-decks: `Deck.parent`; a parent's matcher includes its sub-decks
+  (`deckMatcher(d, id)`), a deck with no rules is a folder; DeckEditor has "Inside"; deleting a
+  deck moves its sub-decks up. Scopes: `scopeKey` / `parseScope` / `scopeName` in srs (all |
+  library | deck:<id> | course:<name> | note:<rel>[#a › b] | notes:<course> | filter:<id>[|<scope>]);
+  the router already decodes, so don't decode again.
 - Games (practice only, never the schedule; `PlayView.svelte`, `#/study/cards/play/<type|test|match>/<scope>`,
   fills the panel like Review; mode chips switch between them; `src/lib/play.ts` pure, node test
   scratchpad `tstest/t71.ts`): `answerOf` (cloze = just the gap: back minus what the front shows;

@@ -212,6 +212,7 @@
 <div class="play">
   <header class="top">
     <a class="btn quiet sm" href="#/study/cards/deck/{enc(key)}"><Icon name="back" size={15} /> {scopeName(scope)}</a>
+    <span class="practice">Practice</span>
     <span class="prog" aria-hidden="true"><i style="width: {finished ? 100 : progress}%"></i></span>
     <nav class="modes" aria-label="Game">
       {#each Object.entries(NAMES) as [m, n]}<a href="#/study/cards/play/{m}/{enc(key)}" class:on={m === mode} aria-current={m === mode ? "page" : undefined}>{n}</a>{/each}
@@ -291,6 +292,14 @@
 </div>
 
 <style>
+  .practice {
+    padding: 4px 10px;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--butter) 55%, var(--white));
+    color: color-mix(in srgb, var(--butter) 25%, var(--text));
+    font-size: 12px;
+    font-weight: 700;
+  }
   .play {
     display: grid;
     grid-template-rows: auto 1fr;

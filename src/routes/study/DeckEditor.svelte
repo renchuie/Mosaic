@@ -5,12 +5,12 @@
   import IconPicker from "../../lib/components/IconPicker.svelte";
   import { exams } from "../../lib/stores/calendar.svelte";
   import { courses } from "../../lib/stores/courses.svelte";
-  import { deckMatcher, decks, deleteDeck, getDeck, hasRules, saveDeck, type Deck } from "../../lib/stores/decks.svelte";
+  import { deckMatcher, decks, deleteDeck, family, getDeck, saveDeck, type Deck } from "../../lib/stores/decks.svelte";
   import { noteDirs, notes } from "../../lib/stores/notes.svelte";
   import { settings } from "../../lib/stores/settings.svelte";
   import { allCards, statusOf } from "../../lib/stores/srs.svelte";
 
-  let { open = $bindable(false), id = null, onsaved }: { open: boolean; id?: string | null; onsaved?: (id: string) => void } = $props();
+  let { open = $bindable(false), id = null, parent = null, onsaved }: { open: boolean; id?: string | null; parent?: string | null; onsaved?: (id: string) => void } = $props();
 
   let dialog = $state<HTMLDialogElement>();
   let d = $state<Deck>({ name: "", order: 0 });
@@ -23,7 +23,7 @@
   $effect(() => {
     if (open && dialog && !dialog.open) {
       const cur = id ? getDeck(id) : undefined;
-      d = cur ? structuredClone($state.snapshot(cur) as Deck) : { name: "", icon: "i:layers:purple", order: decks().length };
+      d = cur ? structuredClone($state.snapshot(cur) as Deck) : { name: "", icon: "i:layers:purple", order: decks().length, ...(parent ? { parent } : {}) };
       picking = false;
       q = tagQ = error = "";
       confirmDel = false;
@@ -59,7 +59,7 @@
   const examList = $derived(exams().filter((e) => e.days >= -30));
 
   const matched = $derived.by(() => {
-    const m = deckMatcher($state.snapshot(d) as Deck);
+    const m = deckMatcher($state.snapshot(d) as Deck, id ?? undefined);
     const list = allCards().filter((r) => r.card.lineId && m(r));
     const now = Date.now();
     return { total: list.length, due: list.filter((r) => ["review", "learning"].includes(statusOf(r.rec, now))).length, new: list.filter((r) => !r.rec).length };
@@ -70,11 +70,11 @@
   function save(e: SubmitEvent) {
     e.preventDefault();
     if (!d.name.trim()) return (error = "Name the deck.");
-    if (!hasRules(d)) return (error = "Pick where its cards come from.");
     const clean: Deck = { ...($state.snapshot(d) as Deck), name: d.name.trim() };
     for (const k of ["courses", "folders", "notes", "tags"] as const) if (!clean[k]?.length) delete clean[k];
     if (!clean.library) delete clean.library;
     if (!clean.exam) delete clean.exam;
+    if (!clean.parent) delete clean.parent;
     if (clean.newPerDay == null) delete clean.newPerDay;
     if (clean.reviewsPerDay == null) delete clean.reviewsPerDay;
     const key = saveDeck(id, clean);
@@ -99,6 +99,15 @@
     {#if picking}
       <div class="picker"><IconPicker value={d.icon} remove={false} onpick={(v, recoloured) => { if (v) d.icon = v; if (!recoloured) picking = false; }} /></div>
     {/if}
+
+    <section>
+      <label class="row"><span class="label">Inside</span>
+        <select class="input" bind:value={d.parent}>
+          <option value={undefined}>Top level</option>
+          {#each decks().filter(([k]) => !id || !family(id).has(k)) as [k, x] (k)}<option value={k}>{x.name}</option>{/each}
+        </select>
+      </label>
+    </section>
 
     <section>
       <h3 class="label">Courses</h3>

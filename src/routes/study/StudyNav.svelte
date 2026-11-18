@@ -10,12 +10,13 @@
   let { bar = true }: { bar?: boolean } = $props();
   const tab = $derived(route.page === "labs" ? "labs" : route.rest.startsWith("notes") ? "notes" : route.rest.startsWith("cards") ? "cards" : route.rest.startsWith("pdfs") ? "pdfs" : "home");
   const due = $derived(counts());
+  const sub = $derived(route.rest.startsWith("cards/browse") ? "browse" : route.rest.startsWith("cards/stats") ? "stats" : "decks");
   // Notes picks up the note she had open; clicked while already on Notes it goes to the home (folders)
   const notesHref = $derived(tab !== "notes" && ui.lastNote && getNote(ui.lastNote) ? noteHref(ui.lastNote) : "#/study/notes");
   const TABS = $derived([
     { id: "home", label: "Home", href: "#/study", icon: "dashboard" },
     { id: "notes", label: "Notes", href: notesHref, icon: "pen" },
-    { id: "cards", label: "Cards", href: "#/study/cards", icon: "star" },
+    { id: "cards", label: "Flashcards", href: "#/study/cards", icon: "star" },
     { id: "pdfs", label: "PDFs", href: "#/study/pdfs", icon: "file" },
     { id: "labs", label: "Materials", href: "#/labs", icon: "labs" },
   ]);
@@ -30,12 +31,38 @@
 {/snippet}
 
 {#if bar}
-  <div class="sbar">{@render tabs()}</div>
+  <div class="sbar">
+    {@render tabs()}
+    {#if tab === "cards"}
+      <span class="grow"></span>
+      <nav class="sub" aria-label="Flashcards">
+        {#each [["decks", "Decks", "#/study/cards"], ["browse", "Browse", "#/study/cards/browse"], ["stats", "Stats", "#/study/cards/stats"]] as [id, label, href]}
+          <a {href} class:on={sub === id} aria-current={sub === id ? "page" : undefined}>{label}</a>
+        {/each}
+      </nav>
+    {/if}
+  </div>
 {:else}
   {@render tabs()}
 {/if}
 
 <style>
+  .grow {
+    flex: 1;
+  }
+  .sub {
+    display: flex;
+    gap: 4px;
+  }
+  .sub a {
+    min-height: 32px;
+    padding: 0 12px;
+  }
+  .sub a.on {
+    background: color-mix(in srgb, var(--text) 7%, transparent);
+    color: var(--text);
+    font-weight: 600;
+  }
   /* the strip: pulled out to the main panel's edges (cancels main's padding) */
   .sbar {
     display: flex;

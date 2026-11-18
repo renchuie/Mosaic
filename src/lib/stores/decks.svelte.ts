@@ -21,6 +21,8 @@ export type Deck = {
   /** an exam (key from exams()): its course's cards from notes dated after the course's previous
    *  exam up to this one (undated notes count) */
   exam?: string;
+  /** the deck it sits inside (sub-deck); a parent includes its sub-decks' cards */
+  parent?: string;
   /** daily limits; unset = the default (Settings) / no limit */
   newPerDay?: number | null;
   reviewsPerDay?: number | null;
@@ -34,7 +36,31 @@ export function saveDeck(id: string | null, d: Deck): string {
   put("decks", key, d);
   return key;
 }
-export const deleteDeck = (id: string) => del("decks", id);
+/** Delete a deck; its sub-decks move up to its own parent. */
+export function deleteDeck(id: string) {
+  const up = getDeck(id)?.parent;
+  for (const [k, d] of childrenOf(id)) saveDeck(k, { ...d, parent: up });
+  del("decks", id);
+}
+export const childrenOf = (id: string) => decks().filter(([, d]) => d.parent === id);
+/** a deck and every deck inside it (to keep a deck from being put inside itself) */
+export function family(id: string): Set<string> {
+  const out = new Set([id]);
+  for (const [k] of childrenOf(id)) for (const x of family(k)) out.add(x);
+  return out;
+}
+/** the decks above one, nearest last: for breadcrumbs */
+export function ancestors(id: string): [string, Deck][] {
+  const out: [string, Deck][] = [];
+  const seen = new Set([id]);
+  for (let p = getDeck(id)?.parent; p && !seen.has(p); p = getDeck(p)?.parent) {
+    const d = getDeck(p);
+    if (!d) break;
+    seen.add(p);
+    out.unshift([p, d]);
+  }
+  return out;
+}
 
 export const hasRules = (d: Deck) => !!(d.courses?.length || d.folders?.length || d.notes?.length || d.library || d.tags?.length || d.exam);
 
@@ -51,7 +77,14 @@ const tagsOf = (r: CardRef): string[] =>
 
 /** A matcher for a deck: each kind of rule that is set must match (courses AND where AND tags AND
  *  exam); inside one kind any entry is enough. A deck without rules matches nothing. */
-export function deckMatcher(d: Deck | undefined): (r: CardRef) => boolean {
+export function deckMatcher(d: Deck | undefined, id?: string): (r: CardRef) => boolean {
+  if (!d) return () => false;
+  // its sub-decks' cards are its cards too (like Anki); a deck can be only a folder for others
+  const kids = id ? [...family(id)].filter((k) => k !== id).map((k) => ownMatcher(getDeck(k))) : [];
+  const own = ownMatcher(d);
+  return kids.length ? (r) => own(r) || kids.some((m) => m(r)) : own;
+}
+function ownMatcher(d: Deck | undefined): (r: CardRef) => boolean {
   if (!d || !hasRules(d)) return () => false;
   const courses = d.courses?.length ? new Set(d.courses) : null;
   const where = d.folders?.length || d.notes?.length || d.library;

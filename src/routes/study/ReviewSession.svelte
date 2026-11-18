@@ -12,7 +12,7 @@
   import { notes } from "../../lib/stores/notes.svelte";
   import OcclusionView from "../../lib/components/OcclusionView.svelte";
   import { getDeck } from "../../lib/stores/decks.svelte";
-  import { allCards, cardLine, clearLeech, cramQueue, cramReviewed, ensureIds, grade, saveCardLine, setSuspended, LEARN_AHEAD, preview, queue, RATINGS, statusOf, undo, type CardRef, type Scope } from "../../lib/stores/srs.svelte";
+  import { allCards, scopeName, cardLine, clearLeech, cramQueue, cramReviewed, ensureIds, grade, saveCardLine, setSuspended, LEARN_AHEAD, preview, queue, RATINGS, statusOf, undo, type CardRef, type Scope } from "../../lib/stores/srs.svelte";
   import { get } from "../../lib/stores/synced.svelte";
   import { settings, saveSettings } from "../../lib/stores/settings.svelte";
   import type { SrsRec } from "../../lib/stores/srs.svelte";
@@ -72,10 +72,7 @@
     next();
   }
 
-  const label = $derived(
-    (cram ? "Cram · " : "") +
-      (scope.kind === "all" ? "All decks" : scope.kind === "deck" ? (getDeck(scope.id)?.name ?? "Deck") : scope.kind === "course" ? scope.name : scope.kind === "library" ? "Card library" : (notes.files[scope.rel]?.p.title ?? "Note") + (scope.section?.length ? ` › ${scope.section.join(" › ")}` : "")),
-  );
+  const label = $derived((cram ? "Cram · " : "") + (scope.kind === "all" ? "All decks" : scopeName(scope)));
 
   onMount(async () => {
     // opened straight from a link at start-up: wait for the notes before building the queue

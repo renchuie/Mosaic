@@ -24,7 +24,7 @@
   const scopeParam = /[?&]scope=([^&]+)/.exec(location.hash)?.[1];
   let only = $state(scopeParam ? parseScope(decodeURIComponent(scopeParam)) : null);
   const inOnly = $derived(only ? inScope(only) : null);
-  const inDeck = $derived(source.startsWith("deck:") ? deckMatcher(getDeck(source.slice(5))) : null);
+  const inDeck = $derived(source.startsWith("deck:") ? deckMatcher(getDeck(source.slice(5)), source.slice(5)) : null);
   let sort = $state<"due" | "added" | "lapses" | "interval" | "note">("due");
   let shown = $state(150);
   let sel = $state<string | null>(null);

@@ -5,6 +5,7 @@ import { assignIds, cardId, extractCards, type NoteCard } from "../cards";
 import { addDays, fromKey, todayKey, toKey } from "../calendar";
 import type { Mask } from "../cardTypes";
 import { exams } from "./calendar.svelte";
+import { courseByName } from "./courses.svelte";
 import { cardsOfItem, getType, items, previewImages } from "./library.svelte";
 import { joinNote, splitNote } from "../notes";
 import { markStudyDay } from "./labs.svelte";
@@ -45,16 +46,33 @@ export type CardRef = {
   img: (src: string) => string;
 };
 /** note scope with `section`: only cards under that heading path (a section's Review button) */
-export type Scope = { kind: "all" } | { kind: "deck"; id: string } | { kind: "course"; name: string } | { kind: "note"; rel: string; section?: string[] } | { kind: "library" };
+/** filter: the Filtered decks (missed this week, keeps slipping, due in the next 2 days), on all
+ *  cards or inside another scope; notes: the note cards of one course ("" = notes with no course) */
+export type FilterId = "missed" | "leech" | "ahead";
+export type Scope =
+  | { kind: "all" }
+  | { kind: "deck"; id: string }
+  | { kind: "course"; name: string }
+  | { kind: "note"; rel: string; section?: string[] }
+  | { kind: "library" }
+  | { kind: "notes"; course: string }
+  | { kind: "filter"; id: FilterId; in?: Scope };
 
 /** A scope as one string, for routes: all | library | deck:<id> | course:<name> | note:<rel>[#a › b] */
 export function scopeKey(s: Scope): string {
+  if (s.kind === "filter") return `filter:${s.id}${s.in ? `|${scopeKey(s.in)}` : ""}`;
+  if (s.kind === "notes") return `notes:${s.course}`;
   if (s.kind === "deck") return `deck:${s.id}`;
   if (s.kind === "course") return `course:${s.name}`;
   if (s.kind === "note") return `note:${s.rel}${s.section?.length ? `#${s.section.join(" › ")}` : ""}`;
   return s.kind;
 }
 export function parseScope(k: string): Scope {
+  if (k.startsWith("filter:")) {
+    const [id, ...rest] = k.slice(7).split("|");
+    return { kind: "filter", id: id as FilterId, ...(rest.length ? { in: parseScope(rest.join("|")) } : {}) };
+  }
+  if (k.startsWith("notes:")) return { kind: "notes", course: k.slice(6) };
   if (k.startsWith("course:")) return { kind: "course", name: k.slice(7) };
   if (k.startsWith("deck:")) return { kind: "deck", id: k.slice(5) };
   if (k.startsWith("note:")) {
@@ -64,7 +82,10 @@ export function parseScope(k: string): Scope {
   return k === "library" ? { kind: "library" } : { kind: "all" };
 }
 /** what a scope is called */
+export const FILTER_NAMES: Record<FilterId, string> = { missed: "Missed this week", leech: "Keeps slipping", ahead: "Due in the next 2 days" };
 export function scopeName(s: Scope): string {
+  if (s.kind === "filter") return FILTER_NAMES[s.id] + (s.in ? ` · ${scopeName(s.in)}` : "");
+  if (s.kind === "notes") return s.course ? `${courseByName(s.course)?.[1].code || s.course} notes` : "Other notes";
   if (s.kind === "all") return "All cards";
   if (s.kind === "library") return "Card library";
   if (s.kind === "deck") return getDeck(s.id)?.name ?? "Deck";
@@ -136,8 +157,23 @@ const underSection = (ctx: string[], path: string[]) => {
   const p = path.map(plainHead);
   return p.length <= c.length && p.every((x, k) => c[k] === x);
 };
+const WEEK = 7 * 86_400_000;
+/** a Filtered deck's rule */
+function filterMatch(id: FilterId): (r: CardRef) => boolean {
+  const now = Date.now();
+  if (id === "leech") return (r) => !!r.rec?.leech;
+  // forgotten at least once and seen in the last week (the review log isn't kept per card)
+  if (id === "missed") return (r) => !!r.rec && r.rec.lapses > 0 && !!r.rec.last_review && now - r.rec.last_review < WEEK;
+  return (r) => !!r.rec && !r.rec.suspended && r.rec.state !== State.New && r.rec.due <= now + 2 * 86_400_000;
+}
 export const inScope = (s: Scope): ((r: CardRef) => boolean) =>
-  s.kind === "deck" ? deckMatcher(getDeck(s.id)) : (r: CardRef) =>
+  s.kind === "deck"
+    ? deckMatcher(getDeck(s.id), s.id)
+    : s.kind === "filter"
+      ? ((m, inner) => (r: CardRef) => m(r) && (!inner || inner(r)))(filterMatch(s.id), s.in ? inScope(s.in) : null)
+      : s.kind === "notes"
+        ? (r: CardRef) => !!r.note && String(r.note.p.meta.course ?? "") === s.course
+        : (r: CardRef) =>
   s.kind === "all"
     ? true
     : s.kind === "course"
@@ -329,7 +365,7 @@ export function nextExam(course?: string) {
   return course ? exams().find((e) => e.course === course && e.days >= 1) : undefined;
 }
 /** The evening before an exam: the latest a card should come due. */
-const beforeExam = (date: string) => fromKey(date).getTime() - 6 * 3600000;
+export const beforeExam = (date: string) => fromKey(date).getTime() - 6 * 3600000;
 
 export const LEECH_AT = 8;
 /** Rate a card. Returns true when this rating made it a leech. */
@@ -491,4 +527,24 @@ export function retention(days = 30): number | null {
 export function recallOf(rec: SrsRec, now = Date.now()): number {
   const r = scheduler().retrievability(toF(rec), new Date(now));
   return typeof r === "number" ? r : parseFloat(String(r)) / 100;
+}
+
+/** Seconds a review takes her, from the last 30 days (8 s until there is any history). */
+export function pace(): number {
+  const from = addDays(todayKey(), -30);
+  let n = 0, ms = 0;
+  for (const [d, r] of entries<DayRev>("reviewDays")) if (d >= from) {
+    n += r.reviews;
+    ms += r.ms;
+  }
+  return n >= 20 ? Math.max(3, ms / n / 1000) : 8;
+}
+/** How ready a set of cards is for an exam: `ready` = seen and coming due again by the evening
+ *  before it (so they get reviewed in time); `unseen` new, `late` due only after the exam. */
+export function readiness(list: CardRef[], date: string) {
+  const cap = beforeExam(date);
+  const cards = list.filter((r) => !r.rec?.suspended);
+  const unseen = cards.filter((r) => !r.rec || r.rec.state === State.New).length;
+  const late = cards.filter((r) => r.rec && r.rec.state !== State.New && r.rec.due > cap).length;
+  return { total: cards.length, ready: cards.length - unseen - late, unseen, late };
 }
