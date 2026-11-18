@@ -435,6 +435,9 @@ Markdown" view, the `<>` chip on the note header).
   workup) and two examples (both parsed and imported in the preview). Fixed with it: card context
   after a split (or columns) kept the last half's heading; extractCards now restores the headings
   from above the split at each `<!--mosaic-page-->` / `<!--mosaic-col-->` and at the closer.
+  Several splits in one note work (her prompt uses one per section for two-way comparisons); a
+  split only keeps the 60vh writing room when it ends the note (`.b-pages:last-child` in
+  editor.css), otherwise it is as tall as its halves.
   The guide ends with "Reference: everything Mosaic can and can't do" (note features,
   interactivity limits, the flashcard and review system, quizzes / library / PDFs / labs, limits)
   and a brainstorming prompt, so Claude can invent activities that are buildable. Update both parts

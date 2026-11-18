@@ -836,6 +836,10 @@ button.dot[data-color] {
 [data-width="full"]:not([data-split="stacked"]) .mosaic-doc .b-pages {
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   column-gap: calc(var(--doc-pad, 40px) * 2);
+}
+/* a split that ends the note (the whole-note layout from the top-bar button) keeps room to write;
+   a split inside a section (Claude's comparisons) is only as tall as its halves */
+[data-width="full"]:not([data-split="stacked"]) .mosaic-doc .b-pages:last-child {
   min-height: 60vh;
 }
 [data-width="full"]:not([data-split="stacked"]) .mosaic-doc .b-pagecol + .b-pagecol {

@@ -147,7 +147,9 @@ Rules:
   width; otherwise Mosaic shows them one above the other.
 - Each marker on its own line with a blank line before and after it. Left page first, then
   `<!--mosaic-page-->`, then the right page.
-- One split per note, at the top level: never inside a toggle, callout, columns, list or table.
+- At most one split per section (a note can have several), always at the top level: never
+  inside a toggle, callout, columns, list or table. A split only takes the height of its halves,
+  except a split that ends the note, which keeps room to write.
 - Start each half with its own heading (`##` or `###`) so both pages are labelled.
 - Anything can go in a half: text, lists, blanks and every card type, tables (`:: table` too),
   callouts, toggle sections and 2 columns. Cards keep the heading of their own half.
@@ -435,7 +437,7 @@ these pieces.
 - **Columns:** 2 to 4 side-by-side columns at the top level of the note (not inside toggles,
   callouts or tables).
 - **Split note (side by side):** two pages next to each other, for example "lecture | my notes"
-  or "drug A | drug B" (see "Split note" above; needs `width: full`; one per note, top level).
+  or "drug A | drug B" (see "Split note" above; needs `width: full`; at most one per section, top level).
 - **Links:** `[[Note name]]`, `[[Note name|shown text]]`, `[[Note name#Heading]]`; links to a PDF
   page `[[folder/file.pdf#p3|Slides, p. 3]]` open the PDF at that page. `#tags` anywhere.
 - **Front matter:** `course`, `tags`, `date`, `icon` (emoji), `cover` (lilac, blush, peach, butter,
