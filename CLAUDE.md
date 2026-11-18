@@ -1018,6 +1018,31 @@ Recall Labs. Decisions she approved:
 - `expand_home` falls back to `USERPROFILE` (Windows has no HOME) and accepts `~\`.
 - For friends (Sharing track): a first-run choice between Drive and a vault is still to do.
 
+## Backups (Nov 19, Week 2 "Trust"; her picks: both places, app data + note text)
+
+- Settings → Backups. Once a day (45 s after start, then hourly, so a new day is caught) each
+  computer writes `mosaic-backup-<YYYY-MM-DD>-<machine>.json` to `settings.backupLocal` (default
+  `~/Mosaic Backups`) AND `settings.backupDrive` (default `…/Study Lab/Mosaic Backups`; "" turns a
+  place off), then keeps its newest `backupKeep` (14). "Back up now" replaces today's file. Rust
+  `src-tauri/src/backup.rs` (async: write via temp + rename, list, read, prune per machine; the
+  Drive folder is only created when its parent exists, like sync; `cargo test backup`).
+- Content (`src/lib/backup.ts`, pure, node test scratchpad `tstest/t60.ts`): `{mosaicBackup: 1,
+  created, machine, host, settings, colls (the whole synced store), notes: {rel: Markdown} | null}`.
+  Notes come from the notes index (cache if the folder can't be read); none at all = `null`, so an
+  unmounted Drive never looks like "every note deleted". No backup while the synced store is empty.
+- Restore (list of both places, or "From a file…"): a preview per collection (`COLL_NAMES`; back /
+  changed / removed, compared with keys sorted) and notes (come back / replaced / newer ones stay),
+  checkboxes App data / Notes / Settings. First a timed safety copy
+  (`…-<day>T<HHMM>-<machine>.json`, listed as "before a restore", never replaces the day's file).
+  App data: `restoredColls` stamps every restored or removed record NOW (`synced.restoreColls`), so
+  it wins the next sync on the other computer instead of being undone by it. Notes: missing ones
+  are written back; differing ones go to `.trash` first, then the backup's text is written; notes
+  made since are never touched; the open note is left first. Settings skip this computer's folder
+  paths (`MACHINE_SETTINGS`).
+- Tested in the real app (Xvfb): back up now → both files; wipe `~/.local/share/studydesk`,
+  delete a note, change another → restore brings back the note, the changed one's current text
+  in `.trash`, and app data (a task added to the backup).
+
 ## Performance (Nov 19, her "scrolling isn't smooth, deleting has a brief moment")
 
 - Tauri runs a command that is a plain `pub fn` on the MAIN thread, so the whole window freezes

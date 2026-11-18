@@ -333,3 +333,6 @@ Add things here as they come up (date, page, what happened). Each one is either 
       no blur over scrolling content, the note's scroll handler runs once per frame. **Done.**
   24. Nov 19 · Icon picker (her ask): clean line icons in colours first, every emoji second, for
       notes, folders, courses and tags. **Done.**
+  25. Nov 19 · Week 2 "Trust" started early: daily backups to this computer and Drive (app data +
+      note text, 14 kept), back up now, restore with a preview (or from a file), safety copy first.
+      **Done.** Still in week 2: friendlier "Drive isn't mounted" states and a scan-speed check.

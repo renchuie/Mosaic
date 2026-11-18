@@ -15,6 +15,9 @@
   import { refreshPdfs } from "../lib/stores/pdfs.svelte";
   import { route } from "../lib/router.svelte";
   import StoragePanel from "./settings/StoragePanel.svelte";
+  import { backups, listBackups, preview, readBackup, restoreBackup, runBackup, today, type Listed } from "../lib/stores/backup.svelte";
+  import { COLL_NAMES, parseBackup, type Backup, type Preview } from "../lib/backup";
+  import { invoke } from "../lib/tauri";
 
   const GROUPS = [
     { id: "you", name: "You", icon: "user", note: "Your name in Mosaic." },
@@ -23,6 +26,7 @@
     { id: "flashcards", name: "Flashcards", icon: "cards", note: "Reviewing and scheduling." },
     { id: "files", name: "Files & storage", icon: "folder", note: "Where your notes, materials and PDFs live." },
     { id: "sync", name: "Sync", icon: "refresh", note: "Keeping your PC and laptop in step." },
+    { id: "backups", name: "Backups", icon: "i:archive", note: "A daily copy of your data and notes." },
     { id: "calendar", name: "Calendar", icon: "calendar", note: "Exams and events." },
     { id: "advanced", name: "Labs & advanced", icon: "labs", note: "Lab storage and bringing over old progress." },
   ] as const;
@@ -40,6 +44,11 @@
       return m < 1 ? "Just now" : m < 60 ? `${m} min ago` : "On";
     }
     if (id === "appearance") return themeById(settings.theme).name;
+    if (id === "backups") {
+      if (settings.autoBackup === false) return "Off";
+      if (backups.error.local || backups.error.drive) return "Problem";
+      return backups.list.some((b) => b.mine && b.day === today()) ? "Today" : "";
+    }
     return "";
   }
 
@@ -66,6 +75,8 @@
     { id: "folders", g: "files", label: "Folders", words: "notes folder materials labs pdf folder path scan depth" },
     { id: "synconoff", g: "sync", label: "Sync between computers", words: "sync drive laptop pc folder" },
     { id: "syncstatus", g: "sync", label: "Sync status", words: "sync now last synced status" },
+    { id: "backupplaces", g: "backups", label: "Backups", words: "backup backups copy daily restore save export safe" },
+    { id: "restore", g: "backups", label: "Restore a backup", words: "restore backup undo lost recover import file" },
     { id: "examwords", g: "calendar", label: "Words that mark an exam", words: "exam keywords quiz final calendar" },
     { id: "labstorage", g: "advanced", label: "Lab storage", words: "lab storage rescan check scan" },
     { id: "import", g: "advanced", label: "Bring over progress", words: "import browser progress recall lab paste" },
@@ -126,6 +137,69 @@
     void syncNow();
     done("sync");
   }
+
+  // ---- backups ----
+  let bOn = $state(settings.autoBackup !== false);
+  let bLocal = $state(settings.backupLocal ?? "");
+  let bDrive = $state(settings.backupDrive ?? "");
+  let bKeep = $state(settings.backupKeep ?? 14);
+  let pick = $state<{ b: Backup; label: string; pv: Preview } | null>(null);
+  let what = $state({ data: true, notes: true, settings: false });
+  let bmsg = $state("");
+  let bbusy = $state(false);
+  let bfile = $state<HTMLInputElement>();
+  $effect(() => {
+    if (group === "backups") void listBackups();
+  });
+  async function saveBackups(e: SubmitEvent) {
+    e.preventDefault();
+    await saveSettings({ autoBackup: bOn, backupLocal: bLocal.trim(), backupDrive: bDrive.trim(), backupKeep: Math.max(1, Math.round(Number(bKeep)) || 14) });
+    void listBackups();
+    done("backups");
+  }
+  async function backupNow() {
+    bmsg = "";
+    await runBackup(true);
+    await listBackups();
+    bmsg = backups.error.local || backups.error.drive ? "" : "Backed up.";
+    document.getElementById("set-restore")?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+  }
+  const when = (ms: number) => new Date(ms).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
+  const kb = (n: number) => (n > 1e6 ? `${(n / 1e6).toFixed(1)} MB` : `${Math.max(1, Math.round(n / 1e3))} KB`);
+  function choose(b: Backup, label: string) {
+    pick = { b, label, pv: preview(b) };
+    what = { data: true, notes: !!b.notes, settings: false };
+    bmsg = "";
+  }
+  async function openBackup(f: Listed) {
+    const b = await readBackup(f);
+    if (typeof b === "string") bmsg = b;
+    else choose(b, `${f.day} · ${f.place === "drive" ? "Drive" : "this computer"}${f.mine ? "" : ` · ${f.machine}`}`);
+  }
+  async function fromFile() {
+    const f = bfile?.files?.[0];
+    if (!f) return;
+    const b = parseBackup(await f.text());
+    if (bfile) bfile.value = "";
+    if (typeof b === "string") bmsg = b;
+    else choose(b, f.name);
+  }
+  async function doRestore() {
+    if (!pick) return;
+    bbusy = true;
+    try {
+      const r = await restoreBackup(pick.b, what);
+      bmsg = `Restored.${r.notes ? ` ${r.notes} note${r.notes === 1 ? "" : "s"} put back.` : ""}${r.failed.length ? ` Couldn’t write: ${r.failed.join(", ")}.` : ""}`;
+      pick = null;
+      void listBackups();
+      document.getElementById("set-restore")?.scrollIntoView({ block: "start", behavior: "smooth" });
+    } catch (e) {
+      bmsg = `Couldn’t restore: ${e instanceof Error ? e.message : e}`;
+    } finally {
+      bbusy = false;
+    }
+  }
+  const changes = $derived(pick ? pick.pv.colls.filter((c) => c.added || c.removed || c.changed) : []);
 
   // the theme tabs open on the family of the theme in use
   let fam = $state(themeById(settings.theme).family);
@@ -390,6 +464,73 @@
         {/if}
       </div>
 
+    {:else if group === "backups"}
+      <form class="scard" id="set-backupplaces" class:flash={flash === "backupplaces"} onsubmit={saveBackups}>
+        <h3>Daily backup</h3>
+        <div class="srow">
+          <div class="rl"><b id="bon-l">Back up every day</b><span>App data and the text of every note.</span></div>
+          {@render seg("bon", [{ v: "off", name: "Off" }, { v: "on", name: "On" }], bOn ? "on" : "off", (v) => (bOn = v === "on"))}
+        </div>
+        <label class="srow col"><span class="rl"><b>On this computer</b>{#if backups.error.local}<span class="bad">{backups.error.local}</span>{/if}</span><input class="input" bind:value={bLocal} spellcheck="false" placeholder="Off" /></label>
+        <label class="srow col"><span class="rl"><b>On Google Drive</b>{#if backups.error.drive}<span class="bad">{backups.error.drive}</span>{/if}</span><input class="input" bind:value={bDrive} spellcheck="false" placeholder="Off" /></label>
+        <label class="srow"><span class="rl"><b>Keep</b><span>Days per computer.</span></span><input class="input num" type="number" min="1" max="365" bind:value={bKeep} /></label>
+        <div class="srow end">
+          <button class="btn primary" type="submit">Save</button>
+          <button class="btn quiet" type="button" onclick={backupNow} disabled={!inTauri || backups.running}>{backups.running ? "Backing up…" : "Back up now"}</button>
+          {#if saved === "backups"}<span class="muted">Saved</span>{/if}
+        </div>
+      </form>
+
+      <div class="scard" id="set-restore" class:flash={flash === "restore"}>
+        <h3>Restore</h3>
+        {#if bmsg}<p class="result">{bmsg}</p>{/if}
+        {#if pick}
+          <div class="srow col">
+            <div class="rl"><b>{pick.label}</b><span>Backed up {when(pick.b.created)}{pick.b.host ? ` on ${pick.b.host}` : ""}.</span></div>
+            {#if changes.length}
+              <ul class="bdiff">
+                {#each changes as c (c.coll)}
+                  <li><b>{COLL_NAMES[c.coll] ?? c.coll}</b><span>{[c.added && `${c.added} back`, c.changed && `${c.changed} changed`, c.removed && `${c.removed} removed`].filter(Boolean).join(" · ")}</span></li>
+                {/each}
+              </ul>
+            {:else}
+              <p class="muted bnote">App data is the same as now.</p>
+            {/if}
+            {#if pick.pv.notes}
+              <p class="muted bnote">
+                Notes: {pick.pv.notes.missing.length} come back · {pick.pv.notes.changed.length} replaced (now’s version goes to .trash){pick.pv.notes.newer.length ? ` · ${pick.pv.notes.newer.length} newer ones stay` : ""}
+              </p>
+            {:else}
+              <p class="muted bnote">No notes in this backup.</p>
+            {/if}
+            <div class="bwhat">
+              <label><input type="checkbox" bind:checked={what.data} /> App data</label>
+              <label class:off={!pick.pv.notes}><input type="checkbox" bind:checked={what.notes} disabled={!pick.pv.notes} /> Notes</label>
+              <label><input type="checkbox" bind:checked={what.settings} /> Settings</label>
+            </div>
+            <p class="muted bnote">Today’s state is backed up first, so this can be undone.</p>
+            <div class="btns">
+              <button class="btn primary" type="button" onclick={doRestore} disabled={bbusy || (!what.data && !what.notes && !what.settings)}>{bbusy ? "Restoring…" : "Restore"}</button>
+              <button class="btn quiet" type="button" onclick={() => (pick = null)}>Cancel</button>
+            </div>
+          </div>
+        {:else}
+          {#each backups.list.slice(0, 30) as f (f.place + f.name)}
+            <div class="srow">
+              <div class="rl"><b>{f.day}{f.day === today() ? " · today" : ""}{f.time ? ` · ${f.time}, before a restore` : ""}</b><span>{f.place === "drive" ? "Drive" : "This computer"}{f.mine ? "" : ` · from ${f.machine}`} · {kb(f.size)}</span></div>
+              <button class="btn quiet sm" type="button" onclick={() => openBackup(f)}>Restore…</button>
+            </div>
+          {:else}
+            <div class="srow"><div class="rl"><span>No backups yet.</span></div></div>
+          {/each}
+          <div class="srow end">
+            <button class="btn quiet sm" type="button" onclick={() => bfile?.click()}>From a file…</button>
+            {#if settings.backupLocal}<button class="btn quiet sm" type="button" disabled={!inTauri} onclick={() => invoke("vault_open", { path: settings.backupLocal })}>Open folder</button>{/if}
+            <input type="file" accept=".json,application/json" hidden bind:this={bfile} onchange={fromFile} />
+          </div>
+        {/if}
+      </div>
+
     {:else if group === "calendar"}
       <div class="scard">
         <div class="srow col" id="set-examwords" class:flash={flash === "examwords"}>
@@ -638,6 +779,46 @@
     font-size: 13px;
     color: var(--text-muted);
     line-height: 1.45;
+  }
+  .rl .bad {
+    color: var(--alert-ink);
+  }
+  .bdiff {
+    display: grid;
+    gap: 4px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .bdiff li {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 6px 12px;
+    border-radius: var(--radius-sm);
+    background: var(--panel);
+    font-size: 13.5px;
+  }
+  .bdiff li span {
+    color: var(--text-muted);
+  }
+  .bnote {
+    margin: 0;
+    font-size: 13.5px;
+  }
+  .bwhat {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    font-size: 14px;
+  }
+  .bwhat label {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .bwhat .off {
+    opacity: 0.5;
   }
   .rl b.bad {
     color: var(--alert-ink);

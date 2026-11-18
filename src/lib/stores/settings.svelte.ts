@@ -47,6 +47,12 @@ export type Settings = {
   noteOpen?: "page" | "markdown";
   noteTools?: boolean;
   vault?: string;
+  /** backups (Nov 19, her picks): a dated copy a day on this computer AND on Drive ("" = that
+   *  place is off), the newest `backupKeep` per computer kept */
+  autoBackup?: boolean;
+  backupLocal?: string;
+  backupDrive?: string;
+  backupKeep?: number;
   /** the Drive folders and sync setting in use before switching to the vault, put back on return */
   driveRoots?: { notesRoot: string; labsRoot: string; pdfRoot: string; syncEnabled: boolean };
 };
@@ -94,6 +100,10 @@ export const DEFAULT_SETTINGS: Settings = {
   cardBg: true,
   arrowColor: "theme",
   clozeColor: "theme",
+  autoBackup: true,
+  backupLocal: "~/Mosaic Backups",
+  backupDrive: "~/GoogleDrive/Pharmacy School/Study Lab/Mosaic Backups",
+  backupKeep: 14,
 };
 
 export const settings = $state<Settings>({ ...DEFAULT_SETTINGS });

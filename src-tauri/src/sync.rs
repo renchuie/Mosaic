@@ -27,7 +27,7 @@ fn valid_file(name: &str) -> bool {
 /// The sync folder, refusing to create it when its parent is missing: that
 /// usually means Google Drive is not mounted, and writing under the empty
 /// mount point would hide the files once it is.
-fn sync_dir(dir: &str, create: bool) -> Result<Option<PathBuf>, String> {
+pub(crate) fn sync_dir(dir: &str, create: bool) -> Result<Option<PathBuf>, String> {
     let d = expand_home(dir);
     if d.is_dir() {
         return Ok(Some(d));

@@ -153,6 +153,15 @@ export async function initSynced(migrate: (put: (c: string, id: string, v: unkno
   void syncNow();
 }
 
+/** Put restored app data in place (backup.ts restoredColls stamps it now, so it wins the next
+ *  sync everywhere), write lab progress back to localStorage and tell the stores. */
+export function restoreColls(colls: Colls) {
+  db.colls = colls;
+  applyLabs();
+  changed();
+  listeners.forEach((f) => f());
+}
+
 let running: Promise<void> | null = null;
 
 export function syncNow(): Promise<void> {
