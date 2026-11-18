@@ -706,7 +706,8 @@ Recall Labs. Decisions she approved:
   pill cycles → ⇄ ←), concept `Term ;; meaning` (Nov 18, her ask: `;;` is the concept, arrow attr
   `concept`; the older `**Term** ::: meaning`, a both-ways line whose whole left side is bold, still
   reads as a concept; same two keys as ⇄, kinds `concept` / `concept` + `rev`; the editor marks the
-  term with a green chip `.b-concept` and a ◆ pill via the decoration plugin; `/Concept` in the menu),
+  term with a green chip `.b-concept` and a ◆ pill via the decoration plugin; `/Concept` in the menu;
+  the ◆ and the descriptor's › are CSS-mask shapes (`--glyph`), not characters, so they sit centred),
   descriptor `Property ;;; value` (her ask Nov 18, was `;;`; kind `descriptor`, front "Concept › Property" with `concept` / `prop`
   fields; the concept is the nearest line it is indented under (a bold line counts), else the
   heading; `Property ;;;` with indented bullets = list answer; arrow attr `desc`, a lavender › pill, `/Descriptor`,

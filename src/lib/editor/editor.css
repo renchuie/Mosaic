@@ -276,10 +276,23 @@ button.dot[data-color] {
 .mosaic-doc .b-arrow.concept svg {
   display: none !important; /* even as a list-card arrow */
 }
-.mosaic-doc .b-arrow.concept::after {
-  content: "◆";
-  font-size: 0.75em;
-  line-height: 1;
+/* the ◆ and › are drawn shapes (a mask filled with the pill's text colour), not characters: a font
+   glyph's own spacing sat them off-centre in the pill (Nov 18) */
+.mosaic-doc .b-arrow.concept::after,
+.mosaic-doc .b-arrow[data-desc="true"]::after {
+  content: "";
+  display: block;
+  width: 0.62em;
+  height: 0.62em;
+  background: currentColor;
+  -webkit-mask: var(--glyph) center / contain no-repeat;
+  mask: var(--glyph) center / contain no-repeat;
+}
+.mosaic-doc .b-arrow.concept {
+  --glyph: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 10'%3E%3Cpath d='M5 0.6 9.4 5 5 9.4 0.6 5z'/%3E%3C/svg%3E");
+}
+.mosaic-doc .b-arrow[data-desc="true"] {
+  --glyph: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 10'%3E%3Cpath d='M3.4 1.6 6.8 5 3.4 8.4' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
 }
 /* descriptor: a soft lavender pill with the guillemet; the line itself is not tinted like a card */
 .mosaic-doc .b-arrow[data-desc="true"] {
@@ -288,12 +301,6 @@ button.dot[data-color] {
 }
 .mosaic-doc .b-arrow[data-desc="true"] svg {
   display: none !important; /* even as a list-card arrow */
-}
-.mosaic-doc .b-arrow[data-desc="true"]::after {
-  content: "›";
-  font-size: 1.05em;
-  font-weight: 700;
-  line-height: 1;
 }
 .mosaic-doc .b-p:has(> .b-arrow[data-desc="true"]),
 .mosaic-doc .b-li:has(> .b-arrow[data-desc="true"]) {
