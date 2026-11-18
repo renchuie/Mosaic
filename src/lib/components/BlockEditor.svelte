@@ -784,6 +784,22 @@
 
   let cellPick = $state(false);
   let cardMenu = $state(false);
+  let tbarW = $state(560);
+  let tbarH = $state(40);
+  /** the table bar steps aside after a click off the table (it comes back on the next click or key in a table) */
+  let tbarOff = $state(false);
+  function offTable(e: PointerEvent) {
+    const t = e.target as HTMLElement | null;
+    if (!t || !tableBar) return;
+    if (!t.closest?.(".cwrap")) {
+      cardMenu = false;
+      cellPick = false;
+    }
+    if (t.closest?.(".tbar")) return;
+    const dom = editor?.view.nodeDOM(tableBar.pos) as HTMLElement | null;
+    if (dom?.contains(t)) return;
+    tbarOff = true;
+  }
   $effect(() => {
     if (!tableBar) {
       cellPick = false;
@@ -945,7 +961,13 @@
           if (Array.isArray(c.attrs.colwidth) && c.attrs.colwidth.some((x: unknown) => typeof x === "number")) sized = true;
           return !sized && c.type.name === "tableRow";
         });
-        return { y: r.top - w.top, x: r.left - w.left, cards: !!n.attrs.cards, pos: rf.before(d), sized, ...tableCardInfo(n) };
+        // keep the bar on screen: never above the visible top of the page (it would hide under the
+        // note's top bar), never past the right edge (tables in the right column / half)
+        const scroller = wrap.closest(".scroll") as HTMLElement | null;
+        const visTop = scroller ? scroller.getBoundingClientRect().top - w.top : -Infinity;
+        const y = Math.max(r.top - w.top, visTop + tbarH + 10);
+        const x = Math.max(0, Math.min(r.left - w.left, w.width - tbarW - 8));
+        return { y, x, cards: !!n.attrs.cards, pos: rf.before(d), sized, ...tableCardInfo(n) };
       }
     }
     return null;
@@ -1061,9 +1083,11 @@
         if (closing) return; // the editor's own last updates while it closes
         if (transaction.docChanged) dirty = true;
         const changed = transaction.docChanged;
+        const moved = transaction.selectionSet || changed;
         queueMicrotask(() => {
           if (closing || !editor || editor.isDestroyed) return;
           tick++;
+          if (moved) tbarOff = false;
           detectMenu(changed);
           placeBubble();
           placeCellBox();
@@ -1213,7 +1237,7 @@
   }
 </script>
 
-<svelte:window onmouseup={() => { if (mouseDown) { mouseDown = false; setTimeout(placeBubble, 0); } }} />
+<svelte:window onmouseup={() => { if (mouseDown) { mouseDown = false; setTimeout(placeBubble, 0); } }} onpointerdown={offTable} onkeydown={(e) => { if (e.key === "Escape" && (cardMenu || cellPick)) { cardMenu = false; cellPick = false; } }} />
 
 <!-- svelte-ignore a11y_no_static_element_interactions -->
 <div class="bwrap" bind:this={wrap} onmousemove={onMove} onmousedown={(e) => { if ((e.target as HTMLElement).closest(".mosaic-doc")) mouseDown = true; }} onmouseleave={() => !blockMenu && (handle = null)}>
@@ -1334,8 +1358,8 @@
     </div>
   {/if}
 
-  {#if tableBar}
-    <div class="tbar" style="top: {tableBar.y}px; left: {tableBar.x}px" onmousedown={(e) => e.preventDefault()} role="toolbar" tabindex="-1" aria-label="Table">
+  {#if tableBar && !tbarOff}
+    <div class="tbar" bind:clientWidth={tbarW} bind:clientHeight={tbarH} style="top: {tableBar.y}px; left: {tableBar.x}px" onmousedown={(e) => e.preventDefault()} role="toolbar" tabindex="-1" aria-label="Table">
       <span class="grp">Row</span>
       <button type="button" title="Add a row above" aria-label="Add a row above" onclick={() => editor?.chain().focus().addRowBefore().run()}>↑+</button>
       <button type="button" title="Add a row below" aria-label="Add a row below" onclick={() => editor?.chain().focus().addRowAfter().run()}>↓+</button>
@@ -1539,6 +1563,9 @@
     display: grid;
     gap: 8px;
     width: 340px;
+    max-width: calc(100vw - 32px);
+    max-height: min(520px, calc(100vh - 160px));
+    overflow-y: auto;
     padding: 12px 14px;
     border-radius: 16px;
     background: var(--surface-float, var(--surface));

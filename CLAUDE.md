@@ -334,6 +334,10 @@ Markdown" view, the `<>` chip on the note header).
   snaps to the selection while she drags (no transition: smooth and free), and glides 0.12s only
   when the selection jumps without the mouse (Ctrl+A growing). After her Nov 18 recording showed
   the always-on glide stuttering. Table bar: rows / columns, 🎨 Colour, ⇔ Even out, Flashcards. Enter inside a cell adds a line (Tab moves to the next cell).
+  The bar stays on screen (Nov 18: never above the visible top of the note's `.scroll`, never past
+  the right edge; it sits over the header row when the table is at the top) and steps aside after a
+  click off the table (`tbarOff`, back on the next selection change); a click outside the 🎨 / ▾
+  Flashcards popups or Esc closes them; the Flashcards popup scrolls inside if the window is short.
 - Columns (Nov 17, Notion-style column blocks): nodes `columns` (attr `w` = widths in percent,
   null = equal; only at the top level: doc content is `(block | columns)+`) and `column`
   (`block+`, isolating). In the file: `<!--mosaic-cols {"w":[60,40]}-->`, `<!--mosaic-col-->`
