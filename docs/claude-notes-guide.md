@@ -279,3 +279,92 @@ match the order of the gaps. It stays closed so I can check myself after lecture
 - End with a closed toggle `### Check yourself` holding 3 to 5 exam-style questions as folded
   question callouts with the answers inside.
 - Link related notes with `[[Note name]]` where they exist (for example `[[Heart failure]]`).
+
+## Reference: everything Mosaic can and can't do
+
+Use this when inventing new kinds of activities: anything you suggest has to be buildable from
+these pieces.
+
+### What a note can contain
+
+- **Text:** paragraphs, `#` to `###` headings, `-` bullets, `1.` numbered lists, `- [ ]` checklists
+  (clickable), any of them indented to nest; **bold**, *italic*, ~~strike~~, `inline code`,
+  ```` ``` ```` code blocks, `---` dividers, web links `[text](https://…)`.
+- **Highlights:** `==yellow==` and `<mark class="…">` in rose, sage, peach, lavender, blue, mint,
+  coral, lilac, sky, lemon, grey. Highlighting is the only way to colour text (no text colours,
+  no font sizes).
+- **Quotes:** `> text`; a last line starting with `—` shows as the source.
+- **Callouts:** `> [!kind] Title` boxes (kinds above); `-` after the kind starts it folded, `+`
+  makes it foldable but open. They can hold paragraphs, lists and tables.
+- **Toggle sections:** a heading with everything under it folds away (`<!--mosaic-toggle-->` …
+  `<!--/mosaic-toggle-->`); can start closed; can nest; can hold anything except columns. Flashcards
+  inside toggles work normally.
+- **Tables:** header row + rows; a cell holds lines, bullets, numbered items or checkboxes (joined
+  with `<br>`), never headings, callouts or another table. No merged cells. Cells can have a
+  background colour (the app sets this).
+- **Columns:** 2 to 4 side-by-side columns at the top level of the note (not inside toggles,
+  callouts or tables).
+- **Side by side:** the whole note can be split into two halves (left / right page), for example
+  "lecture notes | my questions" (`<!--mosaic-pages-->` left `<!--mosaic-page-->` right
+  `<!--/mosaic-pages-->`, shown side by side only in Full width).
+- **Links:** `[[Note name]]`, `[[Note name|shown text]]`, `[[Note name#Heading]]`; links to a PDF
+  page `[[folder/file.pdf#p3|Slides, p. 3]]` open the PDF at that page. `#tags` anywhere.
+- **Front matter:** `course`, `tags`, `date`, `icon` (emoji), `cover` (lilac, blush, peach, butter,
+  mint, sage, sky or sunset), `width` (wide or full), `header` (full or compact).
+- **Images:** only pictures I paste in myself (Claude can't add images).
+
+### Interactivity inside a note
+
+- The only things that hide and reveal in the note itself: folded **callouts**, closed **toggle
+  sections**, and folding under a heading (that last one is a view setting, not saved in the file).
+- Checkboxes can be ticked.
+- Everything else is static text: there are no buttons, drop-downs, timers, drag-and-drop,
+  matching games, scoring or scripts inside a note. Clozes show their answer in the note (they only
+  hide in review).
+
+### The flashcard system (what happens after the notes)
+
+- Card types made from note lines: basic `::`, both ways `:::`, reverse `<::`, concept `;;`,
+  descriptor `;;;` (asks "Concept › Property"), cloze `{{…}}` (grouped `{{c1::…}}`, hints
+  `{{answer::hint}}`), list cards (`Question ::` + indented bullets; items can be nested cards),
+  table cards (`:: table`: one card per cell, one per row, or the row with one cell hidden; can also
+  ask "which drug?" from a fact; columns can be skipped).
+- One card per line; an answer is one line, except list cards and table row cards. No cards in
+  headings, table cells (except via `:: table`), callouts, code, or with blank answers.
+- Review is FSRS spaced repetition (like modern Anki). Extras: a scratchpad (I write my answer
+  before I see it, then rate myself), list cards where I mark each missed item and only those come
+  back a few cards later, exam-aware scheduling (cards of a course with an exam coming are brought
+  up before it), and cram mode (practice without changing the schedule).
+- Each card shows its heading path as context, so a card can rely on its section for meaning.
+
+### Other study tools in Mosaic (outside notes)
+
+- **Quizzes** (separate files in Materials, not inside notes): single answer, select all that apply,
+  true/false, fill-in-the-blank (typed, with typo tolerance), drop-down, and calculations with a
+  tolerance; each question has a topic and an explanation; Mosaic tracks scores by topic and has
+  "redo missed". Written in the Mosaic quiz format (the Copy format for Claude button in
+  Materials → Paste quiz gives the exact rules).
+- **Card library**: standalone cards made in the app or imported from CSV, including a Drug card
+  type (generic, brand, class, indication, ADEs, counselling) and image occlusion (boxes hiding
+  parts of a picture). Claude can prepare CSV rows for import.
+- **PDF slides**: highlights, notes and cards made on the lecture PDFs; a note can link to a slide.
+- **Recall Labs**: self-made interactive HTML study pages in Materials.
+
+### Limits to keep in mind
+
+- No maths rendering (`$$…$$` shows as plain text), no diagrams or charts, no audio or video,
+  no images from Claude.
+- Nothing inside a note checks my answers; checking happens in flashcard review or in quizzes.
+- Columns only at the top level; tables only hold text and lists; cards never inside callouts or
+  table cells.
+
+## Brainstorming with Claude
+
+To come up with new activities, paste this guide and then ask something like:
+
+> Using only what Mosaic can do (see the reference above), brainstorm 10 new kinds of guided-note
+> activities for pharmacy lectures. For each: a name, why it helps me learn (retrieval, spacing,
+> application…), exactly how it would be written in a Mosaic note (show a small example), what
+> becomes a flashcard once I fill it in, and any limit it runs into. Prefer activities I fill in
+> during lecture that turn into good flashcards afterwards. Also suggest which ones would work
+> better as a Mosaic quiz file than inside the note.

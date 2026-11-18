@@ -407,6 +407,10 @@ Markdown" view, the `<>` chip on the note header).
   `tstest/test27.ts`). Fixed with it: a run of 3+ underscores is plain text, never emphasis
   (parseInline + `inRun` in escapeText; `{{_____}}` used to save as `{{**_**}}`). In the editor,
   double-clicking a blank selects it and typing stays inside the cloze (Playwright-checked).
+  The guide ends with "Reference: everything Mosaic can and can't do" (note features,
+  interactivity limits, the flashcard and review system, quizzes / library / PDFs / labs, limits)
+  and a brainstorming prompt, so Claude can invent activities that are buildable. Update both parts
+  when a feature lands or a limit goes away.
 - Print / save as PDF (Nov 18): note ⋯ → "Print or save as PDF…" calls `window.print()` (the GTK
   print dialog; "Print to File" gives a PDF). `src/styles/print.css` keeps only `.printroot` (the
   note's `.scroll`): everything that neither holds it nor sits inside it is hidden, the frames
