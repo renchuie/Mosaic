@@ -102,11 +102,10 @@
     flex-wrap: nowrap;
     padding: 6px 8px;
     border-radius: 999px;
-    background: var(--surface-float, var(--surface));
+    /* solid, not blurred: it floats over the note while it scrolls (a blur re-renders every frame) */
+    background: color-mix(in srgb, var(--surface-float, var(--surface)) 40%, var(--white));
     border: var(--edge, 0);
     box-shadow: 0 18px 40px -16px rgba(40, 44, 80, 0.45);
-    -webkit-backdrop-filter: var(--blur, none);
-    backdrop-filter: var(--blur, none);
     overflow-x: auto;
     max-width: 100%;
     scrollbar-width: none;

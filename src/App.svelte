@@ -74,8 +74,8 @@
     overflow-y: auto;
     background: var(--panel);
     border: var(--edge);
-    -webkit-backdrop-filter: var(--blur);
-    backdrop-filter: var(--blur);
+    /* no backdrop blur here (Nov 19, her "scrolling isn't smooth"): WebKitGTK re-blurs the whole
+       panel on every scroll frame, and the colour blooms behind it are soft already */
     border-radius: 34px;
     box-shadow: var(--shadow);
     padding: var(--main-pad);

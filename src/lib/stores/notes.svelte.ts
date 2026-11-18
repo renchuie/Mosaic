@@ -259,19 +259,38 @@ export async function moveFolder(from: string, to: string): Promise<string> {
 }
 
 /** Move a folder and everything in it to the notes folder's `.trash/`. */
+// Deleting shows at once (Nov 19, her "a brief moment before it disappears": the move into .trash/
+// on the Drive mount can take a while): the index changes first, the file moves after, and a
+// failed move puts everything back before the error goes up.
 export async function trashFolder(dir: string) {
   changed();
-  if (inTauri) await invoke("notes_trash", { rel: dir });
-  notes.files = Object.fromEntries(Object.entries(notes.files).filter(([r]) => !r.startsWith(dir + "/")));
-  notes.dirs = notes.dirs.filter((d) => !under(d, dir));
-  saveCache();
+  const files = notes.files;
+  const dirs = notes.dirs;
+  notes.files = Object.fromEntries(Object.entries(files).filter(([r]) => !r.startsWith(dir + "/")));
+  notes.dirs = dirs.filter((d) => !under(d, dir));
+  try {
+    if (inTauri) await invoke("notes_trash", { rel: dir });
+  } catch (e) {
+    notes.files = files;
+    notes.dirs = dirs;
+    throw e;
+  } finally {
+    saveCache();
+  }
 }
 
 export async function trashNote(rel: string) {
   changed();
-  if (inTauri) await invoke("notes_trash", { rel });
+  const prev = notes.files[rel];
   delete notes.files[rel];
-  saveCache();
+  try {
+    if (inTauri) await invoke("notes_trash", { rel });
+  } catch (e) {
+    if (prev) notes.files[rel] = prev;
+    throw e;
+  } finally {
+    saveCache();
+  }
 }
 
 export async function makeFolder(rel: string) {

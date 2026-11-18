@@ -328,3 +328,6 @@ Add things here as they come up (date, page, what happened). Each one is either 
       on her exact steps or a recording. Small find: undoing an arrow leaves the line's hidden card
       id in the file (harmless, no dot; left alone because clearing ids eagerly would lose review
       history while she retypes a cloze). **Open.**
+  23. Nov 19 · Performance pass (her "scrolling isn't smooth, deleting has a brief moment"): file
+      commands that froze the window while Drive answered are async now, deleting shows at once,
+      no blur over scrolling content, the note's scroll handler runs once per frame. **Done.**

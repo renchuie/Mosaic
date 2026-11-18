@@ -13,11 +13,11 @@
   import { get } from "../../lib/stores/synced.svelte";
   import {
     allNotes, allTags, backlinks, createNote, dirOf, getNote, imageUrl, linkName, moveNote, noteHref, notes,
-    reloadNote, renameNote, resolveLink, saveNote, savePastedImage, trashNote, noteDirs } from "../../lib/stores/notes.svelte";
+    reloadNote, renameNote, resolveLink, saveNote, savePastedImage, noteDirs } from "../../lib/stores/notes.svelte";
   import { pdfHref, resolvePdfLink } from "../../lib/stores/pdfs.svelte";
   import NewNoteDialog from "./NewNoteDialog.svelte";
   import NoteMenu from "./NoteMenu.svelte";
-  import { noteHooks } from "../../lib/stores/noteOps.svelte";
+  import { doTrashNote, noteHooks } from "../../lib/stores/noteOps.svelte";
   import NoteTree from "./NoteTree.svelte";
   import NotesHome from "./NotesHome.svelte";
   import NoteHead from "./NoteHead.svelte";
@@ -237,8 +237,7 @@
   async function doDelete() {
     if (!rel) return;
     window.clearTimeout(timer);
-    await trashNote(rel);
-    location.hash = "#/study/notes";
+    await doTrashNote(rel); // leaves the note at once; the file moves to .trash/ after
   }
   function coverFile(f: File) {
     if (!rel) return;
@@ -458,6 +457,15 @@
     requestAnimationFrame(() => requestAnimationFrame(put));
     if (y) window.setTimeout(put, 150); // images and folds can settle a moment later
   });
+  // once per frame at most: scroll events can come faster than frames, and this reads the layout
+  let headFrame = 0;
+  function onNoteScroll() {
+    if (headFrame) return;
+    headFrame = requestAnimationFrame(() => {
+      headFrame = 0;
+      checkHead();
+    });
+  }
   function checkHead() {
     if (loadedRel && scrollEl) noteScroll.set(loadedRel, scrollEl.scrollTop);
     const t = scrollEl?.querySelector(".nh .title");
@@ -624,7 +632,7 @@
           {#if ((typing && (!fullHead || headHidden)) || tools) && !source}
             <div class="floatbar"><NoteToolbar floating onrun={(c, a) => blocks?.run(c, a)} /></div>
           {/if}
-          <div class="scroll printroot" bind:this={scrollEl} onscroll={checkHead}>
+          <div class="scroll printroot" bind:this={scrollEl} onscroll={onNoteScroll}>
             <NoteHead {rel} {meta} bind:title {status} {errorText} {source} {dirs}
               coverUrl={(s) => imageUrl(rel!, s)}
               onmeta={setMeta} onrename={doRename} onmove={doMove} ondelete={doDelete} ontoggleSource={toggleSource}

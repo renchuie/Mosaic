@@ -107,7 +107,7 @@ pub async fn pdfs_list(state: State<'_, PdfsState>, root: String, depth: Option<
 }
 
 #[tauri::command]
-pub fn pdfs_stat(state: State<'_, PdfsState>, rel: String) -> Result<(u64, bool), String> {
+pub async fn pdfs_stat(state: State<'_, PdfsState>, rel: String) -> Result<(u64, bool), String> {
     let root = root_of(&state)?;
     let p = path_in(&root, &rel)?;
     Ok((mtime_ms(&p), root.join(ORIGINALS).join(&rel).exists()))
@@ -173,7 +173,7 @@ pub async fn pdfs_write(state: State<'_, PdfsState>, request: Request<'_>) -> Re
 
 /// Put the backed-up original back (annotations made in Mosaic are gone after this).
 #[tauri::command]
-pub fn pdfs_restore(state: State<'_, PdfsState>, rel: String) -> Result<u64, String> {
+pub async fn pdfs_restore(state: State<'_, PdfsState>, rel: String) -> Result<u64, String> {
     let root = root_of(&state)?;
     let p = path_in(&root, &rel)?;
     let b = root.join(ORIGINALS).join(&rel);
@@ -184,7 +184,7 @@ pub fn pdfs_restore(state: State<'_, PdfsState>, rel: String) -> Result<u64, Str
 
 /// Open the PDF in her default PDF app (or show it in the file manager with `folder`).
 #[tauri::command]
-pub fn pdfs_open(state: State<'_, PdfsState>, rel: String, folder: Option<bool>) -> Result<(), String> {
+pub async fn pdfs_open(state: State<'_, PdfsState>, rel: String, folder: Option<bool>) -> Result<(), String> {
     let root = root_of(&state)?;
     let p = path_in(&root, &rel)?;
     let target = if folder.unwrap_or(false) { p.parent().map(Path::to_path_buf).unwrap_or(root) } else { p };

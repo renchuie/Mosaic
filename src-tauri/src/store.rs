@@ -39,12 +39,12 @@ pub fn read_json(path: &Path) -> Option<Value> {
 }
 
 #[tauri::command]
-pub fn load_doc(app: AppHandle, name: String) -> Result<Option<Value>, String> {
+pub async fn load_doc(app: AppHandle, name: String) -> Result<Option<Value>, String> {
     Ok(read_json(&doc_path(&app, &name)?))
 }
 
 #[tauri::command]
-pub fn save_doc(app: AppHandle, name: String, value: Value) -> Result<(), String> {
+pub async fn save_doc(app: AppHandle, name: String, value: Value) -> Result<(), String> {
     let bytes = serde_json::to_vec_pretty(&value).map_err(|e| e.to_string())?;
     write_atomic(&doc_path(&app, &name)?, &bytes)
 }

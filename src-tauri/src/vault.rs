@@ -28,7 +28,7 @@ fn home() -> PathBuf {
 
 /// Subfolders of `path` (empty = home), for the in-app folder picker.
 #[tauri::command]
-pub fn vault_dirs(path: String) -> Result<DirList, String> {
+pub async fn vault_dirs(path: String) -> Result<DirList, String> {
     let p = if path.trim().is_empty() { home() } else { expand_home(&path) };
     let rd = fs::read_dir(&p).map_err(|e| format!("Can't open {}: {e}", p.display()))?;
     let mut dirs: Vec<String> = rd

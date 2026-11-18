@@ -90,7 +90,8 @@ below disagrees.
   Oat remap the whole pastel palette and `--g-*` to their own earthy colours (Linen clay / straw /
   olive, Stone dusty rose / sage / slate, Oat brick / ochre / denim), have soft blooms under the
   paper noise (`--t-b1..3`, shown beside the rail in Curve), and a light `--hero` (no dark blocks).
-  **Only the big layers blur** (main panel, rail, dialogs, menus); cards are plain
+  **Only a few layers blur** (rail, dialogs, menus; since Nov 19 NOT the main panel or the floating
+  note toolbar, which sit over scrolling content: see "Performance"); cards are plain
   translucent white on the already-blurred panel. Backdrop blur is costly to repaint in WebKitGTK,
   so don't add `backdrop-filter` to cards or list items. Anything floating (dialogs, `div.menu`,
   `div.pop`, `div.selmenu`) gets the nearly opaque `--surface-float` from base.css. Inputs use
@@ -993,6 +994,28 @@ Recall Labs. Decisions she approved:
   Drive (`syncEnabled`). `vault_open` shows the folder (xdg-open / explorer / open).
 - `expand_home` falls back to `USERPROFILE` (Windows has no HOME) and accepts `~\`.
 - For friends (Sharing track): a first-run choice between Drive and a vault is still to do.
+
+## Performance (Nov 19, her "scrolling isn't smooth, deleting has a brief moment")
+
+- Tauri runs a command that is a plain `pub fn` on the MAIN thread, so the whole window freezes
+  until it returns. Every command that touches the disk (above all the Drive mount, where a rename
+  or write can take a while) must be `pub async fn`. Made async Nov 19: notes_mkdir / move / trash,
+  pdfs_stat / restore / open, load_doc / save_doc, paths_info, materials_adopt, vault_dirs.
+  Only tiny local ones stay sync (machine_name, open_in_system, vault_create (used by a test),
+  vault_open).
+- No `backdrop-filter` on anything that covers scrolling content: WebKitGTK re-blurs it every
+  frame. Removed from `main` (the colour blooms behind it are soft, so it looked the same: < 1%
+  pixel difference) and from the floating note toolbar (solid now).
+- Scroll handlers that read layout run once per frame (`requestAnimationFrame`), e.g. NotesView's
+  `onNoteScroll` → `checkHead`.
+- Deleting is optimistic: `trashNote` / `trashFolder` drop the entries from the index first, then
+  move the file; a failed move puts them back and says "Couldn't move it to the trash…". Deleting
+  the open note (⋯ or right-click) leaves it at once without saving it first; its leave-save can't
+  recreate it because `notes_write` refuses a missing file.
+- Testing the real app: build with `npm run tauri build -- --no-bundle`, run it on Xvfb with a
+  throwaway HOME (`GoogleDrive/Pharmacy School/Study Lab/Notes/...`), `LIBGL_ALWAYS_SOFTWARE=1
+  WEBKIT_DISABLE_COMPOSITING_MODE=1`, `STUDYDESK_ROUTE=study/notes/<rel>`, drive it with `xdotool`
+  (installed in the test container with her OK) and check the saved files / `import -window root`.
 
 ## Other decisions
 

@@ -85,13 +85,15 @@ export const doMoveNote = queued(async function doMoveNote(rel: string, folder: 
     say(errText(e));
   }
 });
+// Deleting doesn't save the open note first (it's going to the trash anyway) and leaves it at
+// once; its leave-save can't bring the file back, because notes_write refuses a file that's gone.
 export const doTrashNote = queued(async function doTrashNote(rel: string) {
   try {
-    await beforeChange(rel);
-    await trashNote(rel);
+    const p = trashNote(rel);
     followMove(rel, null);
+    await p;
   } catch (e) {
-    say(errText(e));
+    say(`Couldn't move it to the trash, so it's still here (${errText(e)})`);
   }
 });
 
@@ -117,12 +119,12 @@ export const doMoveFolder = queued(async function doMoveFolder(from: string, to:
 export const doRenameFolder = (dir: string, name: string) => doMoveFolder(dir, `${dirOf(dir) ? dirOf(dir) + "/" : ""}${name.trim()}`);
 export const doTrashFolder = queued(async function doTrashFolder(dir: string) {
   try {
-    await beforeChange(dir);
-    await trashFolder(dir);
-    for (const [k] of entries("noteFolders")) if (k === dir || k.startsWith(dir + "/")) del("noteFolders", k);
+    const p = trashFolder(dir);
     followMove(dir, null);
+    await p;
+    for (const [k] of entries("noteFolders")) if (k === dir || k.startsWith(dir + "/")) del("noteFolders", k);
   } catch (e) {
-    say(errText(e));
+    say(`Couldn't move it to the trash, so it's still here (${errText(e)})`);
   }
 });
 

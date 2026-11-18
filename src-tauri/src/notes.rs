@@ -165,13 +165,13 @@ pub async fn notes_write_file(state: State<'_, NotesState>, rel: String, base64:
 }
 
 #[tauri::command]
-pub fn notes_mkdir(state: State<'_, NotesState>, rel: String) -> Result<(), String> {
+pub async fn notes_mkdir(state: State<'_, NotesState>, rel: String) -> Result<(), String> {
     fs::create_dir_all(path_in(&state, &rel)?).map_err(|e| e.to_string())
 }
 
 /// Rename or move a note or folder. Never overwrites.
 #[tauri::command]
-pub fn notes_move(state: State<'_, NotesState>, from: String, to: String) -> Result<(), String> {
+pub async fn notes_move(state: State<'_, NotesState>, from: String, to: String) -> Result<(), String> {
     let a = path_in(&state, &from)?;
     let b = path_in(&state, &to)?;
     if b.exists() {
@@ -185,7 +185,7 @@ pub fn notes_move(state: State<'_, NotesState>, from: String, to: String) -> Res
 
 /// Move a note or folder into `.trash/` (recoverable from the file manager).
 #[tauri::command]
-pub fn notes_trash(state: State<'_, NotesState>, rel: String) -> Result<(), String> {
+pub async fn notes_trash(state: State<'_, NotesState>, rel: String) -> Result<(), String> {
     let root = root_of(&state)?;
     let a = path_in(&state, &rel)?;
     let stamp = std::time::SystemTime::now().duration_since(UNIX_EPOCH).map(|d| d.as_secs()).unwrap_or(0);

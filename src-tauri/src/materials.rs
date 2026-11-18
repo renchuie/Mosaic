@@ -28,7 +28,7 @@ pub struct PathInfo {
 }
 
 #[tauri::command]
-pub fn paths_info(paths: Vec<String>) -> Vec<PathInfo> {
+pub async fn paths_info(paths: Vec<String>) -> Vec<PathInfo> {
     paths
         .into_iter()
         .map(|p| {
@@ -82,7 +82,7 @@ fn adopt(from: &Path, to: &Path) -> Result<AdoptResult, String> {
 }
 
 #[tauri::command]
-pub fn materials_adopt(from: String, to: String) -> Result<AdoptResult, String> {
+pub async fn materials_adopt(from: String, to: String) -> Result<AdoptResult, String> {
     adopt(&expand_home(&from), &expand_home(&to))
 }
 
