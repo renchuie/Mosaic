@@ -548,3 +548,17 @@ export function readiness(list: CardRef[], date: string) {
   const late = cards.filter((r) => r.rec && r.rec.state !== State.New && r.rec.due > cap).length;
   return { total: cards.length, ready: cards.length - unseen - late, unseen, late };
 }
+
+// ---- flags (Browse, her canvas board: coloured flags that match the highlight colours) ----
+export const FLAGS = [
+  { id: "rose", name: "Rose", colour: "var(--rose-deep)" },
+  { id: "butter", name: "Butter", colour: "var(--butter)" },
+  { id: "sage", name: "Sage", colour: "var(--sage-deep)" },
+] as const;
+export type FlagId = (typeof FLAGS)[number]["id"];
+/** a card's flag (synced collection "cardFlags", keyed by card key) */
+export const flagOf = (key: string) => get<{ c: FlagId }>("cardFlags", key)?.c;
+export function setFlag(key: string, c: FlagId | null) {
+  if (c) put("cardFlags", key, { c });
+  else if (get("cardFlags", key)) del("cardFlags", key);
+}

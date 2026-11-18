@@ -5,8 +5,14 @@
 import { exams, type Exam } from "./calendar.svelte";
 import { courseByName, courses } from "./courses.svelte";
 import { childrenOf, decks, examWindow, getDeck } from "./decks.svelte";
+import { getType } from "./library.svelte";
 import { notes } from "./notes.svelte";
-import { allCards, counts, inScope, scopeKey, type Scope } from "./srs.svelte";
+import { allCards, counts, inScope, scopeKey, type CardRef, type Scope } from "./srs.svelte";
+
+const TYPES: Record<string, string> = { basic: "→ Basic", reverse: "← Reverse", cloze: "{ } Cloze", list: "☰ List", table: "▦ Table", concept: "◆ Concept", descriptor: "› Descriptor" };
+/** a card's type, short, with its glyph */
+export const typeLabel = (r: CardRef) =>
+  r.card.masks ? "▣ Image" : r.card.kind === "item" ? (getType(r.item!.type)?.name ?? "Card") : r.card.two ? "⇄ Both ways" : (TYPES[r.card.kind] ?? r.card.kind);
 
 export type DeckRow = {
   key: string;

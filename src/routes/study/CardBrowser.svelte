@@ -1,453 +1,635 @@
 <script lang="ts">
-  // Card browser (Nov 19, F1 "Flashcards on par with Anki"): every card in one table, search and
-  // filters, a side panel with the card and its numbers, the card's own line editable in place,
-  // and bulk suspend / due now / reschedule / forget.
+  // Browse (canvas board "Flashcards tab" → "Browse": Anki's card browser, made friendly): one
+  // table of every card (library and note cards together), a search box that takes plain words or
+  // filters (deck: tag: is: flag: course:), a sidebar to filter by deck, state, flag and tag, a
+  // dark bar for what's selected (move, tag, flag, pause, forget, delete), and the card on the
+  // right to edit with its numbers. Route #/study/cards/browse[?leech | ?scope=<scope>].
   import Icon from "../../lib/components/Icon.svelte";
   import { cardHtml } from "../../lib/cards";
+  import { plainOf } from "../../lib/play";
   import { courses } from "../../lib/stores/courses.svelte";
-  import { notes } from "../../lib/stores/notes.svelte";
+  import { deckGroups, typeLabel, type DeckRow } from "../../lib/stores/deckTree.svelte";
   import { deckMatcher, decks, getDeck } from "../../lib/stores/decks.svelte";
-  import { inScope, parseScope, scopeName } from "../../lib/stores/srs.svelte";
+  import { deleteItem, getItem, getType, saveItem } from "../../lib/stores/library.svelte";
+  import { notes } from "../../lib/stores/notes.svelte";
   import {
-    allCards, cardLine, clearLeech, ensureIds, fmtInterval, forget, reschedule, saveCardLine, setSuspended, statusOf,
-    type CardRef, type Status,
+    allCards, cardLine, clearLeech, ensureIds, flagOf, FLAGS, fmtInterval, forget, inScope, parseScope, reschedule, saveCardLine, scopeKey, scopeName, setFlag, setSuspended, statusOf,
+    type CardRef, type FlagId, type Scope,
   } from "../../lib/stores/srs.svelte";
 
-  type F = "all" | Status | "due" | "leech";
-  let q = $state("");
-  // #/study/cards/browse?leech opens on the leeches
-  let status = $state<F>(location.hash.endsWith("?leech") ? "leech" : "all");
-  let course = $state("");
-  // "all" | "notes" | "library" | "deck:<id>"
-  let source = $state<string>("all");
-  // #/study/cards/browse?scope=<scope>: opened from a deck page
-  const scopeParam = /[?&]scope=([^&]+)/.exec(location.hash)?.[1];
-  let only = $state(scopeParam ? parseScope(decodeURIComponent(scopeParam)) : null);
-  const inOnly = $derived(only ? inScope(only) : null);
-  const inDeck = $derived(source.startsWith("deck:") ? deckMatcher(getDeck(source.slice(5)), source.slice(5)) : null);
-  let sort = $state<"due" | "added" | "lapses" | "interval" | "note">("due");
-  let shown = $state(150);
-  let sel = $state<string | null>(null);
-  let picked = $state<Set<string>>(new Set());
-
-  // cards written since the last visit get their ids first (a card without one can't be tracked)
   $effect(() => {
     if (notes.loaded) void ensureIds();
   });
   const refs = $derived(allCards().filter((r) => r.card.lineId));
-  const now = Date.now();
-  const st = (r: CardRef): Status => statusOf(r.rec);
-  const isDue = (r: CardRef) => !!r.rec && !r.rec.suspended && r.rec.due <= Date.now() && r.rec.state !== 0;
-  const plain = (md: string) =>
-    cardHtml(md)
-      .replace(/<[^>]+>/g, " ")
-      .replace(/&nbsp;/g, " ")
-      .replace(/&amp;/g, "&")
-      .replace(/&lt;/g, "<")
-      .replace(/&gt;/g, ">")
-      .replace(/&quot;/g, '"')
-      .replace(/&#39;/g, "'")
-      .replace(/\s+/g, " ")
-      .trim();
+
+  // ---- filters: the sidebar picks one per group; the search box adds its own ----
+  type State = "new" | "learning" | "due" | "paused" | "leech";
+  const scopeParam = /[?&]scope=([^&]+)/.exec(location.hash)?.[1];
+  let deckSel = $state<Scope | null>(scopeParam ? parseScope(decodeURIComponent(scopeParam)) : null);
+  let stateSel = $state<State | null>(/[?&]leech\b/.test(location.hash) ? "leech" : null);
+  let flagSel = $state<FlagId | null>(null);
+  let tagSel = $state<string | null>(null);
+  let q = $state("");
+
+  const STATES: { id: State; name: string; colour: string }[] = [
+    { id: "new", name: "New", colour: "var(--link-ink)" },
+    { id: "learning", name: "Learning", colour: "var(--alert-ink)" },
+    { id: "due", name: "Due", colour: "var(--go-ink)" },
+    { id: "paused", name: "Paused", colour: "color-mix(in srgb, var(--text) 25%, transparent)" },
+    { id: "leech", name: "Keeps slipping", colour: "color-mix(in srgb, var(--peach) 70%, var(--alert-ink))" },
+  ];
+  const isDue = (r: CardRef) => !!r.rec && !r.rec.suspended && r.rec.state !== 0 && r.rec.due <= Date.now();
+  const stateMatch = (s: State, r: CardRef) =>
+    s === "new" ? statusOf(r.rec) === "new" : s === "learning" ? !!r.rec && (r.rec.state === 1 || r.rec.state === 3) && !r.rec.suspended : s === "due" ? isDue(r) : s === "paused" ? !!r.rec?.suspended : !!r.rec?.leech;
+  const tagsOf = (r: CardRef): string[] => (r.note ? r.note.p.tags : (r.card.context ?? []).filter((t) => t.startsWith("#")).map((t) => t.slice(1)));
+
+  /** the search box: plain words, plus deck:"Name" tag:x is:due flag:rose course:Law */
+  const parsed = $derived.by(() => {
+    const out: { words: string[]; tests: ((r: CardRef) => boolean)[] } = { words: [], tests: [] };
+    for (const m of q.matchAll(/(\w+):(?:"([^"]*)"|(\S+))|"([^"]+)"|(\S+)/g)) {
+      const [, key, qv, v, phrase, word] = m;
+      const val = (qv ?? v ?? "").toLowerCase();
+      if (key === "deck") {
+        const hit = decks().find(([, d]) => d.name.toLowerCase() === val) ?? decks().find(([, d]) => d.name.toLowerCase().includes(val));
+        out.tests.push(hit ? deckMatcher(hit[1], hit[0]) : () => false);
+      } else if (key === "tag") out.tests.push((r) => tagsOf(r).some((t) => t.toLowerCase() === val));
+      else if (key === "flag") out.tests.push((r) => flagOf(r.card.key) === val);
+      else if (key === "course") out.tests.push((r) => !!r.course && (r.course.toLowerCase().includes(val) || (courses().find(([, c]) => c.name === r.course)?.[1].code ?? "").toLowerCase() === val));
+      else if (key === "is") {
+        const s = ({ new: "new", learning: "learning", due: "due", paused: "paused", suspended: "paused", leech: "leech", slipping: "leech" } as Record<string, State>)[val];
+        if (s) out.tests.push((r) => stateMatch(s, r));
+        else if (val === "flagged") out.tests.push((r) => !!flagOf(r.card.key));
+      } else if (key) out.words.push(`${key}:${val}`);
+      else out.words.push((phrase ?? word ?? "").toLowerCase());
+    }
+    return out;
+  });
+
   const text = new Map<string, { f: string; b: string }>();
   const txt = (r: CardRef) => {
     let t = text.get(r.card.key);
-    if (!t) text.set(r.card.key, (t = { f: plain(r.card.front) || (r.card.masks ? "Image occlusion" : ""), b: plain(r.card.back) }));
+    if (!t) text.set(r.card.key, (t = { f: plainOf(r.card.front) || (r.card.masks ? "Image occlusion" : r.title), b: plainOf(r.card.back) }));
     return t;
+  };
+  const deckName = (r: CardRef) => (r.item ? (r.item.deck && getDeck(r.item.deck)?.name) || "Library" : r.title);
+
+  // ---- sorting: click a column ----
+  type Col = "front" | "deck" | "type" | "due" | "ivl" | "missed";
+  let sortBy = $state<Col>("due");
+  let asc = $state(true);
+  function sortOn(c: Col) {
+    if (sortBy === c) asc = !asc;
+    else {
+      sortBy = c;
+      asc = c !== "missed" && c !== "ivl";
+    }
+  }
+  const SORT: Record<Col, (r: CardRef) => number | string> = {
+    front: (r) => txt(r).f.toLowerCase(),
+    deck: (r) => deckName(r).toLowerCase(),
+    type: (r) => typeLabel(r),
+    due: (r) => (r.rec && r.rec.state !== 0 ? (r.rec.suspended ? 9e15 : r.rec.due) : 8e15),
+    ivl: (r) => r.rec?.scheduled_days ?? -1,
+    missed: (r) => r.rec?.lapses ?? 0,
   };
 
   const filtered = $derived.by(() => {
-    const words = q.trim().toLowerCase().split(/\s+/).filter(Boolean);
+    const inDeck = deckSel ? inScope(deckSel) : null;
+    const { words, tests } = parsed;
     const out = refs.filter((r) => {
-      if (course && r.course !== course) return false;
-      if (source === "notes" && !r.note) return false;
-      if (source === "library" && !r.item) return false;
       if (inDeck && !inDeck(r)) return false;
-      if (inOnly && !inOnly(r)) return false;
-      const s = st(r);
-      if (status === "leech" ? !r.rec?.leech : status === "due" ? !isDue(r) : status !== "all" && s !== status) return false;
+      if (stateSel && !stateMatch(stateSel, r)) return false;
+      if (flagSel && flagOf(r.card.key) !== flagSel) return false;
+      if (tagSel && !tagsOf(r).includes(tagSel)) return false;
+      if (!tests.every((t) => t(r))) return false;
       if (!words.length) return true;
       const t = txt(r);
       const hay = `${t.f} ${t.b} ${r.title} ${(r.card.context ?? []).join(" ")}`.toLowerCase();
       return words.every((w) => hay.includes(w));
     });
-    const key: Record<typeof sort, (r: CardRef) => number | string> = {
-      due: (r) => (r.rec ? (r.rec.suspended ? 9e15 : r.rec.due) : 8e15),
-      added: (r) => -(r.rec?.last_review ?? 0),
-      lapses: (r) => -(r.rec?.lapses ?? 0),
-      interval: (r) => -(r.rec?.scheduled_days ?? -1),
-      note: (r) => `${r.title}\u0000${String(r.card.line).padStart(6, "0")}`,
-    };
-    const k = key[sort];
+    const k = SORT[sortBy];
+    const dir = asc ? 1 : -1;
     return out.sort((a, b) => {
-      const x = k(a);
-      const y = k(b);
-      return x < y ? -1 : x > y ? 1 : 0;
+      const x = k(a), y = k(b);
+      return (x < y ? -1 : x > y ? 1 : 0) * dir;
     });
   });
+  let shown = $state(150);
   const list = $derived(filtered.slice(0, shown));
-  const current = $derived(sel ? refs.find((r) => r.card.key === sel) : undefined);
 
-  const dueText = (r: CardRef) => {
-    if (!r.rec || r.rec.state === 0) return "New";
-    if (r.rec.suspended) return "—";
-    const d = r.rec.due - Date.now();
-    return d <= 0 ? "Now" : fmtInterval(d);
-  };
-  const ivl = (r: CardRef) => (r.rec && r.rec.scheduled_days ? fmtInterval(r.rec.scheduled_days * 86_400_000) : "—");
-  const STATUS_NAME: Record<Status, string> = { new: "New", learning: "Learning", review: "Review", later: "Later", suspended: "Suspended" };
+  // ---- the sidebar's lists ----
+  const flat = (rows: DeckRow[], depth = 0): { r: DeckRow; depth: number }[] => rows.flatMap((r) => [{ r, depth }, ...flat(r.kids, depth + 1)]);
+  const deckList = $derived(flat(deckGroups().filter((g) => g.title !== "Filtered").flatMap((g) => g.rows)));
+  const tagList = $derived.by(() => {
+    const n = new Map<string, number>();
+    for (const r of refs) for (const t of tagsOf(r)) n.set(t, (n.get(t) ?? 0) + 1);
+    return [...n.entries()].sort((a, b) => b[1] - a[1]).slice(0, 16).map(([t]) => t);
+  });
 
-  // ---- picking rows ----
-  function toggle(key: string) {
+  // ---- picking rows (Shift-click picks a range) ----
+  let picked = $state<Set<string>>(new Set());
+  let lastIdx = -1;
+  function pick(i: number, e: MouseEvent) {
+    const key = list[i].card.key;
     const n = new Set(picked);
-    if (n.has(key)) n.delete(key);
+    if (e.shiftKey && lastIdx >= 0) {
+      const [a, b] = [Math.min(lastIdx, i), Math.max(lastIdx, i)];
+      for (let k = a; k <= b; k++) n.add(list[k].card.key);
+    } else if (n.has(key)) n.delete(key);
     else n.add(key);
+    lastIdx = i;
     picked = n;
   }
   const allPicked = $derived(list.length > 0 && list.every((r) => picked.has(r.card.key)));
-  function pickAll() {
-    picked = allPicked ? new Set() : new Set(filtered.map((r) => r.card.key));
-  }
+  const pickAll = () => (picked = allPicked ? new Set() : new Set(filtered.map((r) => r.card.key)));
   const pickedRefs = () => refs.filter((r) => picked.has(r.card.key));
+  const pickedLib = $derived(refs.filter((r) => picked.has(r.card.key) && r.item));
+  const anyPaused = $derived(refs.some((r) => picked.has(r.card.key) && r.rec?.suspended));
+
   let msg = $state("");
-  function bulk(what: "suspend" | "unsuspend" | "now" | "forget" | number) {
-    const rs = pickedRefs();
-    for (const r of rs) {
-      if (what === "suspend") setSuspended(r.card.key, true);
-      else if (what === "unsuspend") setSuspended(r.card.key, false);
-      else if (what === "now") reschedule(r.card.key, Date.now());
-      else if (what === "forget") forget(r.card.key);
-      else reschedule(r.card.key, what);
-    }
-    const n = rs.length;
-    msg = `${n} ${n === 1 ? "card" : "cards"} ${what === "suspend" ? "suspended" : what === "unsuspend" ? "unsuspended" : what === "forget" ? "reset to new" : "rescheduled"}.`;
-    sure = false;
-    resched = false;
-  }
-  let sure = $state(false);
-  let resched = $state(false);
+  let pop = $state<"" | "move" | "tag" | "flag" | "forget" | "delete" | "resched">("");
+  let tagDraft = $state("");
   let reDate = $state("");
+  const done = (n: number, what: string) => {
+    msg = `${n} ${n === 1 ? "card" : "cards"} ${what}.`;
+    pop = "";
+  };
+  const items = () => [...new Set(pickedLib.map((r) => r.item!.id))];
+  function moveTo(deck: string) {
+    for (const id of items()) {
+      const it = getItem(id);
+      if (it) saveItem(id, { ...it, deck: deck || undefined });
+    }
+    done(pickedLib.length, deck ? `moved to ${getDeck(deck)?.name}` : "taken out of their deck");
+  }
+  function addTag() {
+    const t = tagDraft.trim().replace(/^#/, "").replace(/\s+/g, "-");
+    if (!t) return;
+    for (const id of items()) {
+      const it = getItem(id);
+      if (it && !(it.tags ?? []).includes(t)) saveItem(id, { ...it, tags: [...(it.tags ?? []), t] });
+    }
+    tagDraft = "";
+    done(pickedLib.length, `tagged #${t}`);
+  }
+  function flagAll(c: FlagId | null) {
+    const rs = pickedRefs();
+    for (const r of rs) setFlag(r.card.key, c);
+    done(rs.length, c ? "flagged" : "unflagged");
+  }
+  function pause(on: boolean) {
+    const rs = pickedRefs();
+    for (const r of rs) setSuspended(r.card.key, on);
+    done(rs.length, on ? "paused" : "unpaused");
+  }
+  function forgetAll() {
+    const rs = pickedRefs();
+    for (const r of rs) forget(r.card.key);
+    done(rs.length, "reset to new");
+  }
+  function deleteAll() {
+    const ids = items();
+    for (const id of ids) deleteItem(id);
+    picked = new Set();
+    done(ids.length, "deleted");
+  }
+  function resched(when: number) {
+    const rs = pickedRefs();
+    for (const r of rs) reschedule(r.card.key, when);
+    done(rs.length, "rescheduled");
+  }
   const inDays = (d: number) => {
     const t = new Date();
     t.setHours(4, 0, 0, 0);
     return t.getTime() + d * 86_400_000;
   };
 
-  // ---- editing the selected card's line ----
+  // ---- the card on the right ----
+  let sel = $state<string | null>(null);
+  const current = $derived(sel ? refs.find((r) => r.card.key === sel) : undefined);
+  const item = $derived(current?.item ? getItem(current.item.id) : undefined);
+  const itype = $derived(item ? getType(item.type) : undefined);
+  let fields = $state<Record<string, string>>({});
   let editing = $state(false);
   let draft = $state("");
   let editErr = $state("");
-  const line = $derived(current ? cardLine(current) : null);
-  const openNote = $derived(!!current?.note && notes.editing === current.note.rel);
+  let flagOpen = $state(false);
   $effect(() => {
     void sel;
+    fields = item ? { ...item.fields } : {};
     editing = false;
     editErr = "";
+    flagOpen = false;
   });
-  async function saveEdit() {
+  const fieldsDirty = $derived(!!item && Object.keys(fields).some((k) => (fields[k] ?? "") !== (item.fields[k] ?? "")));
+  function saveFields() {
+    if (!current?.item || !item) return;
+    saveItem(current.item.id, { ...item, fields: { ...fields } });
+  }
+  const line = $derived(current ? cardLine(current) : null);
+  async function saveLine() {
     if (!current) return;
     try {
       await saveCardLine(current, draft);
       editing = false;
-      editErr = "";
     } catch (e) {
       editErr = String(e instanceof Error ? e.message : e);
     }
   }
   const fmtDate = (ms?: number) => (ms ? new Date(ms).toLocaleDateString("en-US", { month: "short", day: "numeric", year: new Date(ms).getFullYear() === new Date().getFullYear() ? undefined : "numeric" }) : "—");
+  const dueText = (r: CardRef) => {
+    if (!r.rec || r.rec.state === 0) return "new";
+    if (r.rec.suspended) return "—";
+    const d = new Date(r.rec.due);
+    if (r.rec.due <= Date.now() || d.toDateString() === new Date().toDateString()) return "today";
+    return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+  };
+  const ivl = (r: CardRef) => (!r.rec || r.rec.state === 0 ? "—" : r.rec.state === 1 || r.rec.state === 3 ? fmtInterval(Math.max(60000, r.rec.due - (r.rec.last_review ?? r.rec.due))) : fmtInterval(r.rec.scheduled_days * 86_400_000));
+  const remembered = (r: CardRef) => (r.rec && r.rec.reps ? Math.round(((r.rec.reps - r.rec.lapses) / r.rec.reps) * 100) : null);
+  const flagColour = (c?: FlagId) => FLAGS.find((f) => f.id === c)?.colour;
+  const side = (k: string) => (deckSel ? scopeKey(deckSel) === k : false);
 </script>
 
-<div class="browser" class:withside={!!current}>
-  <header class="top">
-    <a class="back" href="#/study/cards" aria-label="Back to Cards"><Icon name="back" size={18} /></a>
-    <h1 class="h1">Browse</h1>
-    <span class="count">{filtered.length} {filtered.length === 1 ? "card" : "cards"}</span>
-    {#if only}<span class="onlychip">{scopeName(only)}<button type="button" aria-label="Show all cards" onclick={() => (only = null)}>×</button></span>{/if}
-    <label class="search"><Icon name="search" size={16} /><input bind:value={q} placeholder="Search" aria-label="Search cards" /></label>
-  </header>
-
-  <div class="filters">
-    <div class="seg" role="radiogroup" aria-label="Status">
-      {#each [["all", "All"], ["due", "Due"], ["new", "New"], ["learning", "Learning"], ["review", "Review"], ["suspended", "Suspended"], ["leech", "Leeches"]] as [v, n]}
-        <button type="button" role="radio" aria-checked={status === v} class:on={status === v} onclick={() => { status = v as F; shown = 150; }}>{n}</button>
-      {/each}
-    </div>
-    <select class="input sm" bind:value={course} aria-label="Course">
-      <option value="">All courses</option>
-      {#each courses() as [id, c] (id)}<option value={c.name}>{c.code || c.name}</option>{/each}
-    </select>
-    <select class="input sm" bind:value={source} aria-label="Source">
-      <option value="all">Notes + library</option>
-      <option value="notes">Notes</option>
-      <option value="library">Library</option>
-      {#each decks() as [id, d] (id)}<option value="deck:{id}">{d.name}</option>{/each}
-    </select>
-    <select class="input sm" bind:value={sort} aria-label="Sort">
-      <option value="due">Due first</option>
-      <option value="added">Last reviewed</option>
-      <option value="lapses">Most lapses</option>
-      <option value="interval">Longest interval</option>
-      <option value="note">By note</option>
-    </select>
+<div class="bwrap">
+  <div class="search">
+    <Icon name="search" size={16} />
+    {#if deckSel}<span class="tok">{scopeName(deckSel)}<button type="button" aria-label="Show every deck" onclick={() => (deckSel = null)}>×</button></span>{/if}
+    <input bind:value={q} placeholder="Search" aria-label="Search cards" />
+    <span class="hint">deck: tag: is:due flag: course:</span>
   </div>
 
-  {#if picked.size}
-    <div class="bulk" role="toolbar" aria-label="Selected cards">
-      <b>{picked.size} selected</b>
-      <button type="button" class="btn quiet sm" onclick={() => bulk("suspend")}>Suspend</button>
-      <button type="button" class="btn quiet sm" onclick={() => bulk("unsuspend")}>Unsuspend</button>
-      <button type="button" class="btn quiet sm" onclick={() => bulk("now")}>Due now</button>
-      <span class="rwrap">
-        <button type="button" class="btn quiet sm" onclick={() => (resched = !resched)}>Reschedule…</button>
-        {#if resched}
-          <div class="menu pop resched">
-            <button type="button" onclick={() => bulk(inDays(1))}>Tomorrow</button>
-            <button type="button" onclick={() => bulk(inDays(3))}>In 3 days</button>
-            <button type="button" onclick={() => bulk(inDays(7))}>In a week</button>
-            <label><input class="input sm" type="date" bind:value={reDate} /><button type="button" disabled={!reDate} onclick={() => bulk(new Date(reDate + "T04:00").getTime())}>Set</button></label>
-          </div>
-        {/if}
-      </span>
-      {#if sure}
-        <button type="button" class="btn sm danger" onclick={() => bulk("forget")}>Reset {picked.size} to new</button>
-        <button type="button" class="btn quiet sm" onclick={() => (sure = false)}>Cancel</button>
-      {:else}
-        <button type="button" class="btn quiet sm" onclick={() => (sure = true)}>Forget…</button>
-      {/if}
-      <button type="button" class="clr" onclick={() => (picked = new Set())}>Clear</button>
-    </div>
-  {/if}
-  {#if msg}<p class="msg" role="status">{msg} <button type="button" class="clr" onclick={() => (msg = "")}>×</button></p>{/if}
-
-  <div class="body">
-    <div class="table" role="table" aria-label="Cards">
-      <div class="tr th" role="row">
-        <span class="ck"><input type="checkbox" checked={allPicked} onchange={pickAll} aria-label="Select all" /></span>
-        <span>Card</span><span>Answer</span><span>From</span><span>Status</span><span class="r">Due</span><span class="r">Interval</span><span class="r">Lapses</span>
-      </div>
-      {#each list as r (r.card.key)}
-        {@const t = txt(r)}
-        {@const s = st(r)}
-        <div class="tr" role="row" class:on={sel === r.card.key} class:sus={s === "suspended"} tabindex="0"
-          onclick={() => (sel = sel === r.card.key ? null : r.card.key)} onkeydown={(e) => { if (e.key === "Enter") sel = r.card.key; }}>
-          <span class="ck"><input type="checkbox" checked={picked.has(r.card.key)} onclick={(e) => e.stopPropagation()} onchange={() => toggle(r.card.key)} aria-label="Select card" /></span>
-          <span class="f">{t.f}</span>
-          <span class="b">{t.b}</span>
-          <span class="src">{r.title}</span>
-          <span><i class="chip s-{s}">{STATUS_NAME[s]}</i></span>
-          <span class="r">{dueText(r)}</span>
-          <span class="r">{ivl(r)}</span>
-          <span class="r">{r.rec?.lapses || ""}</span>
-        </div>
-      {:else}
-        <p class="empty">No cards match.</p>
+  <div class="browse" class:withside={!!current}>
+    <nav class="tree" aria-label="Filters">
+      <div class="h">Decks</div>
+      {#each deckList as { r, depth } (r.key)}
+        <button type="button" class="t" class:on={side(r.key)} style="--d: {depth}" onclick={() => (deckSel = side(r.key) ? null : r.scope)}>
+          <Icon name={r.icon} size={14} /><span class="tn">{r.name}</span>
+        </button>
       {/each}
-      {#if filtered.length > shown}
-        <button type="button" class="more" onclick={() => (shown += 300)}>Show more ({filtered.length - shown})</button>
+      <div class="h">State</div>
+      {#each STATES as s (s.id)}
+        <button type="button" class="t" class:on={stateSel === s.id} onclick={() => (stateSel = stateSel === s.id ? null : s.id)}><span class="dot" style="background: {s.colour}"></span>{s.name}</button>
+      {/each}
+      <div class="h">Flags</div>
+      {#each FLAGS as f (f.id)}
+        <button type="button" class="t" class:on={flagSel === f.id} onclick={() => (flagSel = flagSel === f.id ? null : f.id)}><span class="flag" style="background: {f.colour}"></span>{f.name}</button>
+      {/each}
+      {#if tagList.length}
+        <div class="h">Tags</div>
+        {#each tagList as t (t)}<button type="button" class="t" class:on={tagSel === t} onclick={() => (tagSel = tagSel === t ? null : t)}>#{t}</button>{/each}
       {/if}
+    </nav>
+
+    <div class="mid">
+      {#if picked.size}
+        <div class="bulk" role="toolbar" aria-label="Selected cards">
+          <b>{picked.size} selected</b>
+          {#if pickedLib.length}
+            <span class="pw"><button type="button" onclick={() => (pop = pop === "move" ? "" : "move")}>Move to deck…</button>
+              {#if pop === "move"}<div class="pop menu">{#each decks() as [id, d] (id)}<button type="button" onclick={() => moveTo(id)}>{d.name}</button>{/each}<button type="button" onclick={() => moveTo("")}>No deck</button></div>{/if}</span>
+            <span class="pw"><button type="button" onclick={() => (pop = pop === "tag" ? "" : "tag")}>Add tag</button>
+              {#if pop === "tag"}<div class="pop menu"><input class="input sm" bind:value={tagDraft} placeholder="tag" aria-label="Tag" onkeydown={(e) => e.key === "Enter" && addTag()} /><button type="button" onclick={addTag}>Add</button></div>{/if}</span>
+          {/if}
+          <span class="pw"><button type="button" onclick={() => (pop = pop === "flag" ? "" : "flag")}><Icon name="i:flag" size={13} /> Flag</button>
+            {#if pop === "flag"}<div class="pop menu">{#each FLAGS as f (f.id)}<button type="button" onclick={() => flagAll(f.id)}><span class="flag" style="background: {f.colour}"></span>{f.name}</button>{/each}<button type="button" onclick={() => flagAll(null)}>No flag</button></div>{/if}</span>
+          <button type="button" onclick={() => pause(true)}>Pause</button>
+          {#if anyPaused}<button type="button" onclick={() => pause(false)}>Unpause</button>{/if}
+          <span class="pw"><button type="button" onclick={() => (pop = pop === "resched" ? "" : "resched")}>Reschedule…</button>
+            {#if pop === "resched"}<div class="pop menu">
+              <button type="button" onclick={() => resched(Date.now())}>Due now</button>
+              <button type="button" onclick={() => resched(inDays(1))}>Tomorrow</button>
+              <button type="button" onclick={() => resched(inDays(3))}>In 3 days</button>
+              <button type="button" onclick={() => resched(inDays(7))}>In a week</button>
+              <label class="dt"><input class="input sm" type="date" bind:value={reDate} aria-label="Date" /><button type="button" disabled={!reDate} onclick={() => resched(new Date(reDate + "T04:00").getTime())}>Set</button></label>
+            </div>{/if}</span>
+          {#if pop === "forget"}<button type="button" class="warn" onclick={forgetAll}>Reset {picked.size} to new?</button>
+          {:else}<button type="button" onclick={() => (pop = "forget")}>Forget (make new)</button>{/if}
+          {#if pickedLib.length}
+            {#if pop === "delete"}<button type="button" class="warn" onclick={deleteAll}>Delete {items().length}?</button>
+            {:else}<button type="button" onclick={() => (pop = "delete")}>Delete</button>{/if}
+          {/if}
+          <span class="grow"></span>
+          <button type="button" class="x" aria-label="Clear selection" onclick={() => { picked = new Set(); pop = ""; }}>×</button>
+        </div>
+      {/if}
+      {#if msg}<p class="msg" role="status">{msg}<button type="button" aria-label="Dismiss" onclick={() => (msg = "")}>×</button></p>{/if}
+
+      <div class="tblwrap">
+        <table class="tbl">
+          <thead>
+            <tr>
+              <th class="ckc"><input type="checkbox" checked={allPicked} onchange={pickAll} aria-label="Select all" /></th>
+              {#each [["front", "Front"], ["deck", "Deck"], ["type", "Type"], ["due", "Due"], ["ivl", "Interval"], ["missed", "Missed"]] as [c, n]}
+                <th aria-sort={sortBy === c ? (asc ? "ascending" : "descending") : undefined}><button type="button" onclick={() => sortOn(c as Col)}>{n}{#if sortBy === c}<span class="ar">{asc ? "↑" : "↓"}</span>{/if}</button></th>
+              {/each}
+            </tr>
+          </thead>
+          <tbody>
+            {#each list as r, i (r.card.key)}
+              {@const fl = flagOf(r.card.key)}
+              <tr class:chk={picked.has(r.card.key)} class:on={sel === r.card.key} class:sus={!!r.rec?.suspended} onclick={() => (sel = sel === r.card.key ? null : r.card.key)}>
+                <td class="ckc"><input type="checkbox" checked={picked.has(r.card.key)} onclick={(e) => { e.stopPropagation(); pick(i, e); }} aria-label="Select card" /></td>
+                <td class="w">{txt(r).f}{#if fl}<span class="flag" style="background: {flagColour(fl)}"></span>{/if}{#if r.rec?.leech}<span class="slip" title="Keeps slipping"></span>{/if}</td>
+                <td class="dk">{deckName(r)}</td>
+                <td>{typeLabel(r)}</td>
+                <td>{dueText(r)}</td>
+                <td>{ivl(r)}</td>
+                <td class="num">{r.rec ? r.rec.lapses : "—"}</td>
+              </tr>
+            {/each}
+          </tbody>
+        </table>
+        {#if !filtered.length}<p class="empty">No cards match.</p>{/if}
+      </div>
+      <div class="under">
+        <span class="small muted">{filtered.length} {filtered.length === 1 ? "card" : "cards"}</span>
+        {#if filtered.length > shown}<button type="button" class="btn sm" onclick={() => (shown += 300)}>Show more</button>{/if}
+      </div>
     </div>
 
     {#if current}
       {@const r = current}
-      {@const s = st(r)}
-      <aside class="side" aria-label="Card">
-        <div class="sh">
-          <span class="where">{(r.card.context ?? []).filter((c) => !c.startsWith("#")).join(" › ") || r.title}</span>
+      {@const fl = flagOf(r.card.key)}
+      <aside class="card ed" aria-label="Card">
+        <div class="eh">
+          <h3>{txt(r).f}</h3>
+          <span class="pw">
+            <button type="button" class="btn sm ib" class:flagged={!!fl} style={fl ? `--fc: ${flagColour(fl)}` : ""} title="Flag" aria-label="Flag" onclick={() => (flagOpen = !flagOpen)}><Icon name="i:flag" size={14} /></button>
+            {#if flagOpen}<div class="pop menu right">{#each FLAGS as f (f.id)}<button type="button" onclick={() => { setFlag(r.card.key, f.id); flagOpen = false; }}><span class="flag" style="background: {f.colour}"></span>{f.name}</button>{/each}<button type="button" onclick={() => { setFlag(r.card.key, null); flagOpen = false; }}>No flag</button></div>{/if}
+          </span>
+          <button type="button" class="btn sm" onclick={() => setSuspended(r.card.key, !r.rec?.suspended)}>{r.rec?.suspended ? "Unpause" : "Pause"}</button>
           <button type="button" class="x" aria-label="Close" onclick={() => (sel = null)}>×</button>
         </div>
-        <div class="face">{@html cardHtml(r.card.front, r.img)}</div>
-        <div class="face ans">{@html cardHtml(r.card.back, r.img)}</div>
 
-        {#if r.note}
-          {#if editing}
-            <textarea class="input edit" bind:value={draft} rows="3" spellcheck="false"></textarea>
-            {#if editErr}<p class="err">{editErr}</p>{/if}
-            <div class="row"><button type="button" class="btn primary sm" onclick={saveEdit}>Save</button><button type="button" class="btn quiet sm" onclick={() => (editing = false)}>Cancel</button></div>
-          {:else}
-            <div class="row">
-              {#if line !== null && !openNote && r.card.kind !== "table"}<button type="button" class="btn quiet sm" onclick={() => { draft = line ?? ""; editing = true; }}><Icon name="pen" size={14} /> Edit</button>{/if}
-              <a class="btn quiet sm" href={r.href} onclick={() => (notes.jump = { rel: r.note!.rel, line: r.card.line })}>Open note</a>
-            </div>
-          {/if}
+        {#if item && itype && itype.kind !== "occlusion"}
+          {#each itype.fields as f (f)}
+            <label class="field"><span class="lb">{f}</span><textarea class="box" rows="2" bind:value={fields[f]}></textarea></label>
+          {/each}
+          {#if fieldsDirty}<button type="button" class="btn dark sm save" onclick={saveFields}>Save</button>{/if}
         {:else}
-          <div class="row"><a class="btn quiet sm" href={r.href}>Edit in library</a></div>
+          <div class="field"><span class="lb">Front</span><div class="box ro">{@html cardHtml(r.card.front, r.img)}</div></div>
+          <div class="field"><span class="lb">Back</span><div class="box ro">{@html cardHtml(r.card.back, r.img)}</div></div>
+          {#if r.note}
+            {#if editing}
+              <textarea class="box" rows="2" bind:value={draft} aria-label="Card line"></textarea>
+              {#if editErr}<p class="err">{editErr}</p>{/if}
+              <div class="row"><button type="button" class="btn dark sm" onclick={saveLine}>Save</button><button type="button" class="btn sm" onclick={() => (editing = false)}>Cancel</button></div>
+            {:else if line !== null && r.card.kind !== "table" && notes.editing !== r.note.rel}
+              <button type="button" class="btn sm" onclick={() => { draft = line ?? ""; editing = true; }}><Icon name="pen" size={13} /> Edit line</button>
+            {/if}
+          {/if}
         {/if}
 
-        <dl class="nums">
-          <dt>Status</dt><dd>{STATUS_NAME[s]}</dd>
-          <dt>Due</dt><dd>{r.rec && r.rec.state !== 0 ? fmtDate(r.rec.due) : "—"}</dd>
-          <dt>Interval</dt><dd>{ivl(r)}</dd>
-          <dt>Reviews</dt><dd>{r.rec?.reps ?? 0}</dd>
-          <dt>Lapses</dt><dd>{r.rec?.lapses ?? 0}{#if r.rec?.leech} · <b class="lch">Leech</b>{/if}</dd>
-          <dt>Last review</dt><dd>{fmtDate(r.rec?.last_review)}</dd>
-          <dt>Difficulty</dt><dd>{r.rec && r.rec.state !== 0 ? `${Math.round(r.rec.difficulty * 10)}%` : "—"}</dd>
-          <dt>Stability</dt><dd>{r.rec && r.rec.state !== 0 ? fmtInterval(r.rec.stability * 86_400_000) : "—"}</dd>
+        <dl class="kv">
+          <dt>Deck</dt><dd>{deckName(r)}</dd>
+          <dt>Added</dt><dd>{item ? fmtDate(item.created) : r.rec?.born ? fmtDate(r.rec.born) : "—"}</dd>
+          <dt>Reviews</dt><dd>{r.rec?.reps ?? 0}{#if remembered(r) !== null} · remembered {remembered(r)}%{/if}</dd>
+          <dt>Memory</dt><dd>{r.rec && r.rec.state !== 0 ? `stability ${fmtInterval(r.rec.stability * 86_400_000)}` : "new"}</dd>
+          <dt>Next</dt><dd>{r.rec && r.rec.state !== 0 && !r.rec.suspended ? fmtDate(r.rec.due) : "—"}</dd>
+          {#if r.rec?.leech}<dt>Note</dt><dd class="slipt">Keeps slipping</dd>{/if}
         </dl>
-
-        <div class="acts">
-          <button type="button" class="btn quiet sm" onclick={() => setSuspended(r.card.key, s !== "suspended")}>{s === "suspended" ? "Unsuspend" : "Suspend"}</button>
-          {#if r.rec && r.rec.state !== 0}<button type="button" class="btn quiet sm" onclick={() => reschedule(r.card.key, Date.now())}>Due now</button>{/if}
-          {#if r.rec}<button type="button" class="btn quiet sm" onclick={() => forget(r.card.key)}>Reset to new</button>{/if}
-          {#if r.rec?.leech}<button type="button" class="btn quiet sm" onclick={() => clearLeech(r.card.key)}>Not a leech</button>{/if}
+        <div class="row">
+          {#if r.rec && r.rec.state !== 0}<button type="button" class="btn sm" onclick={() => reschedule(r.card.key, Date.now())}>Due now</button>{/if}
+          {#if r.rec}<button type="button" class="btn sm" onclick={() => forget(r.card.key)}>Forget</button>{/if}
+          {#if r.rec?.leech}<button type="button" class="btn sm" onclick={() => clearLeech(r.card.key)}>Not slipping</button>{/if}
         </div>
+        {#if r.note}<a class="small link" href={r.href} onclick={() => (notes.jump = { rel: r.note!.rel, line: r.card.line })}>Edit in {r.title} ↗</a>{/if}
       </aside>
     {/if}
   </div>
 </div>
 
 <style>
-  .onlychip {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    padding: 2px 4px 2px 12px;
-    border-radius: 999px;
-    background: var(--chip);
-    font-size: 13px;
-    font-weight: 600;
-  }
-  .onlychip button {
-    width: 24px;
-    height: 24px;
-    border: 0;
-    border-radius: 50%;
-    background: none;
-    color: var(--text-muted);
-    font-size: 16px;
-    cursor: pointer;
-  }
-  .lch {
-    color: var(--alert-ink);
-  }
-  .browser {
+  .bwrap {
     display: grid;
-    gap: 12px;
-    min-width: 0;
-  }
-  .top {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-  }
-  .back {
-    display: grid;
-    place-items: center;
-    width: 36px;
-    height: 36px;
-    border-radius: 50%;
-    background: var(--chip);
-    color: var(--text);
-  }
-  .h1 {
-    margin: 0;
-    font-size: 26px;
-    font-weight: 600;
-  }
-  .count {
-    color: var(--text-muted);
-    font-size: 14px;
+    gap: 14px;
+    container-type: inline-size;
   }
   .search {
-    margin-left: auto;
     display: flex;
     align-items: center;
-    gap: 8px;
-    min-width: min(320px, 40vw);
+    gap: 10px;
+    min-height: 46px;
     padding: 0 14px;
-    border-radius: 999px;
-    background: var(--field);
+    border-radius: 16px;
+    background: var(--surface-float, var(--surface));
+    box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--text) 8%, transparent);
     color: var(--text-muted);
+  }
+  .search:focus-within {
+    box-shadow: inset 0 0 0 2px var(--lavender);
   }
   .search input {
     flex: 1;
-    min-height: 40px;
+    min-width: 0;
     border: 0;
+    background: none;
+    color: var(--text);
+    font: inherit;
+    font-size: 14.5px;
+    outline: none;
+  }
+  .hint {
+    font-size: 12.5px;
+    white-space: nowrap;
+  }
+  .tok {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    padding: 1px 3px 1px 9px;
+    border-radius: 8px;
+    background: color-mix(in srgb, var(--lavender) 30%, var(--white));
+    color: color-mix(in srgb, var(--lavender) 30%, var(--text));
+    font-size: 13.5px;
+    white-space: nowrap;
+  }
+  .tok button {
+    width: 20px;
+    height: 20px;
+    padding: 0;
+    border: 0;
+    background: none;
+    color: inherit;
+    cursor: pointer;
+  }
+  .browse {
+    display: grid;
+    grid-template-columns: 200px minmax(0, 1fr);
+    gap: 14px;
+    align-items: start;
+  }
+  .browse.withside {
+    grid-template-columns: 200px minmax(0, 1fr) 300px;
+  }
+  @container (max-width: 1100px) {
+    .browse.withside {
+      grid-template-columns: minmax(0, 1fr) 300px;
+    }
+    .browse.withside .tree {
+      display: none;
+    }
+  }
+  @container (max-width: 760px) {
+    .browse,
+    .browse.withside {
+      grid-template-columns: minmax(0, 1fr);
+    }
+    .tree {
+      display: none;
+    }
+  }
+  /* sidebar */
+  .tree {
+    display: grid;
+    gap: 1px;
+    padding: 12px;
+    border-radius: 22px;
+    background: var(--surface);
+    box-shadow: var(--shadow);
+    font-size: 14px;
+  }
+  .tree .h {
+    padding: 10px 9px 4px;
+    font-size: 11.5px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    font-weight: 600;
+  }
+  .tree .h:first-child {
+    padding-top: 2px;
+  }
+  .tree .t {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 32px;
+    padding: 0 9px 0 calc(9px + var(--d, 0) * 16px);
+    border: 0;
+    border-radius: 11px;
     background: none;
     color: var(--text);
     font: inherit;
     font-size: 14px;
-    outline: none;
-  }
-  .filters {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-    align-items: center;
-  }
-  .seg {
-    display: flex;
-    gap: 2px;
-    padding: 3px;
-    border-radius: 999px;
-    background: var(--chip);
-  }
-  .seg button {
-    padding: 6px 12px;
-    border: 0;
-    border-radius: 999px;
-    background: none;
-    color: var(--text-muted);
-    font: inherit;
-    font-size: 13px;
-    font-weight: 600;
+    text-align: left;
     cursor: pointer;
   }
-  .seg button.on {
-    background: var(--surface);
-    color: var(--text);
+  .tree .t:hover {
+    background: color-mix(in srgb, var(--text) 5%, transparent);
   }
-  .input.sm {
-    width: auto;
-    min-height: 36px;
-    padding: 0 12px;
-    border: 0;
-    border-radius: 999px;
-    background: var(--field);
-    color: var(--text);
-    font: inherit;
-    font-size: 13px;
+  .tree .t.on {
+    background: var(--primary, var(--charcoal));
+    color: var(--on-primary, var(--white));
   }
-  .bulk,
-  .msg {
+  .tn {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .dot {
+    flex: none;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+  }
+  .flag {
+    flex: none;
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border-radius: 3px;
+  }
+  td .flag {
+    margin-left: 8px;
+    vertical-align: middle;
+  }
+  .slip {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    margin-left: 6px;
+    border-radius: 50%;
+    background: color-mix(in srgb, var(--peach) 70%, var(--alert-ink));
+    vertical-align: middle;
+  }
+  /* middle */
+  .mid {
+    display: grid;
+    gap: 10px;
+    min-width: 0;
+  }
+  .bulk {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
     gap: 8px;
-    padding: 8px 12px;
+    padding: 8px 10px;
     border-radius: 16px;
-    background: color-mix(in srgb, var(--accent) 16%, var(--white));
+    background: var(--primary, var(--charcoal));
+    color: var(--on-primary, var(--white));
     font-size: 13.5px;
   }
-  .msg {
-    margin: 0;
-    background: var(--sage-soft);
-  }
-  .clr {
-    margin-left: auto;
+  .bulk > button,
+  .bulk .pw > button {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    min-height: 30px;
+    padding: 0 11px;
     border: 0;
-    background: none;
-    color: var(--text-muted);
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--on-primary, #fff) 13%, transparent);
+    color: inherit;
     font: inherit;
+    font-size: 13px;
     cursor: pointer;
   }
-  .rwrap {
+  .bulk > button:hover,
+  .bulk .pw > button:hover {
+    background: color-mix(in srgb, var(--on-primary, #fff) 22%, transparent);
+  }
+  .bulk .warn {
+    background: color-mix(in srgb, var(--rose) 70%, transparent);
+    color: var(--ink-on-color, #23263a);
+    font-weight: 600;
+  }
+  .bulk .x {
+    background: none;
+    font-size: 18px;
+  }
+  .grow {
+    flex: 1;
+  }
+  .pw {
     position: relative;
   }
-  .resched {
+  .pop {
     position: absolute;
+    z-index: 20;
     top: calc(100% + 6px);
     left: 0;
-    z-index: 20;
     display: grid;
-    gap: 2px;
-    min-width: 220px;
+    min-width: 170px;
+    max-height: 300px;
+    overflow-y: auto;
     padding: 6px;
     border-radius: 14px;
+    background: var(--surface-float, var(--surface));
+    color: var(--text);
     box-shadow: var(--shadow-lift);
   }
-  .resched > button,
-  .resched label button {
-    padding: 8px 12px;
+  .pop.right {
+    left: auto;
+    right: 0;
+  }
+  .pop button {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 34px;
+    padding: 0 10px;
     border: 0;
     border-radius: 10px;
     background: none;
@@ -457,223 +639,249 @@
     text-align: left;
     cursor: pointer;
   }
-  .resched > button:hover {
+  .pop button:hover {
     background: var(--chip);
   }
-  .resched label {
+  .pop .dt {
     display: flex;
     gap: 6px;
     padding: 4px;
   }
-  .danger {
-    background: var(--alert-ink);
-    color: var(--white);
+  .pop .input.sm {
+    min-height: 32px;
+    padding: 0 10px;
+    font-size: 13px;
   }
-  .body {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr);
-    gap: 14px;
-    align-items: start;
-  }
-  .withside .body {
-    grid-template-columns: minmax(0, 1fr) 340px;
-  }
-  .table {
-    border-radius: var(--radius);
-    background: var(--surface);
-    box-shadow: var(--shadow);
-    overflow: hidden;
-  }
-  .tr {
-    display: grid;
-    grid-template-columns: 36px minmax(0, 2fr) minmax(0, 1.4fr) minmax(0, 1fr) 96px 72px 72px 56px;
-    gap: 8px;
+  .msg {
+    display: flex;
     align-items: center;
-    min-height: 42px;
-    padding: 0 12px;
-    border-top: 1px solid var(--hairline);
+    gap: 8px;
+    margin: 0;
+    padding: 8px 12px;
+    border-radius: 12px;
+    background: color-mix(in srgb, var(--sage) 30%, var(--white));
     font-size: 13.5px;
+  }
+  .msg button {
+    margin-left: auto;
+    border: 0;
+    background: none;
+    color: var(--text-muted);
+    font-size: 16px;
     cursor: pointer;
   }
-  .withside .tr {
-    grid-template-columns: 36px minmax(0, 2fr) minmax(0, 1.2fr) 96px 64px;
+  .tblwrap {
+    overflow-x: auto;
+    border-radius: 18px;
+    background: var(--surface);
+    box-shadow: var(--shadow);
   }
-  .withside .tr > :nth-child(4),
-  .withside .tr > :nth-child(7),
-  .withside .tr > :nth-child(8) {
-    display: none;
+  .tbl {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13.5px;
   }
-  .tr:hover {
-    background: var(--chip);
+  .tbl th {
+    padding: 0;
+    background: color-mix(in srgb, var(--text) 3%, transparent);
+    text-align: left;
   }
-  .tr.on {
-    background: color-mix(in srgb, var(--accent) 16%, var(--white));
-  }
-  .tr.sus {
-    opacity: 0.55;
-  }
-  .th {
-    border-top: 0;
-    font-size: 12px;
-    font-weight: 600;
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
-    color: var(--text-muted);
-    cursor: default;
-  }
-  .th:hover {
+  .tbl th button {
+    width: 100%;
+    padding: 10px 8px;
+    border: 0;
     background: none;
-  }
-  .tr > span {
-    min-width: 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    color: var(--text-muted);
+    font: inherit;
+    font-size: 11.5px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    text-align: left;
+    cursor: pointer;
     white-space: nowrap;
   }
-  .b,
-  .src {
+  .ar {
+    margin-left: 4px;
+  }
+  .tbl td {
+    padding: 9px 8px;
+    border-top: 1px solid var(--hairline);
+    white-space: nowrap;
+  }
+  .tbl td.w {
+    white-space: normal;
+    min-width: 200px;
+  }
+  .tbl td.dk {
+    max-width: 160px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .tbl tbody tr {
+    cursor: pointer;
+  }
+  .tbl tbody tr:hover td {
+    background: color-mix(in srgb, var(--text) 3%, transparent);
+  }
+  .tbl tr.chk td,
+  .tbl tr.on td {
+    background: color-mix(in srgb, var(--lavender) 22%, var(--white));
+  }
+  .tbl tr.sus td {
     color: var(--text-muted);
   }
-  .r {
+  .ckc {
+    width: 30px;
+    padding-left: 12px !important;
+  }
+  .ckc input {
+    width: 16px;
+    height: 16px;
+    accent-color: color-mix(in srgb, var(--lavender) 50%, var(--text));
+  }
+  .num {
     text-align: right;
-  }
-  .ck {
-    display: grid;
-    place-items: center;
-  }
-  .chip {
-    display: inline-block;
-    padding: 2px 9px;
-    border-radius: 999px;
-    font-style: normal;
-    font-size: 12px;
-    font-weight: 600;
-    background: var(--chip);
-  }
-  .s-new {
-    background: color-mix(in srgb, var(--lavender) 40%, var(--white));
-  }
-  .s-learning {
-    background: color-mix(in srgb, var(--peach) 45%, var(--white));
-  }
-  .s-review {
-    background: color-mix(in srgb, var(--sage) 40%, var(--white));
+    padding-right: 14px !important;
   }
   .empty {
+    margin: 0;
     padding: 18px;
     color: var(--text-muted);
   }
-  .more {
-    width: 100%;
-    min-height: 44px;
-    border: 0;
-    border-top: 1px solid var(--hairline);
-    background: none;
-    color: var(--text);
-    font: inherit;
-    font-weight: 600;
-    cursor: pointer;
-  }
-  .side {
-    position: sticky;
-    top: 12px;
-    display: grid;
-    gap: 12px;
-    padding: 16px;
-    border-radius: var(--radius);
-    background: var(--surface);
-    box-shadow: var(--shadow);
-    max-height: calc(100vh - 140px);
-    overflow-y: auto;
-  }
-  .sh {
+  .under {
     display: flex;
-    gap: 8px;
-    align-items: flex-start;
+    align-items: center;
+    gap: 10px;
+    padding: 0 6px;
   }
-  .where {
+  /* the card */
+  .ed {
+    display: grid;
+    gap: 10px;
+    align-content: start;
+    min-width: 0;
+    position: sticky;
+    top: 0;
+  }
+  .eh {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .eh h3 {
     flex: 1;
-    font-size: 12.5px;
-    color: var(--text-muted);
+    min-width: 0;
+    margin: 0;
+    font-size: 16px;
+    font-weight: 600;
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    -webkit-box-orient: vertical;
   }
   .x {
     width: 30px;
     height: 30px;
+    padding: 0;
     border: 0;
     border-radius: 50%;
-    background: var(--chip);
+    background: none;
     color: var(--text-muted);
-    font-size: 17px;
+    font-size: 18px;
     cursor: pointer;
   }
-  .face {
-    font-size: 16px;
-    line-height: 1.5;
-    overflow-wrap: anywhere;
+  .btn.sm {
+    min-height: 32px;
+    padding: 0 12px;
+    font-size: 13px;
   }
-  .face.ans {
-    padding-top: 10px;
-    border-top: 1px solid var(--hairline);
-    color: var(--muted-on-tint, var(--text));
+  .btn.ib {
+    width: 32px;
+    padding: 0;
+    justify-content: center;
   }
-  .face :global(img) {
-    max-width: 100%;
-    border-radius: 10px;
+  .btn.flagged {
+    color: var(--fc);
   }
-  .row,
-  .acts {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 6px;
+  .btn.dark {
+    background: var(--primary, var(--charcoal));
+    color: var(--on-primary, var(--white));
   }
-  .edit {
+  .save {
+    justify-self: start;
+  }
+  .field {
+    display: grid;
+    gap: 5px;
+  }
+  .lb {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-muted);
+  }
+  .box {
     width: 100%;
     box-sizing: border-box;
     padding: 10px 12px;
     border: 0;
-    border-radius: 12px;
-    background: var(--field);
+    border-radius: 14px;
+    background: var(--surface-float, var(--surface));
     color: var(--text);
-    font: 13px/1.5 ui-monospace, monospace;
+    font: inherit;
+    font-size: 15px;
+    line-height: 1.45;
     resize: vertical;
+    box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--text) 8%, transparent);
   }
-  .err {
+  .box:focus {
+    outline: none;
+    box-shadow: inset 0 0 0 2px var(--lavender);
+  }
+  .box.ro :global(p) {
     margin: 0;
-    color: var(--alert-ink);
-    font-size: 13px;
   }
-  .nums {
+  .box.ro :global(ul) {
+    margin: 0;
+    padding-left: 18px;
+  }
+  .kv {
     display: grid;
     grid-template-columns: auto 1fr;
-    gap: 6px 14px;
-    margin: 0;
-    padding: 12px;
-    border-radius: 14px;
-    background: var(--panel);
+    gap: 6px 12px;
+    margin: 4px 0;
     font-size: 13px;
   }
-  .nums dt {
+  .kv dt {
     color: var(--text-muted);
   }
-  .nums dd {
+  .kv dd {
     margin: 0;
     font-weight: 600;
   }
-  @media (max-width: 980px) {
-    .withside .body {
-      grid-template-columns: minmax(0, 1fr);
-    }
-    .side {
-      position: static;
-      max-height: none;
-    }
-    .tr {
-      grid-template-columns: 36px minmax(0, 2fr) minmax(0, 1fr) 96px 64px;
-    }
-    .tr > :nth-child(4),
-    .tr > :nth-child(7),
-    .tr > :nth-child(8) {
-      display: none;
-    }
+  .slipt {
+    color: var(--alert-ink);
+  }
+  .row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .err {
+    margin: 0;
+    font-size: 13px;
+    color: var(--alert-ink);
+  }
+  .link {
+    color: var(--link-ink);
+    font-weight: 600;
+    text-decoration: none;
+  }
+  .small {
+    font-size: 13px;
+  }
+  .muted {
+    color: var(--text-muted);
   }
 </style>

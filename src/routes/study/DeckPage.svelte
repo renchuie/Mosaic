@@ -8,9 +8,8 @@
   import { cardHtml } from "../../lib/cards";
   import { fromKey, todayKey, addDays, toKey } from "../../lib/calendar";
   import { courseByName } from "../../lib/stores/courses.svelte";
-  import { deckGroups, examOf, shortExam, subRows, type DeckRow } from "../../lib/stores/deckTree.svelte";
+  import { deckGroups, examOf, shortExam, subRows, typeLabel, type DeckRow } from "../../lib/stores/deckTree.svelte";
   import { ancestors, getDeck } from "../../lib/stores/decks.svelte";
-  import { getType } from "../../lib/stores/library.svelte";
   import { noteHref, notes } from "../../lib/stores/notes.svelte";
   import { settings } from "../../lib/stores/settings.svelte";
   import { allCards, counts, ensureIds, fitBeforeExam, fmtInterval, inScope, pace, readiness, scopeKey, scopeName, statusOf, type CardRef, type Scope } from "../../lib/stores/srs.svelte";
@@ -85,8 +84,7 @@
 
   // the cards table
   const plain = (md: string) => cardHtml(md).replace(/<[^>]+>/g, " ").replace(/&nbsp;/g, " ").replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/\s+/g, " ").trim();
-  const TYPES: Record<string, string> = { basic: "→ Basic", reverse: "← Reverse", cloze: "{ } Cloze", list: "☰ List", table: "▦ Table", concept: "◆ Concept", descriptor: "› Descriptor" };
-  const typeOf = (r: CardRef) => (r.card.masks ? "▣ Image" : r.card.kind === "item" ? (getType(r.item!.type)?.name ?? "Card") : r.card.two ? "⇄ Both ways" : (TYPES[r.card.kind] ?? r.card.kind));
+  const typeOf = typeLabel;
   const backOf = (r: CardRef) => {
     if (r.card.kind === "list") return `${r.card.back.split("\n").filter((l) => /^[-*] /.test(l)).length} items`;
     return plain(r.card.back);
