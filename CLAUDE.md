@@ -945,6 +945,29 @@ Recall Labs. Decisions she approved:
   and list marker, `saveCardLine` puts them back; Enter saves, Esc cancels; the card is read again
   after saving), S suspends. The session waits for the notes to load before building its queue (a
   review opened straight from a link at start-up used to come up empty).
+- Anki import (`.apkg` / `.colpkg`, Library → Import, same dialog as CSV): Rust
+  `src-tauri/src/anki.rs` `anki_read` (raw IPC body = the package; crates `zip`, `ruzstd`, `rusqlite`
+  bundled + collation, no system packages) unzips, unzstds `collection.anki21b` (else plain
+  `.anki21` / `.anki2`), opens it in a temp file with Anki's `unicase` collation, and returns note
+  types (newest schema: `notetypes` / `fields` / `templates` tables, settings read with a tiny
+  protobuf reader; older: `col.models` JSON), decks, notes, cards, revlog, `crt`. Media (index:
+  zstd protobuf or JSON) are copied to `<notes>/attachments/anki/`, never over a different file
+  (numbered copy). `MOSAIC_APKG=<file> cargo test anki` reads a real package (none in the repo:
+  her decks are personal) and writes its JSON beside it. `src/lib/anki.ts` (pure, node test
+  scratchpad `tstest/t70.ts`): `mapType` → built-in basic / reverse / cloze / occlusion when the
+  shape matches, else a card type of its own (`t<ord>` templates; reused on re-import by name +
+  fields); `templateText` drops scripts, styles, comments, hidden elements (her Basic template
+  carries a brand-name add-on script), `{{FrontSide}}` + `<hr id=answer>`, field filters (cloze
+  kept) and special fields; `fieldText` = HTML → library text with entities decoded and image
+  paths mapped; `occlusionMasks` reads Anki IO shapes (fractions, like ours; extra shapes of one
+  cN become `n-2`…); `schedule` keeps Anki's due / interval / reps / lapses / suspended, FSRS
+  memory from the card's `data` {s, d} when Anki ran FSRS, else stability = interval and
+  difficulty from ease; `plan` adds revlog to `reviewDays` (types 0–3). Store `importAnki` in the
+  library store: items carry `anki` (note guid) so a second import updates text and tags only
+  (schedule and history untouched, `known` skips their revlog); deck tag = the Anki deck's last
+  part; "Make a deck" creates a Mosaic deck (library + that tag) named by the last two parts;
+  course guessed from the deck path. Preview-only hook `window.__ankiRead` stands in for the Rust
+  read. Tested in the real app (Xvfb): 66 notes, 10 schedules, 3 review days, 1 deck.
 
 ## Study S4 (built): card library
 

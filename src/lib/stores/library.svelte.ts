@@ -3,6 +3,8 @@
 import { BUILTIN_TYPES, fromHtml, generate, type CardType, type FlashItem, type GenCard } from "../cardTypes";
 import { inTauri, invoke } from "../tauri";
 import { del, entries, get, newId, put, seed } from "./synced.svelte";
+import type { Plan } from "../anki";
+import { decks, saveDeck } from "./decks.svelte";
 
 export function initLibrary() {
   for (const [id, t] of Object.entries(BUILTIN_TYPES)) seed("cardTypes", id, t);
@@ -64,3 +66,52 @@ export async function saveCardImage(dataUrl: string, ext: string): Promise<strin
 }
 /** In a plain-browser preview there's no disk, so images live in memory. */
 export const previewImages = new Map<string, string>();
+
+// ---- Anki package import (F1) -----------------------------------------------------------------
+
+/** Items imported from Anki before, by their Anki note id. */
+export const ankiItems = () => new Map(items().filter(([, i]) => i.anki).map(([id, i]) => [i.anki!, id]));
+
+/** Apply an import plan (src/lib/anki.ts `plan`). A note imported before keeps its id and its
+ *  schedule here; only its fields and tags are updated. Returns what happened. */
+export function importAnki(p: Plan, opts: { course?: string; makeDecks?: boolean }) {
+  const typeId = new Map<string, string>();
+  for (const t of p.types) typeId.set(t.ankiId, t.target === "new" && t.newType ? saveType(null, t.newType) : t.target);
+  const known = ankiItems();
+  let added = 0, updated = 0, scheduled = 0;
+  const t0 = Date.now();
+  p.items.forEach((it, i) => {
+    const type = typeId.get(it.ankiType);
+    if (!type) return;
+    const old = known.get(it.guid);
+    if (old) {
+      const cur = getItem(old)!;
+      saveItem(old, { ...cur, fields: it.fields, tags: [...new Set([...(cur.tags ?? []), ...it.tags])] });
+      updated++;
+      return;
+    }
+    const id = saveItem(null, { type, fields: it.fields, course: opts.course || undefined, tags: it.tags.length ? it.tags : undefined, created: t0 - i, anki: it.guid });
+    added++;
+    for (const c of it.cards) {
+      if (!c.rec) continue;
+      put("srs", `fl:${id}:${c.suffix}`, { ...c.rec, ...(it.leech && c.rec.state ? { leech: true } : {}) });
+      if (c.rec.state) scheduled++;
+    }
+  });
+  for (const [day, d] of Object.entries(p.days)) {
+    const cur = get<{ reviews: number; new: number; again: number; ms: number }>("reviewDays", day) ?? { reviews: 0, new: 0, again: 0, ms: 0 };
+    put("reviewDays", day, { reviews: cur.reviews + d.reviews, new: cur.new + d.new, again: cur.again + d.again, ms: cur.ms + d.ms });
+  }
+  let made = 0;
+  if (opts.makeDecks) {
+    const names = new Set(decks().map(([, d]) => d.name));
+    for (const d of p.decks) {
+      const name = d.path.slice(-2).join(" › ");
+      if (names.has(name)) continue;
+      saveDeck(null, { name, icon: "i:layers:purple", library: true, tags: [d.tag], order: decks().length });
+      names.add(name);
+      made++;
+    }
+  }
+  return { added, updated, scheduled, decks: made };
+}

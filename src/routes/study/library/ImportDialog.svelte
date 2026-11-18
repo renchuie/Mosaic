@@ -1,7 +1,10 @@
 <script lang="ts">
   import { guessMapping, parseDelimited } from "../../../lib/cardTypes";
   import { courseNames } from "../../../lib/stores/courses.svelte";
-  import { cardTypes, getType, importRows } from "../../../lib/stores/library.svelte";
+  import { ankiItems, cardTypes, getType, importAnki, importRows } from "../../../lib/stores/library.svelte";
+  import { plan as ankiPlan, type AnkiRead } from "../../../lib/anki";
+  import { courses } from "../../../lib/stores/courses.svelte";
+  import { inTauri, invoke } from "../../../lib/tauri";
 
   let { open = $bindable(false), type: initialType = "basic" }: { open: boolean; type?: string } = $props();
   let dialog = $state<HTMLDialogElement>();
@@ -13,11 +16,53 @@
   let tags = $state("");
   let done = $state<number | null>(null);
 
+  // ---- Anki packages (.apkg / .colpkg) ----
+  let anki = $state<{ name: string; read: AnkiRead } | null>(null);
+  let ankiErr = $state("");
+  let reading = $state(false);
+  let history = $state(true);
+  let makeDecks = $state(true);
+  let ankiDone = $state<ReturnType<typeof importAnki> | null>(null);
+  const known = $derived(anki ? ankiItems() : new Map<string, string>());
+  const ap = $derived(anki ? ankiPlan(anki.read, { existingTypes: cardTypes(), history, known: new Set(known.keys()) }) : null);
+  const again = $derived(ap ? ap.items.filter((i) => known.has(i.guid)).length : 0);
+  const typeName = (id: string) => (id === "new" ? "new card type" : (getType(id)?.name ?? id));
+  /** the course whose name or short name is a part of the deck path */
+  function guessCourse(read: AnkiRead): string {
+    const parts = read.decks.flatMap((d) => d.path).map((x) => x.toLowerCase());
+    const hit = courses().find(([, c]) => parts.includes(c.name.toLowerCase()) || (c.code && parts.includes(c.code.toLowerCase())));
+    return hit ? hit[1].name : "";
+  }
+  async function pickAnki(f: File) {
+    ankiErr = "";
+    reading = true;
+    try {
+      const bytes = new Uint8Array(await f.arrayBuffer());
+      // browser preview: UI tests hand the read result in through window.__ankiRead
+      const test = (window as unknown as { __ankiRead?: AnkiRead }).__ankiRead;
+      const read = inTauri ? await invoke<AnkiRead>("anki_read", bytes) : test;
+      if (!read) throw new Error("Anki packages open in the app.");
+      anki = { name: f.name, read };
+      course = guessCourse(read);
+    } catch (e) {
+      ankiErr = e instanceof Error ? e.message : String(e);
+    } finally {
+      reading = false;
+    }
+  }
+  function goAnki() {
+    if (!ap) return;
+    ankiDone = importAnki(ap, { course: course || undefined, makeDecks });
+  }
+
   $effect(() => {
     if (open && dialog && !dialog.open) {
       text = "";
       type = initialType;
       done = null;
+      anki = null;
+      ankiDone = null;
+      ankiErr = "";
       dialog.showModal();
     }
   });
@@ -31,7 +76,8 @@
 
   async function pick(e: Event) {
     const f = (e.currentTarget as HTMLInputElement).files?.[0];
-    if (f) text = await f.text();
+    if (f && /\.(apkg|colpkg)$/i.test(f.name)) await pickAnki(f);
+    else if (f) text = await f.text();
   }
   function go() {
     if (!parsed || !t) return;
@@ -42,17 +88,47 @@
 <dialog bind:this={dialog} onclose={() => (open = false)} aria-labelledby="im-title">
   <div class="wrap">
     <header><h2 id="im-title" class="h2">Import cards</h2><button type="button" class="x" aria-label="Close" onclick={() => dialog?.close()}>×</button></header>
-    {#if done !== null}
+    {#if ankiDone}
+      <p class="ok">Added {ankiDone.added}{ankiDone.updated ? ` · updated ${ankiDone.updated}` : ""}{ankiDone.scheduled ? ` · ${ankiDone.scheduled} with their schedule` : ""}{ankiDone.decks ? ` · ${ankiDone.decks} ${ankiDone.decks === 1 ? "deck" : "decks"} made` : ""}.</p>
+      <button type="button" class="btn primary" onclick={() => dialog?.close()}>Done</button>
+    {:else if anki && ap}
+      <div class="apkg">
+        <b>{anki.name}</b>
+        <span class="muted small">{ap.items.length} notes · {ap.items.reduce((n, i) => n + i.cards.length, 0)} cards{ap.reviews ? ` · ${ap.reviews.toLocaleString()} reviews` : ""}</span>
+      </div>
+      {#if ap.decks.length}
+        <div class="lst"><span class="label">Decks</span>
+          {#each ap.decks as d}<span>{d.path.join(" › ")} <i class="muted">{d.notes}</i></span>{/each}
+        </div>
+      {/if}
+      <div class="lst"><span class="label">Note types</span>
+        {#each ap.types as t}<span>{t.name} → {typeName(t.target)} <i class="muted">{t.notes}</i></span>{/each}
+      </div>
+      <div class="two">
+        <label class="field"><span class="label">Course</span><select class="input" bind:value={course}><option value="">None</option>{#each courseNames() as c}<option value={c}>{c}</option>{/each}</select></label>
+        <div class="opts">
+          {#if ap.scheduled || ap.reviews || !history}<label class="chk"><input type="checkbox" bind:checked={history} /> Review history</label>
+          {:else}<span class="muted small">No review history in this file.</span>{/if}
+          {#if ap.decks.length}<label class="chk"><input type="checkbox" bind:checked={makeDecks} /> Make {ap.decks.length === 1 ? "a deck" : "decks"}</label>{/if}
+        </div>
+      </div>
+      {#if again}<p class="muted small">{again} already imported: their text is updated, their schedule kept.</p>{/if}
+      <div class="row end">
+        <button type="button" class="btn quiet" onclick={() => (anki = null)}>Back</button>
+        <button type="button" class="btn primary" onclick={goAnki}>Import {ap.items.length} {ap.items.length === 1 ? "note" : "notes"}</button>
+      </div>
+    {:else if done !== null}
       <p class="ok">Imported {done} {done === 1 ? "item" : "items"}. </p>
       <button type="button" class="btn primary" onclick={() => dialog?.close()}>Done</button>
     {:else}
       <p class="muted small">
-        CSV, TSV, or Anki's <b>Export → Notes in Plain Text</b>.
+        Anki package (.apkg), CSV, TSV, or Anki's Notes in Plain Text.
       </p>
       <div class="row">
-        <label class="btn quiet file">Choose file<input type="file" accept=".csv,.tsv,.txt,text/plain,text/csv" onchange={pick} /></label>
-        <span class="muted small">or paste below</span>
+        <label class="btn quiet file">Choose file<input type="file" accept=".apkg,.colpkg,.csv,.tsv,.txt,text/plain,text/csv" onchange={pick} /></label>
+        <span class="muted small">{reading ? "Reading…" : "or paste below"}</span>
       </div>
+      {#if ankiErr}<p class="err small">{ankiErr}</p>{/if}
       <textarea class="input mono" rows="5" bind:value={text} placeholder={"Generic,Brand,Class\napixaban,Eliquis,Factor Xa inhibitor"}></textarea>
       {#if parsed}
         <div class="two">
@@ -192,6 +268,31 @@
     border-radius: 10px;
     background: var(--panel);
     font-size: 13px;
+  }
+  .apkg {
+    display: grid;
+    gap: 2px;
+  }
+  .lst {
+    display: grid;
+    gap: 4px;
+    padding: 12px;
+    border-radius: 14px;
+    background: var(--panel);
+    font-size: 14px;
+  }
+  .lst i {
+    font-style: normal;
+    margin-left: 4px;
+  }
+  .opts {
+    display: grid;
+  }
+  .end {
+    justify-content: flex-end;
+  }
+  .err {
+    color: var(--alert-ink);
   }
   .ok {
     padding: 12px;

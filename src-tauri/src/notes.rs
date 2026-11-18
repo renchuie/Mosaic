@@ -44,7 +44,7 @@ fn mtime_ms(p: &Path) -> u64 {
         .unwrap_or(0)
 }
 
-fn root_of(state: &State<'_, NotesState>) -> Result<PathBuf, String> {
+pub(crate) fn root_of(state: &State<'_, NotesState>) -> Result<PathBuf, String> {
     state.root.lock().unwrap().clone().ok_or_else(|| "Notes folder not loaded yet".into())
 }
 
@@ -122,7 +122,7 @@ pub async fn notes_read(state: State<'_, NotesState>, rel: String) -> Result<Str
         .map_err(|e| e.to_string())?
 }
 
-fn write_atomic(p: &Path, bytes: &[u8]) -> Result<(), String> {
+pub(crate) fn write_atomic(p: &Path, bytes: &[u8]) -> Result<(), String> {
     if let Some(dir) = p.parent() {
         fs::create_dir_all(dir).map_err(|e| e.to_string())?;
     }

@@ -1,6 +1,7 @@
 // Mosaic (internal id studydesk): Tauri shell. Modules: store (local JSON app data), labs (scanner + /__labs/ files),
 // sync (per-machine files in a Google Drive folder), notes, pdfs.
 
+mod anki;
 mod backup;
 mod history;
 mod labs;
@@ -44,6 +45,7 @@ fn main() {
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
+            anki::anki_read,
             store::load_doc,
             store::save_doc,
             labs::scan_labs,
