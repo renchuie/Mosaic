@@ -417,6 +417,13 @@ Markdown" view, the `<>` chip on the note header).
   the file. Now `notes_write` with `expected` refuses a file that no longer exists ("missing"),
   noteOps runs changes one at a time (`queued`), and a refresh that overlaps a move / rename /
   delete (`changes` counter in the notes store) is dropped and runs again.
+- Note defaults (Nov 18, her ask; Settings → Appearance → Notes): header Compact / Full
+  (`settings.noteHeader`), page width (`settings.noteWidth`), open notes as Mosaic page or Markdown
+  (`settings.noteOpen`, applied each time a note loads), formatting toolbar while typing / always
+  (`settings.noteTools`, the ✎ button flips the same setting). A note's own choice is front matter
+  `width:` / `header:`, written only when it differs from the default (so `width: readable` now
+  exists when the default is wider); the ⋯ menu's Header is per note now. The old per-machine
+  `fullHead` / `tools` in "mosaic.notePanels" are carried into Settings once.
 - Picking up where she left off (Nov 18, her ask): the open note is `ui.lastNote` (`setLastNote` in
   `src/lib/stores/ui.svelte.ts`, localStorage "mosaic.lastNote", per machine). StudyNav's Notes tab
   links to that note from any other page; clicked while already on Notes it goes to the Notes home

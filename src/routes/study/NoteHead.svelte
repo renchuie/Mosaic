@@ -143,7 +143,7 @@
             <label>Move to
               <select value={dirOf(rel)} onchange={(e) => { onmove(e.currentTarget.value); pick = null; }}>{#each dirs as d}<option value={d}>{d || "Notes (top level)"}</option>{/each}</select>
             </label>
-            <div class="hs" role="group" aria-label="Header style">
+            <div class="hs" role="group" aria-label="Header style for this note" title="For this note. The default for every note is in Settings → Notes.">
               <span>Header</span>
               <button type="button" class:on={!full} aria-pressed={!full} onclick={() => { onheadstyle(false); pick = null; }}>Compact</button>
               <button type="button" class:on={full} aria-pressed={full} onclick={() => { onheadstyle(true); pick = null; }}>Full</button>

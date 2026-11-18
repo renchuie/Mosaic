@@ -121,6 +121,39 @@
         {/each}
       </div>
     </div>
+    <h3 class="sub">Notes</h3>
+    <div class="field">
+      <span class="label" id="nhead-l">Header</span>
+      <div class="seg" role="radiogroup" aria-labelledby="nhead-l">
+        <button type="button" role="radio" aria-checked={settings.noteHeader !== "full"} class:on={settings.noteHeader !== "full"} onclick={() => saveSettings({ noteHeader: "compact" })}>Compact</button>
+        <button type="button" role="radio" aria-checked={settings.noteHeader === "full"} class:on={settings.noteHeader === "full"} onclick={() => saveSettings({ noteHeader: "full" })}>Full</button>
+      </div>
+      <span class="hint muted">Compact is one line: icon, title and chips. Full has a big icon and title with the chips and toolbar under it. A note can have its own in its ⋯ menu.</span>
+    </div>
+    <div class="field">
+      <span class="label" id="nwidth-l">Page width</span>
+      <div class="seg" role="radiogroup" aria-labelledby="nwidth-l">
+        {#each [{ id: "readable", name: "Readable" }, { id: "wide", name: "Wide" }, { id: "full", name: "Full" }] as w}
+          <button type="button" role="radio" aria-checked={(settings.noteWidth ?? "readable") === w.id} class:on={(settings.noteWidth ?? "readable") === w.id} onclick={() => saveSettings({ noteWidth: w.id as "readable" | "wide" | "full" })}>{w.name}</button>
+        {/each}
+      </div>
+      <span class="hint muted">Notes you haven't set a width on use this. Picking a width in a note's top bar keeps it for that note.</span>
+    </div>
+    <div class="field">
+      <span class="label" id="nopen-l">Open notes as</span>
+      <div class="seg" role="radiogroup" aria-labelledby="nopen-l">
+        <button type="button" role="radio" aria-checked={settings.noteOpen !== "markdown"} class:on={settings.noteOpen !== "markdown"} onclick={() => saveSettings({ noteOpen: "page" })}>Mosaic page</button>
+        <button type="button" role="radio" aria-checked={settings.noteOpen === "markdown"} class:on={settings.noteOpen === "markdown"} onclick={() => saveSettings({ noteOpen: "markdown" })}>Markdown</button>
+      </div>
+      <span class="hint muted">The <code>&lt;&gt;</code> chip in a note still switches between them.</span>
+    </div>
+    <div class="field">
+      <span class="label" id="ntools-l">Formatting toolbar</span>
+      <div class="seg" role="radiogroup" aria-labelledby="ntools-l">
+        <button type="button" role="radio" aria-checked={!settings.noteTools} class:on={!settings.noteTools} onclick={() => saveSettings({ noteTools: false })}>While I type</button>
+        <button type="button" role="radio" aria-checked={!!settings.noteTools} class:on={!!settings.noteTools} onclick={() => saveSettings({ noteTools: true })}>Always</button>
+      </div>
+    </div>
     <h3 class="sub">Flashcard review</h3>
     <div class="field">
       <span class="label" id="calign-l">Card text</span>

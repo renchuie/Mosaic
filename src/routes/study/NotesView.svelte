@@ -25,6 +25,7 @@
   import NoteSide, { PANELS, type Panel } from "./NoteSide.svelte";
   import StudyNav from "./StudyNav.svelte";
   import { ui, setLastNote, noteScroll } from "../../lib/stores/ui.svelte";
+  import { saveSettings, settings } from "../../lib/stores/settings.svelte";
 
   let { rel }: { rel: string | null } = $props();
 
@@ -61,6 +62,7 @@
       if (source && status === "saving" && loadedRel) saveSourceNow(loadedRel, body);
       const s = splitNote(note.text);
       meta = s.meta;
+      source = settings.noteOpen === "markdown"; // each note opens in the default view
       const t = stripTitle(s.body, linkName(note));
       body = source ? s.body : t.rest;
       titleText = t.title;
@@ -287,6 +289,9 @@
     }
   };
   let panels = $state<Saved>(loadPanels());
+  // Nov 18: the header style and toolbar pin moved into Settings (header now per note + default)
+  if (settings.noteHeader === undefined && panels.fullHead) void saveSettings({ noteHeader: "full" });
+  if (settings.noteTools === undefined && panels.tools) void saveSettings({ noteTools: true });
   $effect(() => {
     const v = JSON.stringify(panels);
     try {
@@ -343,8 +348,13 @@
     wide: "Wide: more room for tables and long card lists",
     full: "Full: the whole page, for big comparison tables",
   };
-  const noteWidth = $derived<Width>(meta.width === "wide" || meta.width === "full" ? meta.width : "readable");
-  const setWidth = (w: Width) => w !== noteWidth && setMeta({ width: w === "readable" ? undefined : w });
+  // a note without its own width / header follows the defaults in Settings → Notes
+  const defWidth = $derived<Width>(settings.noteWidth ?? "readable");
+  const noteWidth = $derived<Width>(WIDTH_NAMES.includes(meta.width as Width) ? (meta.width as Width) : defWidth);
+  const setWidth = (w: Width) => w !== noteWidth && setMeta({ width: w === defWidth ? undefined : w });
+  const fullHead = $derived(meta.header === "full" ? true : meta.header === "compact" ? false : settings.noteHeader === "full");
+  const setHead = (f: boolean) => f !== fullHead && setMeta({ header: f === (settings.noteHeader === "full") ? undefined : f ? "full" : "compact" });
+  const tools = $derived(!!settings.noteTools);
   const back = $derived(rel ? backlinks(rel) : []);
   // badge on the cards icon: cards in this note due now
   const dueHere = $derived.by(() => {
@@ -525,7 +535,7 @@
             }}><Icon name="columns" size={18} /></button>
         {/if}
         {#if !source}
-          <button type="button" class="ico" class:on={panels.tools} title={panels.tools ? "Toolbar: always showing" : "Toolbar: only while typing (click to keep it showing)"} aria-label="Formatting toolbar" aria-pressed={panels.tools} onclick={() => (panels.tools = !panels.tools)}><Icon name="pen" size={17} /></button>
+          <button type="button" class="ico" class:on={tools} title={tools ? "Toolbar: always showing" : "Toolbar: only while typing (click to keep it showing)"} aria-label="Formatting toolbar" aria-pressed={tools} onclick={() => saveSettings({ noteTools: !tools })}><Icon name="pen" size={17} /></button>
         {/if}
         <span class="sep"></span>
         {#each PANELS as p}
@@ -556,14 +566,14 @@
         {/if}
 
         <section class="center">
-          {#if ((typing && (!panels.fullHead || headHidden)) || panels.tools) && !source}
+          {#if ((typing && (!fullHead || headHidden)) || tools) && !source}
             <div class="floatbar"><NoteToolbar floating onrun={(c, a) => blocks?.run(c, a)} /></div>
           {/if}
           <div class="scroll printroot" bind:this={scrollEl} onscroll={checkHead}>
             <NoteHead {rel} {meta} bind:title {status} {errorText} {source} {dirs}
               coverUrl={(s) => imageUrl(rel!, s)}
               onmeta={setMeta} onrename={doRename} onmove={doMove} ondelete={doDelete} ontoggleSource={toggleSource}
-              full={panels.fullHead} onheadstyle={(f) => (panels.fullHead = f)} onrun={(c, a) => blocks?.run(c, a)}
+              full={fullHead} onheadstyle={setHead} onrun={(c, a) => blocks?.run(c, a)}
               oncoverfile={coverFile} ontheirs={takeTheirs} onmine={() => flush(true)} onprint={printNote} />
             <div class="edwrap" class:src={source}>
               {#key `${loadedRel}#${version}`}

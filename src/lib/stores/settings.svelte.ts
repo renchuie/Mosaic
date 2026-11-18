@@ -39,6 +39,13 @@ export type Settings = {
   /** where notes, materials and PDFs live (Nov 18): "drive" = the Drive folders above (default),
    *  "local" = a vault folder on this computer (`vault`, holding Notes / Materials / PDFs) */
   storage?: "drive" | "local";
+  /** notes (Nov 18, her ask): the header and page width a note gets unless it has its own
+   *  (front matter `header:` / `width:`), whether notes open as the Mosaic page or as Markdown,
+   *  and whether the formatting toolbar always shows (the ✎ button flips it too) */
+  noteHeader?: "compact" | "full";
+  noteWidth?: "readable" | "wide" | "full";
+  noteOpen?: "page" | "markdown";
+  noteTools?: boolean;
   vault?: string;
   /** the Drive folders and sync setting in use before switching to the vault, put back on return */
   driveRoots?: { notesRoot: string; labsRoot: string; pdfRoot: string; syncEnabled: boolean };

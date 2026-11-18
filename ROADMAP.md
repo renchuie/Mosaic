@@ -303,3 +303,5 @@ Add things here as they come up (date, page, what happened). Each one is either 
   15. Local vault option (her ask): Settings → Where your files live → This computer only (a vault
       folder with Notes / Materials / PDFs; copy or start empty; app-data sync is a separate
       choice). **Done Nov 18.** For friends: offer the choice on first run (Sharing track).
+  16. Note preferences in Settings (her ask): default header, page width, open as page / Markdown,
+      toolbar always or while typing; a note can keep its own header and width. **Done Nov 18.**
