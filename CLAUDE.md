@@ -380,7 +380,9 @@ Markdown" view, the `<>` chip on the note header).
   `Mod-a` in `ColumnRules`, `selectSteps()`): in a table cell → the cell's text → its column → its
   row → the whole table; then the column block, then the side-by-side half, then the whole note.
   Steps are worked out at the first press and rebuilt on the current doc each time (autosave can
-  tidy the doc in between). Ctrl+Shift+A always selects the whole note. Blocks in the right half get the handle 52px left of them; a click in a half's
+  tidy the doc in between). Ctrl+Shift+A always selects the whole note. "Whole note" is `wholeNote()`:
+  an AllSelection, except in a note that opens with a toggle, where it is a text selection from the
+  first letter to the last (WebKit dropped an AllSelection starting on the toggle's ▾; Nov 18). Blocks in the right half get the handle 52px left of them; a click in a half's
   empty space writes at its end.
 - Pasting into a spot that can't hold every block (Nov 18, `fitPaste` / `pasteSpot` in BlockEditor):
   in a table cell headings become text, quotes / callouts give their lines, a table gives one

@@ -490,6 +490,11 @@ const Pages = Node.create({
   renderHTML: () => ["div", { class: "b-pages" }, 0],
 });
 
+/** The whole note. Usually ProseMirror's AllSelection; a note that opens with a toggle gets a text
+ *  selection from its first letter to its last instead, because WebKit drops an AllSelection that
+ *  starts on the toggle's ▾ (it isn't text; Nov 18 bug: Ctrl+A did nothing). */
+const wholeNote = (doc: PMNode): Selection =>
+  doc.firstChild?.type.name === "toggle" ? TextSelection.between(Selection.atStart(doc).$from, Selection.atEnd(doc).$to) : new AllSelection(doc);
 /** What Ctrl+A selects, step by step from the cursor outward (see "Mod-a" below). */
 const lastSelectAll = new WeakMap<EditorView, { sel: Selection; i: number; steps: Selection[] }>();
 function selectSteps(state: EditorState): Selection[] {
@@ -608,7 +613,12 @@ const ColumnRules = Extension.create({
         while (i < steps.length && (!now(i) || now(i)!.eq(state.selection))) i++;
         if (i >= steps.length) {
           lastSelectAll.delete(view);
-          return false; // the editor's own select-all: the whole note
+          // the whole note, from its first letter to its last: the editor's own select-all starts
+          // at the note's very edge, which WebKit drops when the note opens with a toggle (its ▾
+          // isn't text; Nov 18 bug)
+          const all = wholeNote(state.doc);
+          if (!all.eq(state.selection)) view.dispatch(state.tr.setSelection(all));
+          return true;
         }
         view.dispatch(state.tr.setSelection(now(i)!));
         // remember the selection as it ended up (the table plugin may tidy a cell selection)
@@ -616,7 +626,7 @@ const ColumnRules = Extension.create({
         return true;
       },
       "Mod-Shift-a": ({ editor }) => {
-        editor.view.dispatch(editor.state.tr.setSelection(new AllSelection(editor.state.doc)));
+        editor.view.dispatch(editor.state.tr.setSelection(wholeNote(editor.state.doc)));
         return true;
       },
       // Enter on an empty last line of a column steps out of the columns: a full-width line below
