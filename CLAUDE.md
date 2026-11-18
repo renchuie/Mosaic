@@ -397,6 +397,21 @@ Markdown" view, the `<>` chip on the note header).
   `.b-ctitle-print` span (the title input can't wrap).
   Columns and side by side keep their layout; folded parts stay folded. A dark theme prints as
   Mosaic (NotesView `printNote`, restored on `afterprint`). Checked with Playwright `page.pdf`.
+- Managing notes and folders (Nov 18, her ask; `src/lib/stores/noteOps.svelte.ts`, menu + drag
+  ghost + messages in `src/routes/study/NoteMenu.svelte`, mounted once in NotesView and moved to
+  `<body>` so `position: fixed` means the window). Right-click a note in the notes list, search
+  results or Notes home lists: Open, Rename (links renamed too), Move to…, Delete (to `.trash/`).
+  Right-click a folder (tree row or home tile): New note here, New folder inside, Rename, Icon and
+  colour, Move to…, Delete folder (with everything in it, to `.trash/`). Folder looks are the
+  synced collection `noteFolders` keyed by folder path ({icon emoji, color}); they move with the
+  folder, colour overrides the course colour on tiles. Dragging is pointer-based (6px threshold,
+  then the click is swallowed); drop targets are elements with `data-drop-dir` (tree folder `li`,
+  the tree root = top level, home tiles, home breadcrumbs); a closed tree folder opens after
+  650ms under a drag. `noteHooks` (flush / moved) are set by NotesView, so the open note is saved
+  first and followed to its new path (or home when deleted); `ui.lastNote` follows too.
+  `moveNote` / `moveFolder` rewrite a note's `attachments/` paths when its depth changes
+  (`rebaseAttachments` in notes.ts; node test scratchpad `tstest/test22.ts`), else pasted images
+  broke after a move. Links `<a>` there need `draggable="false"` (WebKit's own link drag).
 - Picking up where she left off (Nov 18, her ask): the open note is `ui.lastNote` (`setLastNote` in
   `src/lib/stores/ui.svelte.ts`, localStorage "mosaic.lastNote", per machine). StudyNav's Notes tab
   links to that note from any other page; clicked while already on Notes it goes to the Notes home

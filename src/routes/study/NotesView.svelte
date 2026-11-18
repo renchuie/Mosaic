@@ -16,6 +16,8 @@
     reloadNote, renameNote, resolveLink, saveNote, savePastedImage, trashNote, noteDirs } from "../../lib/stores/notes.svelte";
   import { pdfHref, resolvePdfLink } from "../../lib/stores/pdfs.svelte";
   import NewNoteDialog from "./NewNoteDialog.svelte";
+  import NoteMenu from "./NoteMenu.svelte";
+  import { noteHooks } from "../../lib/stores/noteOps.svelte";
   import NoteTree from "./NoteTree.svelte";
   import NotesHome from "./NotesHome.svelte";
   import NoteHead from "./NoteHead.svelte";
@@ -209,7 +211,7 @@
     if (!rel) return;
     await flush();
     const to = await moveNote(rel, folder);
-    loadedRel = to;
+    loadedRel = null; // load it again: moving can rewrite its image paths
     location.hash = noteHref(to);
   }
   async function doDelete() {
@@ -227,6 +229,20 @@
     };
     r.readAsDataURL(f);
   }
+
+  // the notes list / Notes home menu and drags save the open note first, then follow it
+  $effect(() => {
+    noteHooks.flush = () => flush();
+    noteHooks.moved = (to) => {
+      window.clearTimeout(timer);
+      loadedRel = null;
+      location.hash = to ? noteHref(to) : "#/study/notes";
+    };
+    return () => {
+      noteHooks.flush = null;
+      noteHooks.moved = null;
+    };
+  });
 
   let newOpen = $state(false);
   let newMode = $state<"note" | "folder">("note");
@@ -649,6 +665,7 @@
 </div>
 
 <NewNoteDialog bind:open={newOpen} folder={newFolder} mode={newMode} />
+<NoteMenu onnew={(f) => { newMode = "note"; newFolder = f; newOpen = true; sheetL = false; }} onnewfolder={(f) => { newMode = "folder"; newFolder = f; newOpen = true; sheetL = false; }} />
 
 <style>
   .nwrap {

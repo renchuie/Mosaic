@@ -1,7 +1,7 @@
 // Notes: Markdown files in the notes folder on the Drive mount. Everything is
 // indexed in memory (title, links, tags, headings) and cached locally so the app
 // opens instantly; only files whose size or modification time changed are re-read.
-import { fileNameFor, joinNote, linkKey, parseNote, renameLinks, snippet, splitNote, TEMPLATES, type Meta, type Parsed } from "../notes";
+import { fileNameFor, joinNote, linkKey, parseNote, rebaseAttachments, renameLinks, snippet, splitNote, TEMPLATES, type Meta, type Parsed } from "../notes";
 import { inTauri, invoke, loadDoc, saveDoc } from "../tauri";
 import { settings } from "./settings.svelte";
 
@@ -195,8 +195,53 @@ export async function moveNote(rel: string, folder: string): Promise<string> {
   const e = notes.files[rel];
   delete notes.files[rel];
   notes.files[to] = entry(to, e.mtime, e.size, e.text);
+  await rebase(to, depth(rel), depth(to));
   saveCache();
   return to;
+}
+
+const depth = (rel: string) => rel.split("/").length - 1;
+/** keep a moved note's pasted images working (their paths are relative to the note) */
+async function rebase(rel: string, from: number, to: number) {
+  const e = notes.files[rel];
+  if (!e || from === to) return;
+  const t = rebaseAttachments(e.text, from, to);
+  if (t !== e.text) await saveNote(rel, t, e.mtime).catch((err) => console.error("rebase images", err));
+}
+
+const under = (r: string, dir: string) => r === dir || r.startsWith(dir + "/");
+
+/** Rename or move a folder (with everything in it). `to` is the folder's new path. */
+export async function moveFolder(from: string, to: string): Promise<string> {
+  to = to.split("/").map((p) => p.replace(/[\\/:*?"<>|]+/g, " ").trim()).filter(Boolean).join("/");
+  if (!to || to === from) return from;
+  if (to.startsWith(from + "/")) throw new Error("A folder can't go inside itself.");
+  if (notes.dirs.includes(to) || Object.keys(notes.files).some((r) => r.startsWith(to + "/")))
+    throw new Error(`There's already a folder called “${to.split("/").pop()}” there.`);
+  if (inTauri) await invoke("notes_move", { from, to });
+  const next: Record<string, NoteEntry> = {};
+  const moved: [string, string][] = [];
+  for (const [r, e] of Object.entries(notes.files)) {
+    if (!r.startsWith(from + "/")) next[r] = e;
+    else {
+      const nr = to + r.slice(from.length);
+      next[nr] = entry(nr, e.mtime, e.size, e.text);
+      moved.push([r, nr]);
+    }
+  }
+  notes.files = next;
+  notes.dirs = [...new Set([...notes.dirs.map((d) => (under(d, from) ? to + d.slice(from.length) : d)), to])].sort();
+  for (const [a, b] of moved) await rebase(b, depth(a), depth(b));
+  saveCache();
+  return to;
+}
+
+/** Move a folder and everything in it to the notes folder's `.trash/`. */
+export async function trashFolder(dir: string) {
+  if (inTauri) await invoke("notes_trash", { rel: dir });
+  notes.files = Object.fromEntries(Object.entries(notes.files).filter(([r]) => !r.startsWith(dir + "/")));
+  notes.dirs = notes.dirs.filter((d) => !under(d, dir));
+  saveCache();
 }
 
 export async function trashNote(rel: string) {

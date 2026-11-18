@@ -296,3 +296,7 @@ Add things here as they come up (date, page, what happened). Each one is either 
       row / cloze rows, → ⇄ ←, skip columns, key column).
   12. Big, pretty review cards (her ask, canvas "Flashcards in review"). **Done Nov 18.**
   13. Notes tab picks up the last open note at the same scroll spot (her ask). **Done Nov 18.**
+  14. Managing notes outside the editor (her ask): right-click a note (open, rename, move to,
+      delete), right-click a folder (new note / folder inside, rename, icon and colour, move to,
+      delete), drag notes and folders onto folders, folder icons and colours on the Notes home.
+      **Done Nov 18.**

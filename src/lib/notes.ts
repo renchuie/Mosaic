@@ -114,6 +114,16 @@ export function renameLinks(text: string, from: string, to: string): string {
 /** A short snippet around the first match of `q`. */
 /** The first line of a note worth showing in a list (not the title, not hidden comment lines
  *  like card ids or column markers), cleaned of Markdown. */
+/** A note moved from `from` to `to` folders deep: its links to the notes folder's top-level
+ *  `attachments/` (pasted images, covers) are written relative to the note, so they need one
+ *  "../" per level. Only paths that pointed at the top-level folder before are changed. */
+export function rebaseAttachments(text: string, from: number, to: number): string {
+  if (from === to) return text;
+  return text.replace(/(^|[\s("'=:|])((?:\.\.\/)*)attachments\//gm, (all, pre: string, ups: string) =>
+    ups.length / 3 === from ? `${pre}${"../".repeat(to)}attachments/` : all,
+  );
+}
+
 export function previewLine(body: string, title: string): string {
   return (
     body

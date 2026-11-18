@@ -12,6 +12,8 @@
     open = false,
     sheets = [],
     pages = false,
+    icon = "",
+    over = false,
   }: {
     name: string;
     color?: string;
@@ -22,10 +24,14 @@
     sheets?: Sheet[];
     /** draw sheets as little PDF pages instead of note snippets */
     pages?: boolean;
+    /** an emoji in place of the colour dot */
+    icon?: string;
+    /** something is being dragged over it and would drop here */
+    over?: boolean;
   } = $props();
 </script>
 
-<div class="fold" class:open class:has={sheets.length > 0} style="--c: {color}">
+<div class="fold" class:open class:over class:has={sheets.length > 0} style="--c: {color}">
   <span class="back" aria-hidden="true"></span>
   {#each sheets.slice(0, 2) as s, i}
     <span class="sheet s{i}" class:page={pages} aria-hidden="true">
@@ -38,18 +44,33 @@
   {/each}
   {#if href}
     <a class="front" {href}>
-      <span class="name"><span class="dot"></span>{name}</span>
+      <span class="name">{#if icon}<span class="ico">{icon}</span>{:else}<span class="dot"></span>{/if}{name}</span>
       {#each lines as l}<span class="line">{l}</span>{/each}
     </a>
   {:else}
     <button type="button" class="front" {onclick}>
-      <span class="name"><span class="dot"></span>{name}</span>
+      <span class="name">{#if icon}<span class="ico">{icon}</span>{:else}<span class="dot"></span>{/if}{name}</span>
       {#each lines as l}<span class="line">{l}</span>{/each}
     </button>
   {/if}
 </div>
 
 <style>
+  .ico {
+    flex: none;
+    font-size: 17px;
+    line-height: 1;
+  }
+  .fold.over {
+    transform: scale(1.04);
+    transition: transform 0.25s var(--spring);
+  }
+  .fold.over :is(.front, .back) {
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--c) 70%, var(--white)), var(--shadow-lift);
+  }
+  .front {
+    -webkit-user-drag: none;
+  }
   .fold {
     position: relative;
     height: 196px;

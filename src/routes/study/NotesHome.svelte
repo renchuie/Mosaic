@@ -6,6 +6,7 @@
   import { splitNote, previewLine } from "../../lib/notes";
   import { courses } from "../../lib/stores/courses.svelte";
   import { dirOf, noteHref, notes, recentNotes, type NoteEntry, noteDirs } from "../../lib/stores/notes.svelte";
+  import { dragStart, folderLook, noteDrag, openMenu } from "../../lib/stores/noteOps.svelte";
 
   let { onnew }: { onnew: (folder: string) => void } = $props();
   let dir = $state("");
@@ -24,6 +25,8 @@
 
   const COURSE_COLORS = ["#E3949B", "#8FB2DA", "#A98CE0", "#E3A86C", "#7FB3A6", "#D9B850"];
   function colorOf(d: string, i: number) {
+    const own = folderLook(d).color;
+    if (own) return own;
     const leaf = d.split("/").pop()!.toLowerCase();
     const top = d.split("/")[0].toLowerCase();
     const c = courses(true).find(([, c]) => [c.name, c.code].filter(Boolean).some((k) => [leaf, top].includes(k!.toLowerCase())));
@@ -37,6 +40,7 @@
       d,
       name: d.split("/").pop()!,
       color: colorOf(d, i),
+      icon: folderLook(d).icon ?? "",
       lines: [`${list.length} ${list.length === 1 ? "note" : "notes"}`, last ? `Edited ${when(last.mtime)}` : "Empty"],
       sheets: list.slice(0, 2).map((e) => ({ title: e.p.title, text: firstLine(e) })),
       open: !!lastUsed && inside(d, lastUsed),
@@ -58,8 +62,8 @@
       <h1 class="display">{dir ? dir.split("/").pop() : "Folders"}</h1>
       <p class="muted">
         {#if dir}
-          <button type="button" class="crumb" onclick={() => (dir = "")}>Folders</button>
-          {#each crumbs.slice(0, -1) as c}<span> › </span><button type="button" class="crumb" onclick={() => (dir = c.d)}>{c.name}</button>{/each}
+          <button type="button" class="crumb" class:over={noteDrag.over === ""} data-drop-dir="" onclick={() => (dir = "")}>Folders</button>
+          {#each crumbs.slice(0, -1) as c}<span> › </span><button type="button" class="crumb" class:over={noteDrag.over === c.d} data-drop-dir={c.d} onclick={() => (dir = c.d)}>{c.name}</button>{/each}
         {:else}
           {@const nf = noteDirs().filter((x) => !x.includes("/")).length}
           {all.length} {all.length === 1 ? "note" : "notes"} in {nf} {nf === 1 ? "folder" : "folders"} · Markdown files on your Drive
@@ -74,8 +78,10 @@
   {#if tiles.length}
     <div class="grid">
       {#each tiles as t, i (t.d)}
-        <div style="animation-delay: {i * 45}ms" class="cell">
-          <FolderTile name={t.name} color={t.color} lines={t.lines} sheets={t.sheets} open={t.open} onclick={() => (dir = t.d)} />
+        <div style="animation-delay: {i * 45}ms" class="cell" class:dragged={noteDrag.item?.rel === t.d} data-drop-dir={t.d} role="presentation"
+          oncontextmenu={(e) => openMenu(e, { kind: "folder", rel: t.d })}
+          onpointerdown={(e) => dragStart(e, { kind: "folder", rel: t.d }, t.name, t.icon || undefined)}>
+          <FolderTile name={t.name} color={t.color} icon={t.icon} lines={t.lines} sheets={t.sheets} open={t.open} over={noteDrag.over === t.d} onclick={() => (dir = t.d)} />
         </div>
       {/each}
     </div>
@@ -86,7 +92,7 @@
       <h2 class="h2">{dir ? "In this folder" : "Loose notes"}</h2>
       <ul>
         {#each here as e (e.rel)}
-          <li><a href={noteHref(e.rel)}><b>{e.p.title}</b><span class="muted snip">{firstLine(e)}</span><span class="muted when">{when(e.mtime)}</span></a></li>
+          <li><a href={noteHref(e.rel)} draggable="false" class:dragged={noteDrag.item?.rel === e.rel} oncontextmenu={(ev) => openMenu(ev, { kind: "note", rel: e.rel })} onpointerdown={(ev) => dragStart(ev, { kind: "note", rel: e.rel }, e.p.title)}><b>{e.p.title}</b><span class="muted snip">{firstLine(e)}</span><span class="muted when">{when(e.mtime)}</span></a></li>
         {/each}
       </ul>
     </section>
@@ -99,7 +105,7 @@
       <h2 class="h2">Recent</h2>
       <ul>
         {#each recentNotes(6) as e (e.rel)}
-          <li><a href={noteHref(e.rel)}><b>{e.p.title}</b><span class="muted snip">{dirOf(e.rel) || "Notes"} · {firstLine(e)}</span><span class="muted when">{when(e.mtime)}</span></a></li>
+          <li><a href={noteHref(e.rel)} draggable="false" class:dragged={noteDrag.item?.rel === e.rel} oncontextmenu={(ev) => openMenu(ev, { kind: "note", rel: e.rel })} onpointerdown={(ev) => dragStart(ev, { kind: "note", rel: e.rel }, e.p.title)}><b>{e.p.title}</b><span class="muted snip">{dirOf(e.rel) || "Notes"} · {firstLine(e)}</span><span class="muted when">{when(e.mtime)}</span></a></li>
         {/each}
       </ul>
     </section>
@@ -125,6 +131,17 @@
   }
   .top p {
     margin-top: 4px;
+  }
+  .crumb.over {
+    border-radius: 8px;
+    background: color-mix(in srgb, var(--accent) 24%, var(--white));
+    color: var(--text);
+  }
+  .dragged {
+    opacity: 0.45;
+  }
+  .list a {
+    -webkit-user-drag: none;
   }
   .crumb {
     border: 0;

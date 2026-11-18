@@ -3,6 +3,7 @@
   import Icon from "../../lib/components/Icon.svelte";
   import { courseByName } from "../../lib/stores/courses.svelte";
   import { dirOf, noteHref, notes, searchNotes, type NoteEntry, noteDirs } from "../../lib/stores/notes.svelte";
+  import { dragStart, folderLook, noteDrag, openMenu } from "../../lib/stores/noteOps.svelte";
 
   // actions: small buttons beside the search box (📌 / × when the list is a panel inside a note)
   let { current, onnew, onnewfolder, actions }: { current: string | null; onnew: (folder: string) => void; onnewfolder: () => void; actions?: Snippet } = $props();
@@ -24,6 +25,14 @@
       localStorage.setItem("studydesk.noteFolders", JSON.stringify([...n]));
     } catch {}
   }
+
+  // a closed folder opens when a dragged note or folder rests on it
+  let openTimer = 0;
+  $effect(() => {
+    const d = noteDrag.over;
+    window.clearTimeout(openTimer);
+    if (d && closed.has(d)) openTimer = window.setTimeout(() => toggle(d), 650);
+  });
 
   type Node = { dir: string; name: string; depth: number; folders: Node[]; notes: NoteEntry[] };
   const tree = $derived.by(() => {
@@ -63,7 +72,7 @@
   {#if q.trim()}
     <ul class="results">
       {#each results as r (r.e.rel)}
-        <li><a href={noteHref(r.e.rel)} class:on={r.e.rel === current}><b>{r.e.p.title}</b><span>{r.snip}</span></a></li>
+        <li><a href={noteHref(r.e.rel)} class:on={r.e.rel === current} draggable="false" oncontextmenu={(ev) => openMenu(ev, { kind: "note", rel: r.e.rel })}><b>{r.e.p.title}</b><span>{r.snip}</span></a></li>
       {:else}
         <li class="muted none">No notes match “{q}”.</li>
       {/each}
@@ -71,22 +80,31 @@
   {:else}
     {#snippet branch(n: Node)}
       {#each n.folders as f (f.dir)}
-        <li>
-          <button type="button" class="folder" style="--d: {f.depth - 1}" onclick={() => toggle(f.dir)} aria-expanded={!closed.has(f.dir)}>
-            <span class="chev" class:shut={closed.has(f.dir)}>▾</span><Icon name="folder" size={15} /><span class="fn">{f.name}</span>
+        {@const lk = folderLook(f.dir)}
+        <li data-drop-dir={f.dir}>
+          <button type="button" class="folder" class:over={noteDrag.over === f.dir} class:dragged={noteDrag.item?.rel === f.dir} style="--d: {f.depth - 1}"
+            onclick={() => toggle(f.dir)} aria-expanded={!closed.has(f.dir)}
+            oncontextmenu={(e) => openMenu(e, { kind: "folder", rel: f.dir })}
+            onpointerdown={(e) => dragStart(e, { kind: "folder", rel: f.dir }, f.name, lk.icon)}>
+            <span class="chev" class:shut={closed.has(f.dir)}>▾</span>
+            {#if lk.icon}<span class="fi">{lk.icon}</span>{:else}<span class="fic" style={lk.color ? `color: ${lk.color}` : ""}><Icon name="folder" size={15} /></span>{/if}
+            <span class="fn">{f.name}</span>
+            {#if lk.icon && lk.color}<span class="fdot" style="background: {lk.color}"></span>{/if}
           </button>
           {#if !closed.has(f.dir)}<ul>{@render branch(f)}</ul>{/if}
         </li>
       {/each}
       {#each n.notes as e (e.rel)}
         <li>
-          <a href={noteHref(e.rel)} class="note" class:on={e.rel === current} style="--d: {n.depth}">
+          <a href={noteHref(e.rel)} class="note" class:on={e.rel === current} class:dragged={noteDrag.item?.rel === e.rel} style="--d: {n.depth}" draggable="false"
+            oncontextmenu={(ev) => openMenu(ev, { kind: "note", rel: e.rel })}
+            onpointerdown={(ev) => dragStart(ev, { kind: "note", rel: e.rel }, e.p.title, typeof e.p.meta.icon === "string" && e.p.meta.icon ? e.p.meta.icon : undefined)}>
             <span class="nd" style={dot(e) ? `background: ${dot(e)}` : ""}></span><span class="fn">{e.p.title}</span>
           </a>
         </li>
       {/each}
     {/snippet}
-    <ul class="root">{@render branch(tree)}</ul>
+    <ul class="root" class:over={noteDrag.over === ""} data-drop-dir="" data-drag-scroll>{@render branch(tree)}</ul>
     {#if !Object.keys(notes.files).length && notes.loaded}
       <p class="muted none">No notes yet. Make your first one with “+ Note”.</p>
     {/if}
@@ -170,6 +188,37 @@
     background: var(--surface);
     box-shadow: var(--shadow);
     font-weight: 600;
+  }
+  .note {
+    -webkit-user-drag: none;
+  }
+  .folder.over {
+    background: color-mix(in srgb, var(--accent) 22%, var(--white));
+    color: var(--text);
+    box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--accent) 55%, transparent);
+  }
+  .root.over {
+    border-radius: 12px;
+    box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--accent) 45%, transparent);
+  }
+  .dragged {
+    opacity: 0.45;
+  }
+  .fi {
+    width: 15px;
+    font-size: 14px;
+    line-height: 1;
+    text-align: center;
+  }
+  .fic {
+    display: inline-flex;
+  }
+  .fdot {
+    flex: none;
+    width: 7px;
+    height: 7px;
+    margin-left: auto;
+    border-radius: 50%;
   }
   .chev {
     width: 12px;
