@@ -588,6 +588,28 @@
     const x = Math.max(half + 6, Math.min(bubble.x, max));
     if (Math.abs(x - bubble.x) > 1) bubble = { ...bubble, x };
   });
+  // split: scroll (halves scroll on their own): until the split has reached the top of the note,
+  // the wheel moves the page, so a half's lower part never sits out of reach below the window
+  $effect(() => {
+    if (!wrap) return;
+    const el = wrap;
+    const onWheel = (e: WheelEvent) => {
+      const col = (e.target as HTMLElement).closest?.(".b-pagecol") as HTMLElement | null;
+      if (!col || e.deltaY <= 0 || getComputedStyle(col).overflowY !== "auto") return;
+      const sc = el.closest(".scroll") as HTMLElement | null;
+      const pages = col.parentElement;
+      if (!sc || !pages) return;
+      const stick = parseFloat(getComputedStyle(pages).top) || 0;
+      const gap = pages.getBoundingClientRect().top - sc.getBoundingClientRect().top - stick;
+      const room = sc.scrollHeight - sc.clientHeight - sc.scrollTop;
+      if (gap > 1 && room > 1) {
+        e.preventDefault();
+        sc.scrollTop += Math.min(e.deltaY, gap);
+      }
+    };
+    el.addEventListener("wheel", onWheel, { passive: false });
+    return () => el.removeEventListener("wheel", onWheel);
+  });
   let linkInput = $state<string | null>(null);
   let mouseDown = false;
   function placeBubble() {
@@ -1283,7 +1305,10 @@
 <svelte:window onmouseup={() => { if (mouseDown) { mouseDown = false; setTimeout(placeBubble, 0); } }} onpointerdown={offTable} onkeydown={(e) => { if (e.key === "Escape" && (cardMenu || cellPick)) { cardMenu = false; cellPick = false; } }} />
 
 <!-- svelte-ignore a11y_no_static_element_interactions -->
-<div class="bwrap" bind:this={wrap} onmousemove={onMove} onmousedown={(e) => { if ((e.target as HTMLElement).closest(".mosaic-doc")) mouseDown = true; }} onmouseleave={() => !blockMenu && (handle = null)}>
+<div class="bwrap" bind:this={wrap} onmousemove={onMove} onmousedown={(e) => { if ((e.target as HTMLElement).closest(".mosaic-doc")) mouseDown = true; }} onmouseleave={() => !blockMenu && (handle = null)} onscrollcapture={(e) => {
+  // a half of a split note scrolling on its own (split: scroll): the handle would stay behind
+  if ((e.target as HTMLElement).classList?.contains("b-pagecol") && !blockMenu) { handle = null; handleFor = null; placeCellBox(); }
+}}>
   <div class="bhost" bind:this={host}></div>
 
   {#if cellBox}<div class="cellbox" class:glide={cellBox.glide} style="transform: translate({cellBox.x}px, {cellBox.y}px); width: {cellBox.w}px; height: {cellBox.h}px" aria-hidden="true"></div>{/if}

@@ -1146,3 +1146,16 @@ button.dot[data-color] {
 }
 .b-cticks[hidden] { display: none; }
 .mosaic-doc .b-cticks:not([hidden]) + .b-cfold { margin-left: 6px; }
+/* each half scrolls on its own (front matter split: scroll; Nov 18, her pick 6): a half is at most
+   as tall as the note's visible area, so a long left half never pushes the right one away */
+[data-width="full"][data-split="scroll"] .mosaic-doc .b-pagecol {
+  max-height: calc(100vh - var(--bar-h, 56px) - 40px);
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-gutter: stable;
+  padding-bottom: 80px;
+}
+[data-width="full"][data-split="scroll"] .mosaic-doc .b-pages {
+  position: sticky;
+  top: 8px;
+}

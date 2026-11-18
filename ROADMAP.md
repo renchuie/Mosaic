@@ -314,3 +314,5 @@ Add things here as they come up (date, page, what happened). Each one is either 
       empty items ("2 of 7", column names in empty cells), Review from a heading. **Done Nov 18.**
   20. "Listen for / confirm" items as checkboxes with an "N to check" count on the callout (her
       pick 10). **Done Nov 18.**
+  21. Split notes: "Side by side, each half scrolls" view (her pick 6), chosen from a small menu on
+      the split button. **Done Nov 18.**

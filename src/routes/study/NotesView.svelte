@@ -422,6 +422,18 @@
   let scrollEl = $state<HTMLElement>();
   /** side by side (two halves, Full width only); read from the note when it opens */
   let sideBySide = $state(false);
+  let splitMenu = $state(false);
+  let splitAt = $state({ top: 0, right: 0 });
+  // the top bar scrolls sideways (overflow auto), which would clip the menu: it lives in <body>
+  function portal(node: HTMLElement) {
+    document.body.appendChild(node);
+    return { destroy: () => node.remove() };
+  }
+  const SPLIT_MODES = [
+    { id: "", label: "Side by side", hint: "The page scrolls as one" },
+    { id: "scroll", label: "Side by side, each half scrolls", hint: "Read one half while the other stays put" },
+    { id: "stacked", label: "One above the other", hint: "Left half first, then the right" },
+  ];
   $effect(() => {
     void version;
     sideBySide = /<!--\s*mosaic-pages\s*-->/.test(body);
@@ -498,8 +510,14 @@
 </script>
 
 <svelte:window
+  onpointerdown={(e) => {
+    if (splitMenu && !(e.target as HTMLElement).closest?.(".splitwrap, .splitmenu")) splitMenu = false;
+  }}
   onkeydown={(e) => {
-    if (e.key === "Escape" && (sheetL || sheetR)) {
+    if (e.key === "Escape" && splitMenu) {
+      splitMenu = false;
+      e.preventDefault();
+    } else if (e.key === "Escape" && (sheetL || sheetR)) {
       sheetL = false;
       sheetR = null;
     } else if (e.key === "Escape" && ui.writing && !e.defaultPrevented && !document.querySelector(".nh .pop")) {
@@ -522,7 +540,7 @@
 
 <div class="nwrap full" bind:clientWidth={width}>
   {#if rel && note}
-    <div class="npage" class:writing={ui.writing} class:typing data-width={noteWidth} data-split={meta.split === "stacked" ? "stacked" : null} style="--bar-h: {barH}px; --note-box: {WIDTHS[noteWidth]}; --doc-pad: {noteWidth === 'full' ? '64px' : '40px'}">
+    <div class="npage" class:writing={ui.writing} class:typing data-width={noteWidth} data-split={meta.split === "stacked" || meta.split === "scroll" ? meta.split : null} style="--bar-h: {barH}px; --note-box: {WIDTHS[noteWidth]}; --doc-pad: {noteWidth === 'full' ? '64px' : '40px'}">
       <div class="topbar" bind:clientHeight={barH}>
         <StudyNav bar={false} />
         <span class="sep"></span>
@@ -553,13 +571,32 @@
           <!-- side by side: makes the two halves the first time; after that it only switches between
                side by side and one half above the other (front matter split: stacked). Joining the
                halves is a deliberate ⠿ menu choice, so nothing written on the right gets moved. -->
-          <button type="button" class="ico" class:on={sideBySide && meta.split !== "stacked"}
-            title={!sideBySide ? "Side by side: two notes in one, written separately" : meta.split === "stacked" ? "Show the two halves side by side" : "Show the two halves one above the other (nothing moves; ⠿ → Join halves to make one page)"}
-            aria-label="Side by side" aria-pressed={sideBySide && meta.split !== "stacked"}
-            onclick={() => {
-              if (!sideBySide) { blocks?.togglePages(); sideBySide = !!blocks?.hasPages(); if (meta.split) setMeta({ split: undefined }); }
-              else setMeta({ split: meta.split === "stacked" ? undefined : "stacked" });
-            }}><Icon name="columns" size={18} /></button>
+          <span class="splitwrap">
+            <button type="button" class="ico" class:on={sideBySide && meta.split !== "stacked"}
+              title={!sideBySide ? "Side by side: two notes in one, written separately" : "How the two halves show"}
+              aria-label="Side by side" aria-haspopup={sideBySide ? "menu" : undefined} aria-expanded={sideBySide ? splitMenu : undefined}
+              onclick={(e) => {
+                if (!sideBySide) { blocks?.togglePages(); sideBySide = !!blocks?.hasPages(); if (meta.split) setMeta({ split: undefined }); }
+                else {
+                  const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
+                  splitAt = { top: r.bottom + 8, right: window.innerWidth - r.right };
+                  splitMenu = !splitMenu;
+                }
+              }}><Icon name="columns" size={18} /></button>
+            {#if splitMenu && sideBySide}
+              <!-- Nov 18 (her pick 6): halves can scroll on their own, so a long left half doesn't
+                   push the right one out of sight. Front matter split: scroll / stacked. -->
+              <div class="menu splitmenu" role="menu" use:portal style="top: {splitAt.top}px; right: {splitAt.right}px">
+                {#each SPLIT_MODES as m}
+                  <button type="button" role="menuitemradio" aria-checked={(meta.split ?? "") === m.id}
+                    onclick={() => { setMeta({ split: m.id || undefined }); splitMenu = false; }}>
+                    <b>{m.label}</b><small>{m.hint}</small>
+                  </button>
+                {/each}
+                <p class="mhint">To make one page again: ⠿ on a block in a half → Join halves.</p>
+              </div>
+            {/if}
+          </span>
         {/if}
         {#if !source}
           <button type="button" class="ico" class:on={tools} title={tools ? "Toolbar: always showing" : "Toolbar: only while typing (click to keep it showing)"} aria-label="Formatting toolbar" aria-pressed={tools} onclick={() => saveSettings({ noteTools: !tools })}><Icon name="pen" size={17} /></button>
@@ -1262,5 +1299,50 @@
       right: 8px;
       width: auto;
     }
+  }
+  .splitwrap {
+    position: relative;
+    display: inline-flex;
+  }
+  :global(.splitmenu) {
+    position: fixed;
+    z-index: 200;
+    width: 290px;
+    padding: 6px;
+    border-radius: 16px;
+    box-shadow: var(--shadow-lg, 0 12px 32px rgb(0 0 0 / 0.16));
+    display: grid;
+    gap: 2px;
+  }
+  :global(.splitmenu button) {
+    display: grid;
+    gap: 1px;
+    text-align: left;
+    padding: 8px 12px 8px 34px;
+    border: 0;
+    border-radius: 11px;
+    background: none;
+    color: var(--text);
+    font: inherit;
+    cursor: pointer;
+    position: relative;
+  }
+  :global(.splitmenu button:hover) { background: var(--chip); }
+  :global(.splitmenu button b) { font-weight: 600; font-size: 0.9rem; }
+  :global(.splitmenu button small) { color: var(--text-muted); font-size: 0.78rem; }
+  :global(.splitmenu button[aria-checked="true"]::before) {
+    content: "✓";
+    position: absolute;
+    left: 12px;
+    top: 8px;
+    font-weight: 700;
+    color: var(--go-ink);
+  }
+  :global(.splitmenu .mhint) {
+    margin: 4px 0 2px;
+    padding: 6px 12px 2px;
+    border-top: 1px solid color-mix(in srgb, var(--text-muted) 22%, transparent);
+    font-size: 0.75rem;
+    color: var(--text-muted);
   }
 </style>

@@ -372,6 +372,12 @@ Markdown" view, the `<>` chip on the note header).
   pagecol`, top level only) and `pagecol` (`(block | columns)+`, so column blocks work inside a
   half). File: `<!--mosaic-pages-->` left `<!--mosaic-page-->` right `<!--/mosaic-pages-->`
   (`PAGES_OPEN` / `PAGE_SEP` / `PAGES_CLOSE` in mdDoc.ts; node test scratchpad `tstest/test16.ts`).
+  Since Nov 18 (her pick 6) the top-bar button, once there are halves, opens a menu (`.splitmenu`,
+  moved to `<body>` because the top bar clips) with three views: Side by side (no front matter),
+  "Side by side, each half scrolls" (`split: scroll`: each `.b-pagecol` is at most the visible
+  height and scrolls on its own, the split is sticky; BlockEditor's wheel listener scrolls the page
+  first until the split reaches the top, so a half's bottom is never out of reach) and One above the
+  other (`split: stacked`). Print undoes the scrolling.
   The top-bar button makes the halves the first time (`togglePages()`: everything so far in the
   left half, right half empty); after that it only switches the view between side by side and one
   half above the other (front matter `split: stacked`, `data-split` on `.npage`) and never moves

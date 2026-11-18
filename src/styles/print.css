@@ -33,4 +33,6 @@
   .printroot h3, .printroot h4 { break-inside: avoid; }
   .printroot h1, .printroot h2, .printroot h3, .printroot h4 { break-after: avoid; }
   .printroot .b-cticks { display: none !important; }
+  .printroot .b-pagecol { max-height: none !important; overflow: visible !important; padding-bottom: 0 !important; }
+  .printroot .b-pages { position: static !important; }
 }

@@ -462,6 +462,8 @@ these pieces.
 
 - The only things that hide and reveal in the note itself: folded **callouts**, closed **toggle
   sections**, and folding under a heading (that last one is a view setting, not saved in the file).
+- A split note can be read with each half scrolling on its own (her choice in the app; nothing to
+  write for it).
 - Checkboxes can be ticked; a callout holding checkboxes shows "N to check" / "✓ all checked".
 - Gaps help her fill in: Tab jumps from one empty blank / answer / list item / table cell to the
   next, empty list items show "2 of 7" and empty table cells their column name, each heading shows
