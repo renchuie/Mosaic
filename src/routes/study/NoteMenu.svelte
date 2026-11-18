@@ -148,7 +148,7 @@
 
   {#if noteDrag.item}
     <div class="nm-ghost" class:ok={noteDrag.over !== undefined} style="transform: translate({noteDrag.x + 14}px, {noteDrag.y + 10}px)">
-      {#if noteDrag.item.icon}<span><Icon name={noteDrag.item.icon} size={16} /></span>{/if}<b>{noteDrag.item.label}</b>
+      {#if noteDrag.item.icon}<span class="nm-ic"><Icon name={noteDrag.item.icon} size={16} /></span>{/if}<b>{noteDrag.item.label}</b>
       {#if noteDrag.over !== undefined}<em>→ {noteDrag.over ? noteDrag.over.split("/").pop() : "Notes"}</em>{/if}
     </div>
   {/if}

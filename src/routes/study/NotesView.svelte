@@ -789,6 +789,14 @@
   .ico.plus {
     font-size: 20px;
   }
+  /* the note's icon beside its title in the top bar: centred on the text (a line icon is an svg,
+     which otherwise sits on the text's baseline and looks high) */
+  .wi {
+    display: inline-grid;
+    place-items: center;
+    flex: none;
+    line-height: 1;
+  }
   .where {
     display: flex;
     align-items: center;
