@@ -1126,7 +1126,5 @@ button.dot[data-color] {
   scrollbar-gutter: stable;
   padding-bottom: 80px;
 }
-[data-width="full"][data-split="scroll"] .mosaic-doc .b-pages {
-  position: sticky;
-  top: 8px;
-}
+/* not sticky (Nov 19: anything after the split, like a closed "Check yourself" toggle, slid up over
+   the pinned halves); BlockEditor's wheel listener glides the page instead */

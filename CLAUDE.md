@@ -375,13 +375,17 @@ Markdown" view, the `<>` chip on the note header).
   Since Nov 18 (her pick 6) the top-bar button, once there are halves, opens a menu (`.splitmenu`,
   moved to `<body>` because the top bar clips) with three views: Side by side (no front matter),
   "Side by side, each half scrolls" (`split: scroll`: each `.b-pagecol` is at most the visible
-  height and scrolls on its own with `overscroll-behavior: contain`, the split is sticky) and One
-  above the other (`split: stacked`). Print undoes the scrolling. Two resting places, each reached
-  in ONE smooth glide (Nov 19, her recording: stepping the page, then the half, then the page
-  popping back felt awkward; BlockEditor's wheel listener): scrolling down over a half before the
-  split is at the top glides the page until the halves fill the view; scrolling up over a half
-  glides back to the top only when the gesture STARTED with that half already at its top (a
-  gesture = wheel events with no 200 ms pause, so touchpad inertia doesn't carry on into the page).
+  height and scrolls on its own with `overscroll-behavior: contain`) and One above the other
+  (`split: stacked`). Print undoes the scrolling. The split is NOT sticky (Nov 19: a closed "Check
+  yourself" toggle after the split slid up over the pinned halves). Instead BlockEditor's wheel
+  listener moves the page between three resting places, each in ONE smooth glide (her Nov 19
+  recording: stepping the page, then the half, then the page popping back felt awkward): above the
+  split; the halves filling the view (8px below the top); past the split. Scrolling down over a half
+  before the split has arrived glides onto the halves; a FRESH gesture down from a half's bottom
+  glides past the split, a fresh gesture up from a half's top glides back up a screen (a gesture =
+  wheel events with no 200 ms pause, so touchpad inertia never carries on into the page); past the
+  split, wheel up over a half glides back onto the halves. Playwright's page.screenshot re-renders
+  the halves (scroll resets) — a test artifact, not the app.
   The top-bar button makes the halves the first time (`togglePages()`: everything so far in the
   left half, right half empty); after that it only switches the view between side by side and one
   half above the other (front matter `split: stacked`, `data-split` on `.npage`) and never moves

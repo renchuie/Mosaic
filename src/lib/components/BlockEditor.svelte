@@ -585,23 +585,28 @@
     const x = Math.max(half + 6, Math.min(bubble.x, max));
     if (Math.abs(x - bubble.x) > 1) bubble = { ...bubble, x };
   });
-  // split: scroll (halves scroll on their own). Two resting places, each reached in ONE smooth
-  // glide (Nov 19, her recording: stepping the page and then the half felt awkward): scrolling down
-  // over a half while the split isn't at the top yet glides the page until the halves fill the
-  // view; scrolling up over a half that was already at its top glides the page back to the top.
-  // In between, only the half under the pointer moves (overscroll-behavior: contain in editor.css).
+  // split: scroll (halves scroll on their own). The page rests in one of three places, each reached
+  // in ONE smooth glide (Nov 19, her recordings: stepping the page and then the half felt awkward,
+  // and a pinned split let the blocks after it slide over the halves): above the split, with the
+  // halves filling the view, or past it. In between, only the half under the pointer moves
+  // (overscroll-behavior: contain in editor.css). A glide out of the halves needs a FRESH gesture
+  // that starts with that half already at its top / bottom, so touchpad inertia never carries on.
   $effect(() => {
     if (!wrap) return;
     const el = wrap;
+    const PAD = 8; // the halves rest this far below the top of the note's scroll area
     let glideUntil = 0;
     let lastWheel = 0;
     let gestureStart = 0; // a gesture = wheel events with no pause over 200 ms (touchpad inertia included)
-    const atTopSince = new WeakMap<HTMLElement, number>();
+    const edgeSince = new WeakMap<HTMLElement, { top?: number; bottom?: number }>();
     const onScroll = (e: Event) => {
       const col = e.target as HTMLElement;
       if (!col.classList?.contains("b-pagecol")) return;
-      if (col.scrollTop > 0) atTopSince.delete(col);
-      else if (!atTopSince.has(col)) atTopSince.set(col, performance.now());
+      const now = performance.now();
+      const was = edgeSince.get(col) ?? {};
+      const atTop = col.scrollTop <= 0;
+      const atBottom = col.scrollTop + col.clientHeight >= col.scrollHeight - 1;
+      edgeSince.set(col, { top: atTop ? (was.top ?? now) : undefined, bottom: atBottom ? (was.bottom ?? now) : undefined });
     };
     const onWheel = (e: WheelEvent) => {
       const col = (e.target as HTMLElement).closest?.(".b-pagecol") as HTMLElement | null;
@@ -613,20 +618,33 @@
       if (now - lastWheel > 200) gestureStart = now;
       lastWheel = now;
       if (now < glideUntil) return e.preventDefault();
-      const stick = parseFloat(getComputedStyle(pages).top) || 0;
-      const gap = pages.getBoundingClientRect().top - sc.getBoundingClientRect().top - stick;
+      const sr = sc.getBoundingClientRect();
+      const pr = pages.getBoundingClientRect();
+      const offset = pr.top - sr.top - PAD; // > 0: the split hasn't reached its resting place yet
+      const room = sc.scrollHeight - sc.clientHeight - sc.scrollTop;
+      const edges = edgeSince.get(col) ?? {
+        top: col.scrollTop <= 0 ? 0 : undefined,
+        bottom: col.scrollTop + col.clientHeight >= col.scrollHeight - 1 ? 0 : undefined,
+      };
       const glide = (top: number) => {
         e.preventDefault();
         glideUntil = now + 450;
         sc.scrollTo({ top, behavior: "smooth" });
       };
-      if (e.deltaY > 0 && gap > 1 && sc.scrollTop < sc.scrollHeight - sc.clientHeight - 1) {
-        glide(sc.scrollTop + gap);
-      } else if (e.deltaY < 0 && col.scrollTop <= 0 && sc.scrollTop > 0) {
-        // only a fresh scroll up: one that reaches the half's top doesn't carry on into the page
-        const since = atTopSince.get(col);
-        if (since !== undefined && since < gestureStart) glide(0);
-        else e.preventDefault();
+      const fresh = (since?: number) => since !== undefined && since < gestureStart;
+      if (e.deltaY > 0) {
+        if (offset > 1 && room > 1) glide(sc.scrollTop + Math.min(offset, room));
+        else if (offset < -1) {
+          // already past the split: keep moving the page, not the half under the pointer
+          e.preventDefault();
+          sc.scrollTop += e.deltaY;
+        }
+        else if (room > 1 && fresh(edges.bottom)) glide(sc.scrollTop + Math.min(room, pr.bottom - sr.top));
+        else if (edges.bottom !== undefined) e.preventDefault();
+      } else {
+        if (offset < -1) glide(sc.scrollTop + offset);
+        else if (sc.scrollTop > 0 && fresh(edges.top)) glide(Math.max(0, sc.scrollTop + offset - sc.clientHeight));
+        else if (edges.top !== undefined && sc.scrollTop > 0) e.preventDefault();
       }
     };
     el.addEventListener("wheel", onWheel, { passive: false });
