@@ -319,5 +319,12 @@ Add things here as they come up (date, page, what happened). Each one is either 
   22. Nov 19 · Ctrl+Z inside a cloze doesn't work for her (WebKitGTK). Could not reproduce in
       Chromium: ~30 undo / redo / shortcut cases pass there (typing over, erasing, retyping, mid-word,
       blanks by click and by Tab, `{{…}}` input rule, two-cloze lines with the pairing bar, hints,
-      marks, highlights, headings, to-dos, indent, arrows, paste, after autosave). Waiting on her exact
-      steps or a WebKitGTK run (needs xdotool in the test container). **Open.**
+      marks, highlights, headings, to-dos, indent, arrows, paste, after autosave). Also run in the real
+      release app (WebKitGTK under Xvfb, real key presses with xdotool, checking the saved file): undo
+      inside clozes and blanks (click, double-click, Tab / Alt+↓ jumps, after the file saved), clozes
+      in a split, callout, table cell and toggle, clozes made with either toolbar's { }, plus Ctrl+B /
+      I / Shift+X / E / Shift+H / Shift+1–2 / Shift+0, Ctrl+Alt+1 / 0, redo (Ctrl+Shift+Z, Ctrl+Y),
+      Tab / Shift+Tab, Ctrl+Enter, the ` :: ` arrow, Enter in lists, writing mode: all work. Waiting
+      on her exact steps or a recording. Small find: undoing an arrow leaves the line's hidden card
+      id in the file (harmless, no dot; left alone because clearing ids eagerly would lose review
+      history while she retypes a cloze). **Open.**
