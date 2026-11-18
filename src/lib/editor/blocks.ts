@@ -181,10 +181,25 @@ const Callout = Node.create<{ onMenu: (pos: number, rect: DOMRect) => void }>({
       badge.type = "button";
       badge.className = "b-cbadge";
       badge.title = "Callout type and style";
-      const title = document.createElement("input");
+      // the title (Nov 18, her ask: long titles wrap): shown as text clamped to two lines, and a
+      // textarea that wraps and grows while she edits it (Enter still leaves it, no new lines)
+      const title = document.createElement("textarea");
       title.className = "b-ctitle";
+      title.rows = 1;
       title.placeholder = "Title";
       title.setAttribute("aria-label", "Callout title");
+      const view = document.createElement("span");
+      view.className = "b-ctitle-view";
+      const grow = () => {
+        title.style.height = "auto";
+        title.style.height = `${title.scrollHeight}px`;
+      };
+      const showView = () => {
+        const has = !!title.value.trim();
+        view.textContent = title.value;
+        // empty: keep the textarea (its "Title" placeholder) so the title can still be clicked
+        head.classList.toggle("editing", !has || document.activeElement === title);
+      };
       // fold (Nov 18): ⌄ collapses the callout to its title; saved as [!kind]- (Obsidian's folding)
       const fold = document.createElement("button");
       fold.type = "button";
@@ -193,7 +208,7 @@ const Callout = Node.create<{ onMenu: (pos: number, rect: DOMRect) => void }>({
       // the same title as plain text, shown only on paper (an input can't wrap onto a second line)
       const ptitle = document.createElement("span");
       ptitle.className = "b-ctitle-print";
-      head.append(badge, title, ptitle, fold);
+      head.append(badge, view, title, ptitle, fold);
       const body = document.createElement("div");
       body.className = "b-cbody";
       dom.append(head, body);
@@ -203,6 +218,7 @@ const Callout = Node.create<{ onMenu: (pos: number, rect: DOMRect) => void }>({
         badge.dataset.label = kind.charAt(0).toUpperCase() + kind.slice(1).replace(/[-_]/g, " ");
         if (document.activeElement !== title) title.value = cur.attrs.title ?? "";
         ptitle.textContent = cur.attrs.title ?? "";
+        showView();
         dom.dataset.fold = cur.attrs.fold === "-" ? "closed" : cur.attrs.fold === "+" ? "open" : "";
         fold.title = cur.attrs.fold === "-" ? "Unfold" : "Fold to the title";
         fold.setAttribute("aria-expanded", String(cur.attrs.fold !== "-"));
@@ -220,8 +236,26 @@ const Callout = Node.create<{ onMenu: (pos: number, rect: DOMRect) => void }>({
       });
       fold.addEventListener("mousedown", (e) => e.preventDefault());
       fold.addEventListener("click", () => set({ fold: cur.attrs.fold === "-" ? "+" : "-" }));
-      title.addEventListener("input", () => (ptitle.textContent = title.value));
+      title.addEventListener("input", () => {
+        if (/\n/.test(title.value)) title.value = title.value.replace(/\s*\n+\s*/g, " ");
+        ptitle.textContent = title.value;
+        grow();
+      });
       title.addEventListener("change", () => set({ title: title.value }));
+      title.addEventListener("focus", () => {
+        head.classList.add("editing");
+        requestAnimationFrame(grow);
+      });
+      title.addEventListener("blur", () => {
+        set({ title: title.value });
+        showView();
+      });
+      view.addEventListener("mousedown", (e) => {
+        e.preventDefault();
+        head.classList.add("editing");
+        title.focus();
+        title.setSelectionRange(title.value.length, title.value.length);
+      });
       title.addEventListener("keydown", (e) => {
         if (e.key === "Enter" || e.key === "ArrowDown") {
           e.preventDefault();
@@ -986,6 +1020,32 @@ const Cloze = Mark.create({
       view.dispatch(tr.setSelection(TextSelection.create(tr.doc, from + text.length)));
       return true;
     };
+    /** The whole cloze around a position (its text runs with the same mark), else null. */
+    const clozeAt = (state: EditorState, pos: number) => {
+      const rp = state.doc.resolve(pos);
+      if (!rp.parent.isTextblock) return null;
+      const start = rp.start();
+      const kids: { n: PMNode; from: number; to: number }[] = [];
+      rp.parent.forEach((n, o) => kids.push({ n, from: start + o, to: start + o + n.nodeSize }));
+      const isCz = (k: { n: PMNode }) => k.n.isText && !!type.isInSet(k.n.marks);
+      let i = kids.findIndex((k) => k.from <= pos && pos < k.to && isCz(k));
+      if (i < 0) i = kids.findIndex((k) => k.to === pos && isCz(k));
+      if (i < 0) return null;
+      const m = type.isInSet(kids[i].n.marks)!;
+      let a = i;
+      let b = i;
+      while (a > 0 && kids[a - 1].n.isText && m.isInSet(kids[a - 1].n.marks)) a--;
+      while (b < kids.length - 1 && kids[b + 1].n.isText && m.isInSet(kids[b + 1].n.marks)) b++;
+      return { from: kids[a].from, to: kids[b].to, text: kids.slice(a, b + 1).map((k) => k.n.text).join("") };
+    };
+    /** guided notes: a blank to fill in ({{_____}}): a click selects all of it, so typing fills it */
+    const selectBlank = (view: EditorView, pos: number) => {
+      const c = clozeAt(view.state, pos);
+      if (!c || !/^[\s_.…?\-–—]*$/.test(c.text)) return false;
+      view.dispatch(view.state.tr.setSelection(TextSelection.create(view.state.doc, c.from, c.to)));
+      view.focus();
+      return true;
+    };
     return [
       new Plugin({
         view: () => ({
@@ -995,6 +1055,8 @@ const Cloze = Mark.create({
           },
         }),
         props: {
+          handleClick: (view, pos, e) => (e.button === 0 && !e.shiftKey ? selectBlank(view, pos) : false),
+          handleDoubleClick: (view, pos) => selectBlank(view, pos),
           handleTextInput(view, from, to, text) {
             if (from === to && retypeAt === from) return typeInCloze(view, from, to, text, retypeMarks);
             const marks = wholeCloze(view.state, from, to);

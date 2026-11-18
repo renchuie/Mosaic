@@ -26,7 +26,7 @@
   .printroot, .printroot * { caret-color: transparent !important; }
   .printroot .is-empty::after, .printroot .is-empty::before { content: none !important; }
   /* a callout's title never cuts off on paper */
-  .printroot .b-ctitle { display: none !important; }
+  .printroot .b-ctitle, .printroot .b-ctitle-view { display: none !important; }
   .printroot .b-ctitle-print { display: block !important; flex: 1; min-width: 0; font-weight: 700; overflow-wrap: anywhere; }
   .printroot .mosaic-doc, .printroot .nh { max-width: none !important; width: auto !important; }
   .printroot tr, .printroot figure, .printroot .b-callout, .printroot pre, .printroot h1, .printroot h2,

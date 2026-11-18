@@ -407,6 +407,12 @@ Markdown" view, the `<>` chip on the note header).
   `tstest/test27.ts`). Fixed with it: a run of 3+ underscores is plain text, never emphasis
   (parseInline + `inRun` in escapeText; `{{_____}}` used to save as `{{**_**}}`). In the editor,
   double-clicking a blank selects it and typing stays inside the cloze (Playwright-checked).
+  After her first real guided note (Nov 18): in WebKitGTK a double-click didn't visibly select a
+  blank, so a single click (or double-click) on a blank cloze now selects the whole gap
+  (`selectBlank` / `clozeAt` in the Cloze mark's plugin) and a selection inside a cloze has a
+  stronger tint. Callout titles wrap (her ask): `.b-ctitle-view` shows the title clamped to two
+  lines with "…"; clicking it swaps to the `.b-ctitle` textarea (grows while editing, Enter
+  leaves, new lines become spaces; `.b-chead.editing`).
   The guide ends with "Reference: everything Mosaic can and can't do" (note features,
   interactivity limits, the flashcard and review system, quizzes / library / PDFs / labs, limits)
   and a brainstorming prompt, so Claude can invent activities that are buildable. Update both parts
