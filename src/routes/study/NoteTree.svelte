@@ -87,7 +87,7 @@
             oncontextmenu={(e) => openMenu(e, { kind: "folder", rel: f.dir })}
             onpointerdown={(e) => dragStart(e, { kind: "folder", rel: f.dir }, f.name, lk.icon)}>
             <span class="chev" class:shut={closed.has(f.dir)}>▾</span>
-            {#if lk.icon}<span class="fi">{lk.icon}</span>{:else}<span class="fic" style={lk.color ? `color: ${lk.color}` : ""}><Icon name="folder" size={15} /></span>{/if}
+            {#if lk.icon}<span class="fi"><Icon name={lk.icon} size={15} /></span>{:else}<span class="fic" style={lk.color ? `color: ${lk.color}` : ""}><Icon name="folder" size={15} /></span>{/if}
             <span class="fn">{f.name}</span>
             {#if lk.icon && lk.color}<span class="fdot" style="background: {lk.color}"></span>{/if}
           </button>
@@ -205,10 +205,10 @@
     opacity: 0.45;
   }
   .fi {
+    display: inline-grid;
+    place-items: center;
     width: 15px;
-    font-size: 14px;
     line-height: 1;
-    text-align: center;
   }
   .fic {
     display: inline-flex;
