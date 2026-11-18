@@ -49,8 +49,27 @@ export async function initNotes() {
     notes.files = Object.fromEntries(Object.entries(c.files).map(([rel, f]) => [rel, entry(rel, f.mtime, f.size, f.text)]));
     notes.loaded = true;
   }
-  void refreshNotes();
+  // empty the trash of anything older than settings.trashDays (30) once the folder is known
+  void refreshNotes().then(() => purgeTrash("", settings.trashDays ?? 30).catch(() => 0));
   window.addEventListener("focus", () => void refreshNotes());
+}
+
+// ---- the notes folder's .trash (Nov 19: an in-app Trash) ----------------------------------------
+export type TrashItem = { id: string; name: string; from: string; deleted: number; dir: boolean };
+export async function trashList(): Promise<TrashItem[]> {
+  return inTauri ? invoke<TrashItem[]>("notes_trash_list") : [];
+}
+/** Put a note or folder back where it was; returns its path (" (restored)" when the name is taken). */
+export async function restoreFromTrash(t: TrashItem): Promise<string> {
+  changed();
+  const rel = await invoke<string>("notes_trash_restore", { id: t.id });
+  if (t.from && rel !== t.from) historyMoved(t.from, rel, t.dir);
+  await refreshNotes();
+  return rel;
+}
+/** Delete for good: one entry by id, or (id "") everything older than `days` (0 = everything). */
+export async function purgeTrash(id: string, days = 0): Promise<number> {
+  return inTauri ? invoke<number>("notes_trash_purge", { id, days }) : 0;
 }
 
 let running: Promise<void> | null = null;

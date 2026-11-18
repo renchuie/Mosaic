@@ -5,6 +5,7 @@
   // note as a column. Writing mode (Ctrl+\) hides the rail and the top bar until the mouse touches
   // the left or top edge. Pins and the toolbar pin are remembered per machine; page width per note.
   import Icon from "../../lib/components/Icon.svelte";
+  import { inTauri, invoke } from "../../lib/tauri";
   import NoteHistory from "./NoteHistory.svelte";
   import BlockEditor from "../../lib/components/BlockEditor.svelte";
   import NoteEditor from "../../lib/components/NoteEditor.svelte";
@@ -18,7 +19,7 @@
   import { pdfHref, resolvePdfLink } from "../../lib/stores/pdfs.svelte";
   import NewNoteDialog from "./NewNoteDialog.svelte";
   import NoteMenu from "./NoteMenu.svelte";
-  import { doTrashNote, noteHooks } from "../../lib/stores/noteOps.svelte";
+  import { doTrashNote, noteHooks, say } from "../../lib/stores/noteOps.svelte";
   import NoteTree from "./NoteTree.svelte";
   import NotesHome from "./NotesHome.svelte";
   import NoteHead from "./NoteHead.svelte";
@@ -182,10 +183,36 @@
     status = "saving";
     void flush();
   }
+  // ---- a note changed on the other computer while open here (Nov 19: neither choice loses anything) ----
+  /** Use the other computer's version; this one's text goes into the note's version history. */
   async function takeTheirs() {
     if (!loadedRel) return;
-    await reloadNote(loadedRel);
+    const r = loadedRel;
+    snapshot(r, joinNote($state.snapshot(meta) as Meta, fullBody()), true);
+    replacing = r;
+    await reloadNote(r);
     loadedRel = null;
+    say("Your version is in ⋯ → Version history.");
+    setTimeout(() => (replacing = null), 500);
+  }
+  /** Keep this version; the other computer's is saved beside it as "<name> (other version …)". */
+  async function keepMine() {
+    if (!loadedRel) return;
+    const r = loadedRel;
+    try {
+      const theirs = inTauri ? await invoke<string>("notes_read", { rel: r }) : "";
+      if (theirs.trim()) {
+        const stamp = new Date().toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }).replace(/:/g, ".");
+        const base = r.replace(/\.md$/i, "");
+        let copy = `${base} (other version ${stamp}).md`;
+        for (let i = 2; getNote(copy); i++) copy = `${base} (other version ${stamp} ${i}).md`;
+        await saveNote(copy, theirs);
+        say(`The other version is saved as “${copy.split("/").pop()!.replace(/\.md$/i, "")}”.`);
+      }
+    } catch (e) {
+      console.error("conflict copy", e);
+    }
+    await flush(true);
   }
   async function toggleSource() {
     if (!note) return;
@@ -665,7 +692,7 @@
               coverUrl={(s) => imageUrl(rel!, s)}
               onmeta={setMeta} onrename={doRename} onmove={doMove} ondelete={doDelete} ontoggleSource={toggleSource}
               full={fullHead} onheadstyle={setHead} onrun={(c, a) => blocks?.run(c, a)}
-              oncoverfile={coverFile} ontheirs={takeTheirs} onmine={() => flush(true)} onprint={printNote} onhistory={openHistory} />
+              oncoverfile={coverFile} ontheirs={takeTheirs} onmine={keepMine} onprint={printNote} onhistory={openHistory} />
             <div class="edwrap" class:src={source}>
               {#key `${loadedRel}#${version}`}
                 {#if source}

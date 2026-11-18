@@ -15,6 +15,22 @@
   import { fly } from "svelte/transition";
   import { backOut } from "svelte/easing";
   import { ui } from "./lib/stores/ui.svelte";
+  import { checkFolders, connection } from "./lib/stores/connection.svelte";
+  import { settings } from "./lib/stores/settings.svelte";
+  import Icon from "./lib/components/Icon.svelte";
+  let hideConn = $state(false);
+  let checking = $state(false);
+  async function recheck() {
+    checking = true;
+    await checkFolders();
+    checking = false;
+  }
+  // "Google Drive", "Dropbox"… from the folder's path, else just "your synced folder"
+  const service = $derived.by(() => {
+    const p = settings.notesRoot.toLowerCase();
+    if (settings.storage === "local") return "";
+    return p.includes("googledrive") || p.includes("google drive") ? "Google Drive" : p.includes("dropbox") ? "Dropbox" : p.includes("onedrive") ? "OneDrive" : p.includes("icloud") ? "iCloud Drive" : "";
+  });
 
   // pages arrive with a small springy rise (off when "reduce motion" is on)
   const still = typeof matchMedia !== "undefined" && matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -55,6 +71,16 @@
     {/key}
   </main>
 </div>
+{#if (connection.notesMissing || connection.syncMissing) && !hideConn}
+  <div class="conn" role="status">
+    <Icon name="cloud" size={18} />
+    <span><b>{connection.notesMissing ? "Notes folder isn't connected." : "Sync folder isn't connected."}</b>
+      {service ? `Is ${service} running? ` : ""}Nothing is lost; Mosaic catches up when it's back.</span>
+    <button type="button" class="btn quiet sm" onclick={recheck} disabled={checking}>{checking ? "Checking…" : "Check again"}</button>
+    <a class="btn quiet sm" href="#/settings/files">Settings</a>
+    <button type="button" class="cx" aria-label="Hide" onclick={() => (hideConn = true)}>×</button>
+  </div>
+{/if}
 <EventEditor />
 <TagManager />
 <BlockStyleManager />
@@ -199,5 +225,37 @@
     :global(:root[data-frame="float"]) main {
       border-radius: 28px;
     }
+  }
+  /* the "folder isn't connected" banner (Nov 19): floats over the top of the page, never moves it */
+  .conn {
+    position: fixed;
+    top: 12px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 60;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    max-width: calc(100vw - 120px);
+    padding: 8px 8px 8px 16px;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--rose-soft, var(--rose)) 70%, var(--white));
+    color: var(--text);
+    box-shadow: var(--shadow-lift);
+    font-size: 13.5px;
+    animation: dialog-pop 0.3s var(--spring) backwards;
+  }
+  .conn span {
+    min-width: 0;
+  }
+  .conn .cx {
+    width: 30px;
+    height: 30px;
+    border: 0;
+    border-radius: 50%;
+    background: none;
+    color: var(--text-muted);
+    font-size: 17px;
+    cursor: pointer;
   }
 </style>

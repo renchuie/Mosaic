@@ -188,11 +188,126 @@ pub async fn notes_move(state: State<'_, NotesState>, from: String, to: String) 
 pub async fn notes_trash(state: State<'_, NotesState>, rel: String) -> Result<(), String> {
     let root = root_of(&state)?;
     let a = path_in(&state, &rel)?;
+    tauri::async_runtime::spawn_blocking(move || trash_into(&root, &a, &rel)).await.map_err(|e| e.to_string())?
+}
+
+/// Move a note or folder into `.trash/` as `<secs>-<name>`, with `<that>.from` holding where it
+/// came from (Nov 19: the in-app Trash puts things back where they were).
+pub fn trash_into(root: &Path, a: &Path, rel: &str) -> Result<(), String> {
     let stamp = std::time::SystemTime::now().duration_since(UNIX_EPOCH).map(|d| d.as_secs()).unwrap_or(0);
     let name = a.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
     let trash = root.join(".trash");
     fs::create_dir_all(&trash).map_err(|e| e.to_string())?;
-    fs::rename(&a, trash.join(format!("{stamp}-{name}"))).map_err(|e| e.to_string())
+    let mut id = format!("{stamp}-{name}");
+    let mut i = 2;
+    while trash.join(&id).exists() {
+        id = format!("{stamp}-{i}-{name}");
+        i += 1;
+    }
+    fs::rename(a, trash.join(&id)).map_err(|e| e.to_string())?;
+    let _ = fs::write(trash.join(format!("{id}.from")), rel);
+    Ok(())
+}
+
+#[derive(Serialize, Debug)]
+pub struct TrashItem {
+    /// the entry's name inside .trash
+    pub id: String,
+    /// its own name ("Lithium.md", "Exam 5")
+    pub name: String,
+    /// the path it had in the notes folder ("" for things trashed before Nov 19)
+    pub from: String,
+    /// when it was deleted (ms)
+    pub deleted: u64,
+    pub dir: bool,
+}
+
+pub fn trash_list(root: &Path) -> Vec<TrashItem> {
+    let trash = root.join(".trash");
+    let mut out: Vec<TrashItem> = fs::read_dir(&trash)
+        .into_iter()
+        .flatten()
+        .flatten()
+        .filter_map(|e| {
+            let id = e.file_name().to_string_lossy().into_owned();
+            if id.ends_with(".from") || id.starts_with('.') {
+                return None;
+            }
+            let (stamp, rest) = id.split_once('-').unwrap_or(("0", &id));
+            let secs = stamp.parse::<u64>().unwrap_or(0);
+            let from = fs::read_to_string(trash.join(format!("{id}.from"))).unwrap_or_default();
+            // the name from where it came from (the entry may be "<secs>-<n>-name" after a clash)
+            let name = if from.is_empty() { rest.to_string() } else { from.rsplit('/').next().unwrap_or(rest).to_string() };
+            Some(TrashItem { name, from, deleted: secs * 1000, dir: e.path().is_dir(), id })
+        })
+        .collect();
+    out.sort_by(|a, b| b.deleted.cmp(&a.deleted));
+    out
+}
+
+/// Put an entry back where it came from (its folder is made again if needed); a name already in
+/// use gets " (restored)". Returns its path in the notes folder.
+pub fn trash_restore(root: &Path, id: &str) -> Result<String, String> {
+    let item = trash_list(root).into_iter().find(|t| t.id == id).ok_or("It isn't in the trash any more.")?;
+    let want = if item.from.is_empty() { item.name.clone() } else { item.from.clone() };
+    let (dir, file) = match want.rsplit_once('/') {
+        Some((d, f)) => (d.to_string(), f.to_string()),
+        None => (String::new(), want.clone()),
+    };
+    let (stem, ext) = if !item.dir && file.to_lowercase().ends_with(".md") { (file[..file.len() - 3].to_string(), ".md") } else { (file.clone(), "") };
+    let join = |f: &str| if dir.is_empty() { f.to_string() } else { format!("{dir}/{f}") };
+    let mut rel = join(&file);
+    let mut n = 1;
+    while root.join(&rel).exists() {
+        rel = join(&format!("{stem} (restored{}){ext}", if n == 1 { String::new() } else { format!(" {n}") }));
+        n += 1;
+    }
+    let dest = resolve(root, &rel).ok_or("Invalid path")?;
+    if let Some(p) = dest.parent() {
+        fs::create_dir_all(p).map_err(|e| e.to_string())?;
+    }
+    let trash = root.join(".trash");
+    fs::rename(trash.join(id), &dest).map_err(|e| e.to_string())?;
+    let _ = fs::remove_file(trash.join(format!("{id}.from")));
+    Ok(rel)
+}
+
+/// Delete trash entries for good: one (`id`), or everything older than `days` (`id` empty;
+/// days 0 = everything).
+pub fn trash_purge(root: &Path, id: &str, days: u64) -> Result<usize, String> {
+    let trash = root.join(".trash");
+    let cutoff = std::time::SystemTime::now().duration_since(UNIX_EPOCH).map(|d| d.as_millis() as u64).unwrap_or(0).saturating_sub(days * 86_400_000);
+    let mut n = 0;
+    for t in trash_list(root) {
+        if (!id.is_empty() && t.id != id) || (id.is_empty() && days > 0 && t.deleted >= cutoff) {
+            continue;
+        }
+        let p = trash.join(&t.id);
+        let ok = if t.dir { fs::remove_dir_all(&p) } else { fs::remove_file(&p) };
+        if ok.is_ok() {
+            let _ = fs::remove_file(trash.join(format!("{}.from", t.id)));
+            n += 1;
+        }
+    }
+    Ok(n)
+}
+
+#[tauri::command]
+pub async fn notes_trash_list(state: State<'_, NotesState>) -> Result<Vec<TrashItem>, String> {
+    let root = root_of(&state)?;
+    tauri::async_runtime::spawn_blocking(move || Ok(trash_list(&root))).await.map_err(|e| e.to_string())?
+}
+
+#[tauri::command]
+pub async fn notes_trash_restore(state: State<'_, NotesState>, id: String) -> Result<String, String> {
+    let root = root_of(&state)?;
+    tauri::async_runtime::spawn_blocking(move || trash_restore(&root, &id)).await.map_err(|e| e.to_string())?
+}
+
+#[tauri::command]
+pub async fn notes_trash_purge(state: State<'_, NotesState>, id: String, days: u64) -> Result<usize, String> {
+    let root = root_of(&state)?;
+    tauri::async_runtime::spawn_blocking(move || trash_purge(&root, &id, days)).await.map_err(|e| e.to_string())?
 }
 
 fn decode_b64(s: &str) -> Option<Vec<u8>> {
@@ -249,5 +364,52 @@ mod tests {
         assert_eq!(f.iter().map(|x| x.rel.as_str()).collect::<Vec<_>>(), vec!["Ther IV/HF.md"]);
         assert_eq!(d, vec!["Ther IV"]);
         fs::remove_dir_all(&base).unwrap();
+    }
+}
+
+#[cfg(test)]
+mod trash_tests {
+    use super::*;
+
+    #[test]
+    fn trash_and_restore() {
+        let root = std::env::temp_dir().join(format!("mosaic-trash-{}", std::process::id()));
+        let _ = fs::remove_dir_all(&root);
+        fs::create_dir_all(root.join("Ther IV")).unwrap();
+        fs::write(root.join("Ther IV/Lithium.md"), "li").unwrap();
+        fs::write(root.join("2024-notes.md"), "n").unwrap();
+        trash_into(&root, &root.join("2024-notes.md"), "2024-notes.md").unwrap();
+        assert_eq!(trash_list(&root)[0].name, "2024-notes.md");
+        trash_purge(&root, &trash_list(&root)[0].id, 0).unwrap();
+        fs::create_dir_all(root.join("Old/Sub")).unwrap();
+        fs::write(root.join("Old/Sub/x.md"), "x").unwrap();
+        trash_into(&root, &root.join("Ther IV/Lithium.md"), "Ther IV/Lithium.md").unwrap();
+        trash_into(&root, &root.join("Old"), "Old").unwrap();
+        // an entry from before .from files existed
+        fs::write(root.join(".trash/100-Legacy.md"), "l").unwrap();
+        let items = trash_list(&root);
+        assert_eq!(items.len(), 3);
+        let li = items.iter().find(|t| t.name == "Lithium.md").unwrap();
+        assert_eq!(li.from, "Ther IV/Lithium.md");
+        assert!(items.iter().find(|t| t.name == "Old").unwrap().dir);
+        // a new note took the name meanwhile: the restored one gets " (restored)"
+        fs::write(root.join("Ther IV/Lithium.md"), "new").unwrap();
+        let r = trash_restore(&root, &li.id).unwrap();
+        assert_eq!(r, "Ther IV/Lithium (restored).md");
+        assert_eq!(fs::read_to_string(root.join(&r)).unwrap(), "li");
+        let old = trash_list(&root).into_iter().find(|t| t.name == "Old").unwrap();
+        assert_eq!(trash_restore(&root, &old.id).unwrap(), "Old");
+        assert!(root.join("Old/Sub/x.md").exists());
+        assert_eq!(trash_restore(&root, "100-Legacy.md").unwrap(), "Legacy.md");
+        // purge: old entries only, then one by id
+        fs::write(root.join("A.md"), "a").unwrap();
+        trash_into(&root, &root.join("A.md"), "A.md").unwrap();
+        fs::write(root.join(".trash/5-Ancient.md"), "z").unwrap();
+        assert_eq!(trash_purge(&root, "", 30).unwrap(), 1, "only the 1970 one is older than 30 days");
+        let a = trash_list(&root).into_iter().next().unwrap();
+        assert_eq!(trash_purge(&root, &a.id, 0).unwrap(), 1);
+        assert!(trash_list(&root).is_empty());
+        assert!(fs::read_dir(root.join(".trash")).unwrap().next().is_none(), ".from files go too");
+        let _ = fs::remove_dir_all(&root);
     }
 }

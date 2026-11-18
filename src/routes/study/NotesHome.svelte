@@ -8,11 +8,13 @@
   import { dirOf, noteHref, notes, recentNotes, type NoteEntry, noteDirs } from "../../lib/stores/notes.svelte";
   import { dragHasFiles, dragStart, folderLook, IMPORT_ACCEPT, importFiles, noteDrag, openMenu } from "../../lib/stores/noteOps.svelte";
   import Icon from "../../lib/components/Icon.svelte";
+  import NoteTrash from "./NoteTrash.svelte";
 
   let { onnew }: { onnew: (folder: string) => void } = $props();
   let dir = $state("");
   let picker = $state<HTMLInputElement>();
   let dropping = $state(false);
+  let trashOpen = $state(false);
 
   const all = $derived(Object.values(notes.files));
   const inside = (d: string, e: NoteEntry) => (d ? e.rel.startsWith(d + "/") : true);
@@ -78,6 +80,7 @@
       </p>
     </div>
     <div class="acts">
+      <button type="button" class="btn quiet" title="Deleted notes and folders" onclick={() => (trashOpen = true)}><Icon name="trash" size={16} /> Trash</button>
       <button type="button" class="btn quiet" title="Bring in .md files (a guided note from Claude…)" onclick={() => picker?.click()}><Icon name="file" size={16} /> Import</button>
       <button type="button" class="btn primary" onclick={() => onnew(dir)}>+ Note</button>
     </div>
@@ -122,6 +125,8 @@
     </section>
   {/if}
 </div>
+
+<NoteTrash bind:open={trashOpen} />
 
 <style>
   .acts {

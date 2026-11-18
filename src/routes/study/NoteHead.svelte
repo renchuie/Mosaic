@@ -202,8 +202,8 @@
 
     {#if status === "conflict"}
       <div class="conflict" role="alert">
-        <span>This note was changed on another computer since you opened it.</span>
-        <button type="button" class="btn quiet sm" onclick={ontheirs}>Load that version</button>
+        <span>Changed on your other computer. Nothing is lost either way.</span>
+        <button type="button" class="btn quiet sm" onclick={ontheirs}>Use that version</button>
         <button type="button" class="btn primary sm" onclick={onmine}>Keep mine</button>
       </div>
     {:else if status === "error"}

@@ -16,6 +16,7 @@ import { initPlan } from "./lib/stores/plan.svelte";
 import { initCourses } from "./lib/stores/courses.svelte";
 import { initNotes } from "./lib/stores/notes.svelte";
 import { initBackups } from "./lib/stores/backup.svelte";
+import { initConnection } from "./lib/stores/connection.svelte";
 import { initLibrary } from "./lib/stores/library.svelte";
 import { initPdfs } from "./lib/stores/pdfs.svelte";
 import { inTauri, invoke } from "./lib/tauri";
@@ -33,6 +34,7 @@ await initLabs().catch((e) => console.error("labs", e));
 await initNotes().catch((e) => console.error("notes", e));
 void initPdfs().catch((e) => console.error("pdfs", e));
 initBackups();
+initConnection();
 
 // STUDYDESK_ROUTE=labs/... opens a page at start; STUDYDESK_ROUTE=selftest prints checks (used for testing).
 if (inTauri) {
