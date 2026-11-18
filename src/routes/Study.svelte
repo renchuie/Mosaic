@@ -5,9 +5,10 @@
   import StudyNav from "./study/StudyNav.svelte";
   import CardBrowser from "./study/CardBrowser.svelte";
   import CardStats from "./study/CardStats.svelte";
+  import DeckPage from "./study/DeckPage.svelte";
   import CardsView from "./study/CardsView.svelte";
   import ReviewSession from "./study/ReviewSession.svelte";
-  import type { Scope } from "../lib/stores/srs.svelte";
+  import { parseScope, type Scope } from "../lib/stores/srs.svelte";
   import Library from "./study/library/Library.svelte";
   import PdfsHome from "./study/pdfs/PdfsHome.svelte";
   import PdfViewer from "./study/pdfs/PdfViewer.svelte";
@@ -20,16 +21,7 @@
   const cram = $derived(route.rest.startsWith("cards/cram"));
   const scope = $derived.by((): Scope | null => {
     if (!route.rest.startsWith("cards/review") && !cram) return null;
-    const s = route.rest.replace(/^cards\/(review|cram)\/?/, "");
-    if (s.startsWith("course:")) return { kind: "course", name: s.slice(7) };
-    if (s.startsWith("note:")) {
-      // note:<rel>#<heading › path> = one section of a note
-      const [rel, sec] = s.slice(5).split("#");
-      return { kind: "note", rel, section: sec ? sec.split(" › ").filter(Boolean) : undefined };
-    }
-    if (s === "library") return { kind: "library" };
-    if (s.startsWith("deck:")) return { kind: "deck", id: s.slice(5) };
-    return { kind: "all" };
+    return parseScope(route.rest.replace(/^cards\/(review|cram)\/?/, ""));
   });
   // #/study/pdfs/<rel>?p=<page>
   const pdf = $derived(route.rest.startsWith("pdfs/") ? parsePdfRoute(route.rest.slice(5)) : null);
@@ -42,6 +34,8 @@
     {#key route.rest}<ReviewSession {scope} {cram} />{/key}
   {:else if route.rest.startsWith("cards/browse")}
     <CardBrowser />
+  {:else if route.rest.startsWith("cards/deck/")}
+    {#key route.rest}<DeckPage scope={parseScope(route.rest.slice("cards/deck/".length))} />{/key}
   {:else if route.rest.startsWith("cards/stats")}
     <CardStats />
   {:else if route.rest.startsWith("cards/library")}

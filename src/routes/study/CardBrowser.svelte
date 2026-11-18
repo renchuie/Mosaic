@@ -7,6 +7,7 @@
   import { courses } from "../../lib/stores/courses.svelte";
   import { notes } from "../../lib/stores/notes.svelte";
   import { deckMatcher, decks, getDeck } from "../../lib/stores/decks.svelte";
+  import { inScope, parseScope, scopeName } from "../../lib/stores/srs.svelte";
   import {
     allCards, cardLine, clearLeech, ensureIds, fmtInterval, forget, reschedule, saveCardLine, setSuspended, statusOf,
     type CardRef, type Status,
@@ -19,6 +20,10 @@
   let course = $state("");
   // "all" | "notes" | "library" | "deck:<id>"
   let source = $state<string>("all");
+  // #/study/cards/browse?scope=<scope>: opened from a deck page
+  const scopeParam = /[?&]scope=([^&]+)/.exec(location.hash)?.[1];
+  let only = $state(scopeParam ? parseScope(decodeURIComponent(scopeParam)) : null);
+  const inOnly = $derived(only ? inScope(only) : null);
   const inDeck = $derived(source.startsWith("deck:") ? deckMatcher(getDeck(source.slice(5))) : null);
   let sort = $state<"due" | "added" | "lapses" | "interval" | "note">("due");
   let shown = $state(150);
@@ -58,6 +63,7 @@
       if (source === "notes" && !r.note) return false;
       if (source === "library" && !r.item) return false;
       if (inDeck && !inDeck(r)) return false;
+      if (inOnly && !inOnly(r)) return false;
       const s = st(r);
       if (status === "leech" ? !r.rec?.leech : status === "due" ? !isDue(r) : status !== "all" && s !== status) return false;
       if (!words.length) return true;
@@ -156,6 +162,7 @@
     <a class="back" href="#/study/cards" aria-label="Back to Cards"><Icon name="back" size={18} /></a>
     <h1 class="h1">Browse</h1>
     <span class="count">{filtered.length} {filtered.length === 1 ? "card" : "cards"}</span>
+    {#if only}<span class="onlychip">{scopeName(only)}<button type="button" aria-label="Show all cards" onclick={() => (only = null)}>×</button></span>{/if}
     <label class="search"><Icon name="search" size={16} /><input bind:value={q} placeholder="Search" aria-label="Search cards" /></label>
   </header>
 
@@ -289,6 +296,26 @@
 </div>
 
 <style>
+  .onlychip {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 4px 2px 12px;
+    border-radius: 999px;
+    background: var(--chip);
+    font-size: 13px;
+    font-weight: 600;
+  }
+  .onlychip button {
+    width: 24px;
+    height: 24px;
+    border: 0;
+    border-radius: 50%;
+    background: none;
+    color: var(--text-muted);
+    font-size: 16px;
+    cursor: pointer;
+  }
   .lch {
     color: var(--alert-ink);
   }

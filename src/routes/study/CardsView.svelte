@@ -1,52 +1,107 @@
 <script lang="ts">
+  // Study → Cards home (her Nov 18 pick "A + C combined"): the deck list is the home. Your own
+  // decks, then each course (opens to its notes), notes without a course, and the card library;
+  // each row opens the deck's own page (DeckPage.svelte). Due · New · Total per row like Anki.
+  import BarChart from "../../lib/components/BarChart.svelte";
   import Icon from "../../lib/components/Icon.svelte";
-  import { cardHtml } from "../../lib/cards";
   import { fromKey } from "../../lib/calendar";
-  import { courseByName, courses } from "../../lib/stores/courses.svelte";
-  import { noteHref, notes } from "../../lib/stores/notes.svelte";
-  import { saveSettings, settings } from "../../lib/stores/settings.svelte";
-  import { allCards, counts, dayRev, ensureIds, examReadiness, fitBeforeExam, fmtInterval, forecast, retention, setSuspended, statusOf } from "../../lib/stores/srs.svelte";
-  import { items } from "../../lib/stores/library.svelte";
+  import { courses } from "../../lib/stores/courses.svelte";
   import { decks } from "../../lib/stores/decks.svelte";
+  import { notes } from "../../lib/stores/notes.svelte";
+  import { allCards, counts, dayRev, ensureIds, examReadiness, fitBeforeExam, forecast, scopeKey, type Scope } from "../../lib/stores/srs.svelte";
   import DeckEditor from "./DeckEditor.svelte";
+  import ImportDialog from "./library/ImportDialog.svelte";
 
   const enc = (s: string) => encodeURIComponent(s);
-  let backfilled = $state(0);
   $effect(() => {
-    if (notes.loaded) void ensureIds().then((n) => (backfilled += n));
+    if (notes.loaded) void ensureIds();
   });
 
   const all = $derived(counts());
-  const fc = $derived(forecast(14));
-  const fmax = $derived(Math.max(1, ...fc.map((x) => x.n)));
-  const ret = $derived(retention(30));
   const today = $derived(dayRev());
-  const refs = $derived(allCards());
-  const byCourse = $derived(
-    courses()
-      .map(([id, c]) => ({ id, c, k: counts({ kind: "course", name: c.name }) }))
-      .filter((x) => x.k.total),
-  );
-  const lib = $derived(counts({ kind: "library" }));
-  const mine = $derived(decks().map(([id, d]) => ({ id, d, k: counts({ kind: "deck", id }) })));
-  let deckOpen = $state(false);
-  let deckId = $state<string | null>(null);
-  const editDeck = (id: string | null) => {
-    deckId = id;
-    deckOpen = true;
-  };
   const ready = $derived(examReadiness());
   let fitted = $state<Record<string, number>>({});
-  const byNote = $derived(
-    [...new Set(refs.filter((r) => r.note).map((r) => r.note!.rel))]
-      .map((rel) => ({ rel, e: notes.files[rel], k: counts({ kind: "note", rel }) }))
-      .filter((x) => x.e && x.k.total)
-      .sort((a, b) => b.k.due + b.k.newToday - (a.k.due + a.k.newToday) || b.k.total - a.k.total),
+  const ahead = $derived(forecast(14));
+  const aheadBars = $derived(
+    ahead.map((d, i) => ({
+      x: fromKey(d.date).toLocaleDateString("en-US", { weekday: "narrow" }),
+      parts: [{ v: d.n, colour: "var(--sage-deep)" }],
+      tip: `${i === 0 ? "Today" : fromKey(d.date).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })}\n${d.n} due`,
+    })),
   );
 
+  type Row = { scope: Scope; name: string; icon?: string; colour: string; k: ReturnType<typeof counts>; kids?: Row[] };
+  const row = (scope: Scope, name: string, colour: string, icon?: string, kids?: Row[]): Row => ({ scope, name, colour, icon, k: counts(scope), kids });
+
+  const noteRows = $derived.by(() => {
+    const byCourse = new Map<string, Row[]>();
+    const rels = new Set(allCards().filter((r) => r.note && r.card.lineId).map((r) => r.note!.rel));
+    for (const rel of rels) {
+      const e = notes.files[rel];
+      if (!e) continue;
+      const c = e.p.meta.course ? String(e.p.meta.course) : "";
+      byCourse.set(c, [...(byCourse.get(c) ?? []), row({ kind: "note", rel }, e.p.title, "var(--hairline)", e.p.meta.icon ? String(e.p.meta.icon) : undefined)]);
+    }
+    for (const list of byCourse.values()) list.sort((a, b) => a.name.localeCompare(b.name));
+    return byCourse;
+  });
+  const own = $derived(decks().map(([id, d]) => row({ kind: "deck", id }, d.name, "var(--lavender)", d.icon || "i:layers")));
+  const courseRows = $derived(
+    courses()
+      .filter(([, c]) => !c.archived)
+      .map(([, c]) => row({ kind: "course", name: c.name }, c.name, c.color, c.icon, noteRows.get(c.name)))
+      .filter((r) => r.k.total),
+  );
+  const loose = $derived(noteRows.get("") ?? []);
+  const lib = $derived(row({ kind: "library" }, "Card library", "var(--lavender)", "book"));
+
+  // which course rows are open (per machine)
+  let open = $state<string[]>(read());
+  function read(): string[] {
+    try {
+      return JSON.parse(localStorage.getItem("mosaic.deckOpen") || "[]");
+    } catch {
+      return [];
+    }
+  }
+  function toggle(k: string) {
+    open = open.includes(k) ? open.filter((x) => x !== k) : [...open, k];
+    try {
+      localStorage.setItem("mosaic.deckOpen", JSON.stringify(open));
+    } catch {}
+  }
+  let looseOpen = $state(false);
+
+  let deckOpen = $state(false);
+  let importOpen = $state(false);
 </script>
 
-<DeckEditor bind:open={deckOpen} id={deckId} />
+<DeckEditor bind:open={deckOpen} id={null} />
+<ImportDialog bind:open={importOpen} />
+
+{#snippet deckRow(r: Row, child = false)}
+  {@const key = scopeKey(r.scope)}
+  {@const kids = r.kids?.length ? r.kids : null}
+  <li class="drow" class:child style="--c: {r.colour}">
+    {#if kids}
+      <button type="button" class="tw" class:on={open.includes(key)} aria-label={open.includes(key) ? "Close" : "Open"} aria-expanded={open.includes(key)} onclick={() => toggle(key)}>
+        <Icon name="i:chevron-right" size={15} />
+      </button>
+    {:else}<span class="tw"></span>{/if}
+    <a class="dname" href="#/study/cards/deck/{enc(key)}">
+      {#if r.icon}<span class="di"><Icon name={r.icon} size={17} /></span>{:else}<span class="dot"></span>{/if}
+      <span class="nm">{r.name}</span>
+    </a>
+    <span class="n due" class:z={!r.k.due}>{r.k.due}</span>
+    <span class="n new" class:z={!r.k.newToday}>{r.k.newToday}</span>
+    <span class="n tot">{r.k.total}</span>
+    <a class="btn quiet sm rv" class:off={!r.k.due && !r.k.newToday} href="#/study/cards/review/{enc(key)}">Review</a>
+  </li>
+  {#if kids && open.includes(key)}
+    {#each kids as k (scopeKey(k.scope))}{@render deckRow(k, true)}{/each}
+  {/if}
+{/snippet}
+
 <div class="cards">
   <section class="hero">
     <div class="big">
@@ -58,13 +113,13 @@
       {#if all.due + all.newToday > 0}
         <a class="btn primary lg" href="#/study/cards/review/all"><Icon name="play" size={18} /> Review {all.due + all.newToday} cards</a>
       {:else if all.total}
-        <p class="done">All caught up for now 🎉</p>
+        <p class="done">All caught up 🎉</p>
       {/if}
-      <p class="muted small">{all.total} cards{backfilled ? ` · ${backfilled} new found in notes` : ""}{#if all.leeches}{" · "}<a class="lk" href="#/study/cards/browse?leech">{all.leeches} {all.leeches === 1 ? "leech" : "leeches"}</a>{/if}</p>
       <span class="links">
-        <a class="libbtn" href="#/study/cards/browse"><Icon name="search" size={15} /> Browse</a>
-        <a class="libbtn" href="#/study/cards/stats"><Icon name="i:chart-column" size={15} /> Stats</a>
-        <a class="libbtn" href="#/study/cards/library"><Icon name="book" size={15} /> Card library</a>
+        <a href="#/study/cards/library"><Icon name="i:plus" size={15} /> Add card</a>
+        <a href="#/study/cards/browse"><Icon name="search" size={15} /> Browse</a>
+        <a href="#/study/cards/stats"><Icon name="i:chart-column" size={15} /> Stats</a>
+        <button type="button" onclick={() => (importOpen = true)}><Icon name="external" size={15} /> Import</button>
       </span>
     </div>
   </section>
@@ -76,10 +131,8 @@
           <span class="exd"><b class="display">{x.exam.days}</b><small>{x.exam.days === 1 ? "day" : "days"}</small></span>
           <span class="ext">
             <b>{x.exam.title}</b>
-            <span>
-              {x.total} cards{x.late ? ` · ${x.late} due after the exam` : ""}{x.unseen ? ` · ${x.unseen} new` : ""}
-            </span>
-            {#if fitted[x.exam.key] !== undefined}<span class="okm">Moved {fitted[x.exam.key]} cards to the days before the exam.</span>{/if}
+            <span>{x.total} cards{x.late ? ` · ${x.late} due after the exam` : ""}{x.unseen ? ` · ${x.unseen} new` : ""}</span>
+            {#if fitted[x.exam.key] !== undefined}<span class="okm">Moved {fitted[x.exam.key]} cards before the exam.</span>{/if}
           </span>
           <span class="exb">
             {#if x.late}<button type="button" class="btn quiet sm" onclick={() => (fitted = { ...fitted, [x.exam.key]: fitBeforeExam(x.exam.course, x.exam.date) })}>Fit before exam</button>{/if}
@@ -90,114 +143,68 @@
     </section>
   {/if}
 
-  {#if !all.total}
-    <section class="card how">
-      <h2 class="h2">Write cards right in your notes</h2>
-      <ul>
-        <li><code>ACE inhibitor cough :: bradykinin build-up</code> <span>basic card</span></li>
-        <li><code>Digoxin ::: narrow therapeutic index</code> <span>two cards, both ways</span></li>
-        <li><code>Start {"{{SGLT2i}}"} regardless of diabetes</code> <span>cloze (hide the part in braces)</span></li>
-        <li><code>Four pillars of GDMT ::</code> with bullets indented under it <span>list card</span></li>
-        <li><code>:: table</code> on the line above a table <span>one card per filled cell</span></li>
-      </ul>
-      <div class="row2"><a class="btn quiet" href="#/study/notes">Open notes</a><a class="btn quiet" href="#/study/cards/library">Or use the card library</a></div>
-    </section>
-  {:else}
-    <div class="stats">
-      <div class="card"><span class="label">Total</span><b class="display">{all.total}</b><span class="muted">{all.new} not seen yet</span></div>
-      <div class="card"><span class="label">Mature</span><b class="display">{all.mature}</b><span class="muted">interval ≥ 3 weeks</span></div>
-      <div class="card"><span class="label">Retention</span><b class="display">{ret === null ? "–" : `${Math.round(ret * 100)}%`}</b><span class="muted">last 30 days</span></div>
-      <div class="card"><span class="label">Today</span><b class="display">{today.reviews}</b><span class="muted">reviews · {Math.round(today.ms / 60000)} min</span></div>
-    </div>
-
-    <div class="cols">
-      <div class="main">
-        <section class="card">
-          <div class="dh"><h2 class="h2">Decks</h2><button type="button" class="btn quiet sm" onclick={() => editDeck(null)}><Icon name="i:plus" size={15} /> New deck</button></div>
-          {#if mine.length}
-            <ul class="decks">
-              {#each mine as m (m.id)}
-                <li class="own">
-                  <span class="di"><Icon name={m.d.icon || "i:layers"} size={17} /></span>
-                  <button type="button" class="nl edit" onclick={() => editDeck(m.id)} title="Edit deck">{m.d.name}</button>
-                  <span class="nums"><span class="n-due">{m.k.due}</span><span class="n-new">{m.k.newToday}</span><span class="muted">{m.k.total}</span></span>
-                  <a class="btn quiet sm" href="#/study/cards/review/deck:{enc(m.id)}" class:off={!m.k.due && !m.k.newToday}>Review</a>
-                  <a class="cram" href="#/study/cards/cram/deck:{enc(m.id)}" title="Practice without changing the schedule">Cram</a>
-                </li>
-              {/each}
-            </ul>
-            <h3 class="label sub">By course</h3>
-          {/if}
-          <ul class="decks">
-            {#each byCourse as d (d.id)}
-              <li style="--c: {d.c.color}">
-                <span class="dot"></span><b>{d.c.name}</b>
-                <span class="nums"><span class="n-due">{d.k.due}</span><span class="n-new">{d.k.newToday}</span><span class="muted">{d.k.total}</span></span>
-                <a class="btn quiet sm" href="#/study/cards/review/course:{enc(d.c.name)}" class:off={!d.k.due && !d.k.newToday}>Review</a>
-                <a class="cram" href="#/study/cards/cram/course:{enc(d.c.name)}" title="Practice without changing the schedule">Cram</a>
-              </li>
-            {/each}
-          </ul>
-          {#if lib.total}
-            <h3 class="label sub">Card library</h3>
-            <ul class="decks">
-              <li style="--c: #cdb4f7">
-                <span class="dot"></span><a class="nl" href="#/study/cards/library">All library cards</a>
-                <span class="nums"><span class="n-due">{lib.due}</span><span class="n-new">{lib.newToday}</span><span class="muted">{lib.total}</span></span>
-                <a class="btn quiet sm" href="#/study/cards/review/library" class:off={!lib.due && !lib.newToday}>Review</a>
-              </li>
-            </ul>
-          {/if}
-          <h3 class="label sub">By note</h3>
-          <ul class="decks">
-            {#each byNote as d (d.rel)}
-              {@const c = d.e.p.meta.course ? courseByName(String(d.e.p.meta.course)) : undefined}
-              <li style="--c: {c ? c[1].color : 'var(--hairline)'}">
-                <span class="dot"></span><a class="nl" href={noteHref(d.rel)}>{d.e.p.title}</a>
-                <span class="nums"><span class="n-due">{d.k.due}</span><span class="n-new">{d.k.newToday}</span><span class="muted">{d.k.total}</span></span>
-                <a class="btn quiet sm" href="#/study/cards/review/note:{enc(d.rel)}" class:off={!d.k.due && !d.k.newToday}>Review</a>
-              </li>
-            {/each}
-          </ul>
-          <p class="legend muted"><span class="n-due">due</span> <span class="n-new">new today</span> total</p>
-        </section>
-
-
+  <div class="cols">
+    <section class="card decks">
+      <div class="dh">
+        <h2 class="h2">Decks</h2>
+        <button type="button" class="btn quiet sm" onclick={() => (deckOpen = true)}><Icon name="i:plus" size={15} /> New deck</button>
       </div>
-
-      <aside class="side">
-        <section class="card">
-          <h2 class="h2">Next 2 weeks</h2>
-          <div class="fc" role="img" aria-label="Reviews due per day for the next 14 days">
-            {#each fc as d, i (d.date)}
-              <div class="col" title="{fromKey(d.date).toDateString()}: {d.n} reviews">
-                <span class="v">{d.n || ""}</span>
-                <span class="bar" style="height: {(d.n / fmax) * 100}%"></span>
-                <span class="d" class:today={i === 0}>{fromKey(d.date).toLocaleDateString("en-US", { weekday: "narrow" })}</span>
-              </div>
-            {/each}
+      {#if !all.total && !own.length}
+        <div class="empty">
+          <p>No cards yet.</p>
+          <ul class="how">
+            <li><code>Question :: answer</code><span>card</span></li>
+            <li><code>Term ::: meaning</code><span>both ways</span></li>
+            <li><code>Start {"{{SGLT2i}}"} first</code><span>cloze</span></li>
+          </ul>
+          <div class="row2">
+            <a class="btn quiet" href="#/study/notes">Open notes</a>
+            <a class="btn quiet" href="#/study/cards/library">Add card</a>
+            <button type="button" class="btn quiet" onclick={() => (importOpen = true)}>Import</button>
           </div>
-        </section>
-        <section class="card">
-          <h2 class="h2">Settings</h2>
-          <label class="field"><span class="label">New cards per day</span>
-            <input class="input" type="number" min="0" max="500" value={settings.newPerDay} onchange={(e) => saveSettings({ newPerDay: Math.max(0, Number(e.currentTarget.value) || 0) })} /></label>
-          <label class="field"><span class="label">Target retention</span>
-            <select class="input" value={String(settings.retention)} onchange={(e) => saveSettings({ retention: Number(e.currentTarget.value) })}>
-              {#each [0.8, 0.85, 0.9, 0.93, 0.95] as r}<option value={String(r)}>{Math.round(r * 100)}%{r === 0.9 ? " (recommended)" : r >= 0.93 ? " (more reviews)" : " (fewer reviews)"}</option>{/each}
-            </select></label>
-          <label class="chk"><input type="checkbox" checked={settings.examAware} onchange={(e) => saveSettings({ examAware: e.currentTarget.checked })} /> Due before the course's next exam</label>
-          <p class="muted small">Higher retention means more reviews.</p>
-        </section>
-      </aside>
-    </div>
-  {/if}
+        </div>
+      {:else}
+        <ul class="tree">
+          <li class="drow head" aria-hidden="true"><span></span><span></span><span class="n">Due</span><span class="n">New</span><span class="n tot">Total</span><span></span></li>
+          {#if own.length}
+            {#each own as r (scopeKey(r.scope))}{@render deckRow(r)}{/each}
+            <li class="sep" aria-hidden="true"></li>
+          {/if}
+          {#each courseRows as r (scopeKey(r.scope))}{@render deckRow(r)}{/each}
+          {#if loose.length}
+            <li class="drow" style="--c: var(--hairline)">
+              <button type="button" class="tw" class:on={looseOpen} aria-label={looseOpen ? "Close" : "Open"} aria-expanded={looseOpen} onclick={() => (looseOpen = !looseOpen)}><Icon name="i:chevron-right" size={15} /></button>
+              <button type="button" class="dname plain" onclick={() => (looseOpen = !looseOpen)}><span class="dot"></span><span class="nm">Other notes</span></button>
+              <span class="n due" class:z={!loose.reduce((n, r) => n + r.k.due, 0)}>{loose.reduce((n, r) => n + r.k.due, 0)}</span>
+              <span class="n new" class:z={!loose.reduce((n, r) => n + r.k.newToday, 0)}>{loose.reduce((n, r) => n + r.k.newToday, 0)}</span>
+              <span class="n tot">{loose.reduce((n, r) => n + r.k.total, 0)}</span>
+              <span></span>
+            </li>
+            {#if looseOpen}{#each loose as r (scopeKey(r.scope))}{@render deckRow(r, true)}{/each}{/if}
+          {/if}
+          {#if lib.k.total}{@render deckRow(lib)}{/if}
+        </ul>
+      {/if}
+    </section>
+
+    <aside class="side">
+      <section class="card">
+        <h2 class="h2">Today</h2>
+        <div class="today">
+          <span><b>{today.reviews}</b> reviews</span>
+          <span><b>{Math.round(today.ms / 60000)}</b> min</span>
+          <span><b>{today.new}</b> new</span>
+        </div>
+      </section>
+      <section class="card">
+        <h2 class="h2">Next 2 weeks</h2>
+        <BarChart data={aheadBars} height={110} xEvery={1} label="Cards due per day for the next 14 days" />
+      </section>
+    </aside>
+  </div>
 </div>
 
 <style>
-  .lk {
-    color: inherit;
-  }
   .cards {
     display: grid;
     gap: var(--gap);
@@ -228,12 +235,11 @@
     font-weight: 600;
   }
   .big span:last-child {
-    /* peach that stays readable on a dark hero AND on the frosted white one */
     color: color-mix(in srgb, var(--peach) 50%, var(--on-hero));
   }
   .go {
     display: grid;
-    gap: 8px;
+    gap: 12px;
     justify-items: end;
   }
   .lg {
@@ -244,194 +250,35 @@
     color: var(--ink-on-color);
   }
   .done {
+    margin: 0;
     font-size: 18px;
     font-weight: 600;
-  }
-  .go .muted {
-    color: color-mix(in srgb, var(--on-hero) 72%, transparent);
-  }
-  .small {
-    font-size: 13.5px;
-  }
-  .how ul {
-    list-style: none;
-    margin: 12px 0;
-    padding: 0;
-    display: grid;
-    gap: 8px;
-  }
-  .how li {
-    display: flex;
-    gap: 10px;
-    align-items: center;
-    flex-wrap: wrap;
-  }
-  .how code,
-  .card code {
-    padding: 4px 10px;
-    border-radius: 8px;
-    background: var(--panel);
-    font-size: 13.5px;
-  }
-  .how li span {
-    color: var(--text-muted);
-    font-size: 13.5px;
-  }
-  .stats {
-    display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: 12px;
-  }
-  @container (max-width: 700px) {
-    .stats {
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-  }
-  .stats .card {
-    display: grid;
-    padding: 14px 16px;
-  }
-  .stats b {
-    font-size: 28px;
-    font-weight: 600;
-  }
-  .stats .muted {
-    font-size: 12.5px;
-  }
-  .cols {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) 320px;
-    gap: var(--gap);
-    align-items: start;
-  }
-  @container (max-width: 900px) {
-    .cols {
-      grid-template-columns: minmax(0, 1fr);
-    }
-  }
-  .main,
-  .side {
-    display: grid;
-    gap: var(--gap);
-    min-width: 0;
-  }
-  .side .card {
-    display: grid;
-    gap: 10px;
-  }
-  .decks {
-    list-style: none;
-    margin: 10px 0 0;
-    padding: 0;
-    display: grid;
-    gap: 4px;
-  }
-  .decks li {
-    display: grid;
-    grid-template-columns: auto minmax(0, 1fr) auto auto auto;
-    gap: 12px;
-    align-items: center;
-    min-height: 46px;
-    padding: 0 6px 0 12px;
-    border-radius: 14px;
-    background: color-mix(in srgb, var(--c) 18%, var(--white));
-  }
-  .dot {
-    width: 10px;
-    height: 10px;
-    border-radius: 50%;
-    background: var(--c);
-  }
-  .decks b,
-  .nl {
-    font-weight: 600;
-    font-size: 14.5px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    text-decoration: none;
-  }
-  .nums {
-    display: inline-flex;
-    gap: 12px;
-    font-size: 14px;
-    font-weight: 700;
-    font-variant-numeric: tabular-nums;
-  }
-  .n-due {
-    color: var(--go-ink);
-  }
-  .n-new {
-    color: var(--link-ink);
-  }
-  .nums .muted {
-    font-weight: 500;
-  }
-  .cram {
-    font-size: 12.5px;
-    color: var(--text-muted);
-    padding: 0 6px;
-  }
-  .dh {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 10px;
-  }
-  .decks li.own {
-    background: var(--chip);
-  }
-  .di {
-    display: grid;
-    place-items: center;
-    width: 22px;
-  }
-  .edit {
-    border: 0;
-    background: none;
-    padding: 0;
-    color: inherit;
-    font-family: inherit;
-    text-align: left;
-    cursor: pointer;
-  }
-  .edit:hover {
-    text-decoration: underline;
-  }
-  .decks li > .btn:last-child {
-    grid-column: span 2;
   }
   .links {
     display: flex;
     flex-wrap: wrap;
-    gap: 12px;
+    gap: 6px;
   }
-  .libbtn {
+  .links a,
+  .links button {
     display: inline-flex;
     align-items: center;
     gap: 6px;
+    min-height: 36px;
+    padding: 0 14px;
+    border: 0;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--on-hero) 10%, transparent);
     color: var(--on-hero);
-    font-size: 14px;
-    font-weight: 600;
-    opacity: 0.9;
-  }
-  .row2 {
-    display: flex;
-    gap: 8px;
-    flex-wrap: wrap;
-  }
-  .chk {
-    display: flex;
-    gap: 8px;
-    align-items: flex-start;
+    font: inherit;
     font-size: 13.5px;
+    font-weight: 600;
+    text-decoration: none;
     cursor: pointer;
   }
-  .chk input {
-    width: 17px;
-    height: 17px;
-    margin-top: 2px;
-    accent-color: var(--sage-deep);
+  .links a:hover,
+  .links button:hover {
+    background: color-mix(in srgb, var(--on-hero) 18%, transparent);
   }
   .exams {
     display: grid;
@@ -486,51 +333,229 @@
     padding: 0 14px;
     font-size: 13px;
   }
-  .off {
-    opacity: 0.45;
+  .cols {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 300px;
+    gap: var(--gap);
+    align-items: start;
   }
-  .sub {
-    display: block;
-    margin-top: 16px;
+  @container (max-width: 900px) {
+    .cols {
+      grid-template-columns: minmax(0, 1fr);
+    }
   }
-  .legend {
-    margin-top: 8px;
-    font-size: 12px;
-    display: flex;
+  .side {
+    display: grid;
+    gap: var(--gap);
+    min-width: 0;
+  }
+  .side .card {
+    display: grid;
     gap: 12px;
-    justify-content: flex-end;
   }
-  .fc {
+  .h2 {
+    margin: 0;
+  }
+  /* the deck list: name · due · new · total · Review */
+  .decks {
     display: grid;
-    grid-template-columns: repeat(14, minmax(0, 1fr));
-    gap: 4px;
-    height: 150px;
-    align-items: end;
+    gap: 10px;
+    min-width: 0;
   }
-  .col {
+  .dh,
+  .drow {
     display: grid;
-    grid-template-rows: auto 1fr auto;
-    justify-items: center;
-    height: 100%;
-    align-items: end;
+    grid-template-columns: 26px minmax(0, 1fr) 48px 48px 56px 92px;
+    gap: 6px;
+    align-items: center;
   }
-  .v {
-    font-size: 10.5px;
+  .dh {
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 12px;
+  }
+  .drow.head {
+    min-height: 22px;
+  }
+  .drow.head:hover {
+    background: none;
+  }
+  .drow.head .n {
+    font-size: 11.5px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
     color: var(--text-muted);
   }
-  .bar {
-    width: 100%;
-    min-height: 2px;
-    border-radius: 6px 6px 2px 2px;
-    background: linear-gradient(180deg, var(--sage), var(--sage-deep));
+  .tree {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    display: grid;
+    gap: 2px;
   }
-  .d.today {
-    font-weight: 700;
+  .drow {
+    min-height: 46px;
+    padding: 0 6px;
+    border-radius: 14px;
+  }
+  .drow:hover {
+    background: color-mix(in srgb, var(--c) 14%, var(--chip));
+  }
+  .drow.child .dname {
+    padding-left: 22px;
+  }
+  .tw {
+    display: grid;
+    place-items: center;
+    width: 26px;
+    height: 26px;
+    padding: 0;
+    border: 0;
+    border-radius: 8px;
+    background: none;
+    color: var(--text-muted);
+    cursor: pointer;
+  }
+  .tw :global(svg) {
+    transition: transform 0.18s var(--ease-out, ease);
+  }
+  .tw.on :global(svg) {
+    transform: rotate(90deg);
+  }
+  .dname {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
     color: var(--text);
+    text-decoration: none;
+    font-weight: 600;
+    font-size: 15px;
   }
-  .d {
-    font-size: 10.5px;
+  .dname.plain {
+    padding: 0;
+    border: 0;
+    background: none;
+    font: inherit;
+    font-weight: 600;
+    font-size: 15px;
+    text-align: left;
+    cursor: pointer;
+  }
+  .drow.child .dname {
+    font-weight: 500;
+    font-size: 14px;
+  }
+  .nm {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .dname:hover .nm {
+    text-decoration: underline;
+  }
+  .dot {
+    flex: none;
+    width: 10px;
+    height: 10px;
+    margin: 0 4px;
+    border-radius: 50%;
+    background: var(--c);
+  }
+  .di {
+    flex: none;
+    display: grid;
+    place-items: center;
+    width: 18px;
+  }
+  .n {
+    text-align: right;
+    font-size: 14.5px;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+  }
+  .n.due {
+    color: var(--go-ink);
+  }
+  .n.new {
+    color: var(--link-ink);
+  }
+  .n.tot {
+    font-weight: 500;
     color: var(--text-muted);
-    padding-top: 4px;
+  }
+  .n.z {
+    color: var(--text-muted);
+    opacity: 0.5;
+  }
+  .rv {
+    justify-self: end;
+  }
+  .off {
+    opacity: 0.4;
+  }
+  .sep {
+    height: 1px;
+    margin: 6px 0;
+    background: var(--hairline);
+  }
+  @container (max-width: 560px) {
+    .drow {
+      grid-template-columns: 26px minmax(0, 1fr) 40px 40px 0 84px;
+    }
+    .n.tot {
+      display: none;
+    }
+  }
+  .empty {
+    display: grid;
+    gap: 12px;
+  }
+  .empty p {
+    margin: 0;
+    color: var(--text-muted);
+  }
+  .how {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    display: grid;
+    gap: 6px;
+  }
+  .how li {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .how code {
+    padding: 4px 10px;
+    border-radius: 8px;
+    background: var(--panel);
+    font-size: 13.5px;
+  }
+  .how span {
+    font-size: 13px;
+    color: var(--text-muted);
+  }
+  .row2 {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .today {
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+    font-size: 13px;
+    color: var(--text-muted);
+  }
+  .today span {
+    display: grid;
+  }
+  .today b {
+    font-size: 24px;
+    font-weight: 600;
+    color: var(--text);
+    font-variant-numeric: tabular-nums;
   }
 </style>

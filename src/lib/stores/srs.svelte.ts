@@ -47,6 +47,31 @@ export type CardRef = {
 /** note scope with `section`: only cards under that heading path (a section's Review button) */
 export type Scope = { kind: "all" } | { kind: "deck"; id: string } | { kind: "course"; name: string } | { kind: "note"; rel: string; section?: string[] } | { kind: "library" };
 
+/** A scope as one string, for routes: all | library | deck:<id> | course:<name> | note:<rel>[#a › b] */
+export function scopeKey(s: Scope): string {
+  if (s.kind === "deck") return `deck:${s.id}`;
+  if (s.kind === "course") return `course:${s.name}`;
+  if (s.kind === "note") return `note:${s.rel}${s.section?.length ? `#${s.section.join(" › ")}` : ""}`;
+  return s.kind;
+}
+export function parseScope(k: string): Scope {
+  if (k.startsWith("course:")) return { kind: "course", name: k.slice(7) };
+  if (k.startsWith("deck:")) return { kind: "deck", id: k.slice(5) };
+  if (k.startsWith("note:")) {
+    const [rel, sec] = k.slice(5).split("#");
+    return { kind: "note", rel, section: sec ? sec.split(" › ").filter(Boolean) : undefined };
+  }
+  return k === "library" ? { kind: "library" } : { kind: "all" };
+}
+/** what a scope is called */
+export function scopeName(s: Scope): string {
+  if (s.kind === "all") return "All cards";
+  if (s.kind === "library") return "Card library";
+  if (s.kind === "deck") return getDeck(s.id)?.name ?? "Deck";
+  if (s.kind === "course") return s.name;
+  return (notes.files[s.rel]?.p.title ?? "Note") + (s.section?.length ? ` › ${s.section.join(" › ")}` : "");
+}
+
 const scheduler = () => fsrs(generatorParameters({ request_retention: settings.retention || 0.9, enable_fuzz: true, maximum_interval: 3650 }));
 
 const toF = (r: SrsRec): FCard => ({ ...r, due: new Date(r.due), last_review: r.last_review ? new Date(r.last_review) : undefined, state: r.state as State } as FCard);
