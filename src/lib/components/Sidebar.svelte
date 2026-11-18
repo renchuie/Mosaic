@@ -37,7 +37,7 @@
     if (kind === "task") newTask({});
     else if (kind === "event") newEvent({});
     else if (kind === "note") noteOpen = true;
-    else if (kind === "card") location.hash = "#/study/cards/library";
+    else if (kind === "card") location.hash = "#/study/cards/add";
     else location.hash = "#/study/pdfs";
   }
   const initial = $derived((settings.name || "?").trim().charAt(0).toUpperCase());

@@ -56,7 +56,7 @@
       location.hash = "#/study/cards/review/all";
     } else if (e.key === "a") {
       e.preventDefault();
-      location.hash = "#/study/cards/library";
+      location.hash = "#/study/cards/add";
     }
   }
   onMount(() => window.addEventListener("keydown", onKey));
@@ -98,7 +98,7 @@
         <DeckRows {groups} onoptions={(id) => options(id)} />
       {/if}
       <div class="foot">
-        <a class="btn dark" href="#/study/cards/library"><Icon name="i:plus" size={15} /> Add card <kbd>A</kbd></a>
+        <a class="btn dark" href="#/study/cards/add"><Icon name="i:plus" size={15} /> Add card <kbd>A</kbd></a>
         <button type="button" class="btn" onclick={() => options(null)}><Icon name="i:plus" size={15} /> Create deck</button>
         <button type="button" class="btn" onclick={() => (importOpen = true)}><Icon name="external" size={15} /> Import</button>
       </div>
@@ -205,7 +205,10 @@
     padding: 1px 6px;
     border-radius: 6px;
     background: color-mix(in srgb, currentColor 18%, transparent);
-    font: 500 11.5px/1.4 inherit;
+    font-family: inherit;
+    font-size: 11.5px;
+    font-weight: 500;
+    line-height: 1.4;
   }
   .caught {
     font-weight: 600;

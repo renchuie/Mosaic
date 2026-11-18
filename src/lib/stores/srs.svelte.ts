@@ -38,7 +38,7 @@ export type CardRef = {
   course?: string;
   rec?: SrsRec;
   note?: NoteEntry;
-  item?: { id: string; type: string };
+  item?: { id: string; type: string; deck?: string };
   /** where it came from, and a link there */
   title: string;
   href: string;
@@ -139,7 +139,7 @@ export function allCards(): CardRef[] {
     for (const g of cardsOfItem(id, it))
       out.push({
         card: { key: g.key, lineId: g.key, kind: "item", front: g.front, back: g.back, context: [t?.name ?? "Card", ...(it.tags ?? []).map((x) => `#${x}`)], line: 0, masks: g.masks, target: g.target, image: g.image },
-        item: { id, type: it.type },
+        item: { id, type: it.type, ...(it.deck ? { deck: it.deck } : {}) },
         course: it.course,
         rec: get<SrsRec>("srs", g.key),
         title: (t?.kind === "occlusion" ? it.fields.Header : t?.fields.map((f) => it.fields[f]).find((v) => v?.trim()))?.slice(0, 60) || t?.name || "Card",

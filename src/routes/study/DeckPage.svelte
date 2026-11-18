@@ -165,7 +165,7 @@
       {#if scope.kind === "deck" && subs.length}
         <button type="button" class="btn" onclick={addSub}><Icon name="i:plus" size={15} /> Sub-deck</button>
       {:else}
-        <a class="btn dark" href="#/study/cards/library"><Icon name="i:plus" size={15} /> Add card</a>
+        <a class="btn dark" href={scope.kind === "deck" ? `#/study/cards/add?deck=${enc(scope.id)}` : "#/study/cards/add"}><Icon name="i:plus" size={15} /> Add card</a>
       {/if}
     </div>
 

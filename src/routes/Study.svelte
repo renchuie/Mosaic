@@ -6,6 +6,7 @@
   import CardBrowser from "./study/CardBrowser.svelte";
   import CardStats from "./study/CardStats.svelte";
   import DeckPage from "./study/DeckPage.svelte";
+  import AddCard from "./study/AddCard.svelte";
   import PlayView from "./study/PlayView.svelte";
   import CardsView from "./study/CardsView.svelte";
   import ReviewSession from "./study/ReviewSession.svelte";
@@ -42,6 +43,8 @@
     {#key route.rest}<ReviewSession {scope} {cram} />{/key}
   {:else if route.rest.startsWith("cards/browse")}
     <CardBrowser />
+  {:else if route.rest.startsWith("cards/add")}
+    {#key route.rest}<AddCard />{/key}
   {:else if route.rest.startsWith("cards/deck/")}
     {#key route.rest}<DeckPage scope={parseScope(route.rest.slice("cards/deck/".length))} />{/key}
   {:else if route.rest.startsWith("cards/stats")}

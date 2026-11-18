@@ -7,7 +7,7 @@ export type CardType = { name: string; fields: string[]; templates: Template[]; 
 export type Mask = { id: string; x: number; y: number; w: number; h: number; label?: string };
 /** `source`: the PDF page it was made from (Study → PDFs). */
 /** `anki`: the note's Anki id (guid) when it came from an .apkg, so importing again updates it. */
-export type FlashItem = { type: string; fields: Record<string, string>; course?: string; tags?: string[]; created: number; source?: { pdf: string; page: number }; anki?: string };
+export type FlashItem = { type: string; fields: Record<string, string>; course?: string; tags?: string[]; created: number; source?: { pdf: string; page: number }; anki?: string; /** the deck it was added to (that deck and its parents include it) */ deck?: string };
 
 /** Built-in types, seeded into the synced "cardTypes" collection (editable, not deletable). */
 export const BUILTIN_TYPES: Record<string, CardType> = {

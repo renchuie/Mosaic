@@ -26,7 +26,7 @@
     <span class="c n due" class:zero={!due(r)}>{due(r)}</span>
     <span class="acts">
       {#if r.k.due + r.k.newToday}<a class="btn sm dark" href="#/study/cards/review/{enc(r.key)}">Study</a>{/if}
-      <a class="btn sm ib" href="#/study/cards/library" title="Add card" aria-label="Add card to {r.name}"><Icon name="i:plus" size={14} /></a>
+      <a class="btn sm ib" href={r.deck ? `#/study/cards/add?deck=${enc(r.deck)}` : "#/study/cards/add"} title="Add card" aria-label="Add card to {r.name}"><Icon name="i:plus" size={14} /></a>
       {#if r.deck && onoptions}<button type="button" class="btn sm ib" title="Options" aria-label="Options for {r.name}" onclick={() => onoptions?.(r.deck!)}><Icon name="i:settings" size={14} /></button>{/if}
     </span>
   </div>

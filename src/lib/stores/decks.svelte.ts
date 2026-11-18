@@ -80,11 +80,16 @@ const tagsOf = (r: CardRef): string[] =>
 export function deckMatcher(d: Deck | undefined, id?: string): (r: CardRef) => boolean {
   if (!d) return () => false;
   // its sub-decks' cards are its cards too (like Anki); a deck can be only a folder for others
-  const kids = id ? [...family(id)].filter((k) => k !== id).map((k) => ownMatcher(getDeck(k))) : [];
-  const own = ownMatcher(d);
+  const kids = id ? [...family(id)].filter((k) => k !== id).map((k) => ownMatcher(getDeck(k), k)) : [];
+  const own = ownMatcher(d, id);
   return kids.length ? (r) => own(r) || kids.some((m) => m(r)) : own;
 }
-function ownMatcher(d: Deck | undefined): (r: CardRef) => boolean {
+function ownMatcher(d: Deck | undefined, id?: string): (r: CardRef) => boolean {
+  // cards added straight to this deck (Add card's Deck picker) are in it whatever its rules say
+  const rules = rulesMatcher(d);
+  return id ? (r) => (!!r.item && r.item.deck === id) || rules(r) : rules;
+}
+function rulesMatcher(d: Deck | undefined): (r: CardRef) => boolean {
   if (!d || !hasRules(d)) return () => false;
   const courses = d.courses?.length ? new Set(d.courses) : null;
   const where = d.folders?.length || d.notes?.length || d.library;
