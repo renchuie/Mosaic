@@ -10,6 +10,8 @@ type Listing = { root: string; files: { rel: string; mtime: number; size: number
 
 export const notes = $state({
   root: "",
+  /** the Notes folder setting the index was read from (a vanished folder is never re-made) */
+  from: "",
   dirs: [] as string[],
   files: {} as Record<string, NoteEntry>,
   loaded: false,
@@ -31,7 +33,7 @@ function saveCache() {
   window.clearTimeout(cacheTimer);
   cacheTimer = window.setTimeout(() => {
     const files = Object.fromEntries(Object.values(notes.files).map((e) => [e.rel, { mtime: e.mtime, size: e.size, text: e.text }]));
-    void saveDoc("notes-cache", { root: notes.root, dirs: notes.dirs, files });
+    void saveDoc("notes-cache", { root: notes.root, from: notes.from, dirs: notes.dirs, files });
   }, 800);
 }
 
@@ -42,9 +44,10 @@ export async function initNotes() {
     (window as unknown as { __notes: typeof notes }).__notes = notes;
     return;
   }
-  const c = await loadDoc<{ root: string; dirs: string[]; files: Record<string, { mtime: number; size: number; text: string }> }>("notes-cache");
+  const c = await loadDoc<{ root: string; from?: string; dirs: string[]; files: Record<string, { mtime: number; size: number; text: string }> }>("notes-cache");
   if (c?.files) {
     notes.root = c.root;
+    notes.from = c.from ?? settings.notesRoot; // caches from before Nov 19: the folder in use
     notes.dirs = c.dirs ?? [];
     notes.files = Object.fromEntries(Object.entries(c.files).map(([rel, f]) => [rel, entry(rel, f.mtime, f.size, f.text)]));
     notes.loaded = true;
@@ -88,7 +91,10 @@ async function doRefresh() {
   notes.loading = true;
   const gen = changes;
   try {
-    const l = await invoke<Listing>("notes_list", { root: settings.notesRoot });
+    // only make the folder when there were never notes from it (a new setup), never in place of
+    // one that went missing
+    const create = !Object.keys(notes.files).length || notes.from !== settings.notesRoot;
+    const l = await invoke<Listing>("notes_list", { root: settings.notesRoot, create });
     const next: Record<string, NoteEntry> = {};
     for (const f of l.files) {
       const old = notes.files[f.rel];
@@ -101,6 +107,7 @@ async function doRefresh() {
       return;
     }
     notes.root = l.root;
+    notes.from = settings.notesRoot;
     notes.dirs = l.dirs;
     notes.files = next;
     notes.error = null;

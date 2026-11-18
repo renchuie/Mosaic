@@ -35,7 +35,7 @@
   const current = $derived(GROUPS.find((g) => g.id === group)!);
   /** a small live note beside some groups in the list */
   function badge(id: GroupId): string {
-    if (id === "files") return settings.storage === "local" ? "This computer" : "Drive";
+    if (id === "files") return settings.storage === "local" ? "This computer" : "Synced";
     if (id === "sync") {
       if (!settings.syncEnabled) return "Off";
       if (sync.status === "error") return "Problem";
@@ -176,7 +176,7 @@
   async function openBackup(f: Listed) {
     const b = await readBackup(f);
     if (typeof b === "string") bmsg = b;
-    else choose(b, `${f.day} · ${f.place === "drive" ? "Drive" : "this computer"}${f.mine ? "" : ` · ${f.machine}`}`);
+    else choose(b, `${f.day} · ${f.place === "drive" ? "synced folder" : "this computer"}${f.mine ? "" : ` · ${f.machine}`}`);
   }
   async function fromFile() {
     const f = bfile?.files?.[0];
@@ -425,7 +425,7 @@
         <h3>Folders</h3>
         <label class="srow col"><span class="rl"><b>Notes</b><span>Markdown files, so they open in any other app too. “~” is your home folder.</span></span><input class="input" bind:value={notesRoot} spellcheck="false" /></label>
         <label class="srow col"><span class="rl"><b>Materials</b><span>Recall labs, quizzes and everything else; every folder inside becomes a dashboard.</span></span><input class="input" bind:value={root} spellcheck="false" /></label>
-        <label class="srow"><span class="rl"><b>Materials: folder levels to scan</b><span>Lower is faster on the Drive mount.</span></span><input class="input num" type="number" min="1" max="8" bind:value={depth} /></label>
+        <label class="srow"><span class="rl"><b>Materials: folder levels to scan</b><span>Lower is faster.</span></span><input class="input num" type="number" min="1" max="8" bind:value={depth} /></label>
         <label class="srow col"><span class="rl"><b>PDFs</b><span>Study → PDFs lists every PDF in here. Annotations go into the PDF; the original is kept once in a hidden “.studydesk-originals” folder.</span></span><input class="input" bind:value={pdfRoot} spellcheck="false" /></label>
         <label class="srow"><span class="rl"><b>PDFs: folder levels to search</b></span><input class="input num" type="number" min="1" max="12" bind:value={pdfDepth} /></label>
         <div class="srow end"><button class="btn primary" type="submit">Save folders</button>{#if saved === "folders"}<span class="muted">Saved</span>{/if}</div>
@@ -435,7 +435,7 @@
       <form class="scard" id="set-synconoff" class:flash={flash === "synconoff"} onsubmit={saveSync}>
         <h3>Sync</h3>
         <div class="srow">
-          <div class="rl"><b id="sync-l">Sync through Google Drive</b><span>Flashcard progress, calendar, tasks, courses, lab progress and study days.</span></div>
+          <div class="rl"><b id="sync-l">Sync between computers</b><span>Flashcard progress, calendar, tasks, courses, lab progress and study days.</span></div>
           {@render seg("sync", [{ v: "off", name: "Off" }, { v: "on", name: "On" }], syncOn ? "on" : "off", (v) => (syncOn = v === "on"))}
         </div>
         <label class="srow col"><span class="rl"><b>Sync folder</b><span>The same folder on your PC and laptop. Each computer writes its own file here and reads the others.</span></span><input class="input" bind:value={syncDir} spellcheck="false" disabled={!syncOn} /></label>
@@ -474,7 +474,7 @@
           {@render seg("bon", [{ v: "off", name: "Off" }, { v: "on", name: "On" }], bOn ? "on" : "off", (v) => (bOn = v === "on"))}
         </div>
         <label class="srow col"><span class="rl"><b>On this computer</b>{#if backups.error.local}<span class="bad">{backups.error.local}</span>{/if}</span><input class="input" bind:value={bLocal} spellcheck="false" placeholder="Off" /></label>
-        <label class="srow col"><span class="rl"><b>On Google Drive</b>{#if backups.error.drive}<span class="bad">{backups.error.drive}</span>{/if}</span><input class="input" bind:value={bDrive} spellcheck="false" placeholder="Off" /></label>
+        <label class="srow col"><span class="rl"><b>In your synced folder</b>{#if backups.error.drive}<span class="bad">{backups.error.drive}</span>{/if}</span><input class="input" bind:value={bDrive} spellcheck="false" placeholder="Off" /></label>
         <label class="srow"><span class="rl"><b>Keep</b><span>Days per computer.</span></span><input class="input num" type="number" min="1" max="365" bind:value={bKeep} /></label>
         <label class="srow"><span class="rl"><b>Note history</b><span>Earlier versions of each note, on this computer. Note ⋯ → Version history. Days kept.</span></span><input class="input num" type="number" min="1" max="365" bind:value={hDays} /></label>
         <div class="srow end">
@@ -520,7 +520,7 @@
         {:else}
           {#each backups.list.slice(0, 30) as f (f.place + f.name)}
             <div class="srow">
-              <div class="rl"><b>{f.day}{f.day === today() ? " · today" : ""}{f.time ? ` · ${f.time}, before a restore` : ""}</b><span>{f.place === "drive" ? "Drive" : "This computer"}{f.mine ? "" : ` · from ${f.machine}`} · {kb(f.size)}</span></div>
+              <div class="rl"><b>{f.day}{f.day === today() ? " · today" : ""}{f.time ? ` · ${f.time}, before a restore` : ""}</b><span>{f.place === "drive" ? "Synced folder" : "This computer"}{f.mine ? "" : ` · from ${f.machine}`} · {kb(f.size)}</span></div>
               <button class="btn quiet sm" type="button" onclick={() => openBackup(f)}>Restore…</button>
             </div>
           {:else}

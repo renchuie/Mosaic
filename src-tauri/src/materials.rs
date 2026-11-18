@@ -51,7 +51,7 @@ fn adopt(from: &Path, to: &Path) -> Result<AdoptResult, String> {
     }
     let parent = to.parent().ok_or("Bad Materials path")?;
     if !parent.is_dir() {
-        return Err(format!("{} isn't there. Is Google Drive mounted?", parent.display()));
+        return Err(format!("{} isn't there. Is your synced folder (Google Drive, Dropbox…) connected?", parent.display()));
     }
     let mut res = AdoptResult { moved: 0, skipped: vec![] };
     if !to.exists() {
@@ -102,7 +102,7 @@ fn write_atomic(p: &Path, bytes: &[u8]) -> Result<(), String> {
 
 fn check_write(root: &Path, rel: &str, exists_ok: bool) -> Result<std::path::PathBuf, String> {
     if !root.is_dir() {
-        return Err(format!("{} isn't there. Is Google Drive mounted?", root.display()));
+        return Err(format!("{} isn't there. Is your synced folder (Google Drive, Dropbox…) connected?", root.display()));
     }
     let ext = Path::new(rel).extension().map(|e| e.to_string_lossy().to_lowercase()).unwrap_or_default();
     if !ALLOWED.contains(&ext.as_str()) {

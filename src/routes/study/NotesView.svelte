@@ -206,8 +206,9 @@
         const base = r.replace(/\.md$/i, "");
         let copy = `${base} (other version ${stamp}).md`;
         for (let i = 2; getNote(copy); i++) copy = `${base} (other version ${stamp} ${i}).md`;
-        await saveNote(copy, theirs);
-        say(`The other version is saved as “${copy.split("/").pop()!.replace(/\.md$/i, "")}”.`);
+        const t = splitNote(theirs);
+        await saveNote(copy, joinNote({ ...t.meta, conflict: `other version of ${linkName(getNote(r)!)}` }, t.body));
+        say(`The other version is saved as “${copy.split("/").pop()!.replace(/\.md$/i, "")}” (its flashcards are left out).`);
       }
     } catch (e) {
       console.error("conflict copy", e);

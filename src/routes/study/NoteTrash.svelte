@@ -63,7 +63,7 @@
     <h2 id="tr-title">Trash</h2>
     <button type="button" class="x" aria-label="Close" onclick={close}>×</button>
   </header>
-  {#if msg}<p class="msg">{msg}{#if msgHref} <a href={msgHref} onclick={close}>Open</a>{/if}</p>{/if}
+  {#if msg}<p class="msg">{msg}{#if msgHref}&nbsp;<a href={msgHref} onclick={close}>Open</a>{/if}</p>{/if}
   <ul>
     {#if loading}
       <li class="empty">Loading…</li>
@@ -105,8 +105,8 @@
     padding: 0;
   }
   dialog[open] {
-    display: grid;
-    grid-template-rows: auto auto 1fr auto;
+    display: flex;
+    flex-direction: column;
   }
   dialog::backdrop {
     background: var(--scrim);
@@ -149,6 +149,8 @@
     font-size: 13.5px;
   }
   ul {
+    flex: 1 1 auto;
+    min-height: 0;
     margin: 0;
     padding: 8px 12px;
     list-style: none;

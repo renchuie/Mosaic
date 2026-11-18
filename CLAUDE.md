@@ -1043,6 +1043,41 @@ Recall Labs. Decisions she approved:
   delete a note, change another → restore brings back the note, the changed one's current text
   in `.trash`, and app data (a task added to the backup).
 
+## Keeping files safe, part 2 (Nov 19, her "do all": she wants Mosaic to feel like a real product)
+
+- Pasted images in backups: `backup_attachments` copies the notes folder's `attachments/` into
+  `<backup folder>/attachments/` (only new or resized files; never deletes; `copy_missing`, Rust
+  test `images_copied_once`); a notes restore first puts back missing images
+  (`backup_restore_attachments`, from every backup place).
+- In-app Trash (Notes home → Trash, `src/routes/study/NoteTrash.svelte`): `notes_trash` now writes
+  `.trash/<secs>-<name>` plus `<that>.from` (the original path); `notes_trash_list` /
+  `notes_trash_restore` (back to the same folder, made again if needed; a taken name gets
+  " (restored)") / `notes_trash_purge` (one, or all older than N days); Rust test
+  `trash_and_restore`. Entries from before Nov 19 have no `.from` and go back to the top level.
+  Emptied of anything older than `settings.trashDays` (30) once the notes folder is read. Restoring
+  carries the note's history to its new name.
+- Conflicts (a note changed on the other computer while open here): the banner reads "Changed on
+  your other computer. Nothing is lost either way." "Use that version" keeps this computer's text
+  in the version history first; "Keep mine" saves the other version beside it as
+  "<name> (other version <date, time>).md" with front matter `conflict:`, whose cards are left out
+  (srs `cardsOf`), then writes mine.
+- Folder missing: `src/lib/stores/connection.svelte.ts` checks the notes folder (and the sync
+  folder's parent) at start, on focus and every minute (`paths_info`); App shows one floating pill
+  ("Notes folder isn't connected. Is Google Drive running? Nothing is lost…", Check again,
+  Settings, ×) and refreshes notes when it's back. `notes_list` takes `create`: the notes store only
+  lets it make the folder when the index never had notes from that setting (`notes.from`, kept in
+  the cache), so a moved / renamed / unsynced folder is reported instead of silently replaced by an
+  empty one (found while testing: it used to make a fresh empty Notes folder).
+- Storage, generic (Settings → Files & storage): **A synced folder** (`storage: "synced"`): a
+  Mosaic folder (vault: Notes, Materials, PDFs + `Sync` for app data + `Backups`) inside Google
+  Drive, Dropbox, OneDrive, iCloud Drive or any folder; the dialog finds the service's folder
+  (`SERVICES` candidate paths, first that exists) and sees an existing Mosaic folder ("already has
+  Mosaic files: they'll be used", nothing copied), so the second computer just picks the same
+  folder. Her original setup (custom Drive paths) is `storage: "drive"`, shown as "Your own
+  folders", kept in `driveRoots` when she switches ("Back to my own folders"). **This computer
+  only** is the local vault. Drive-only wording elsewhere became generic ("synced folder");
+  Rust errors say "Is your synced folder (Google Drive, Dropbox…) connected?".
+
 ## Note history (Nov 19, her ask after comparing with Obsidian's File recovery)
 
 - Note ⋯ → "Version history…" (`src/routes/study/NoteHistory.svelte`): versions on the left,

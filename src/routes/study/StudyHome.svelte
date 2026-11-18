@@ -305,7 +305,7 @@
           {/each}
         </div>
       {:else}
-        <p class="muted">Your note folders show up here. Notes are Markdown files in your Notes folder on Drive.</p>
+        <p class="muted">Your note folders show up here.</p>
       {/if}
     </section>
 

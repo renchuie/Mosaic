@@ -92,7 +92,7 @@ fn walk(root: &Path, dir: &Path, depth: u32, files: &mut Vec<PdfFile>) {
 pub async fn pdfs_list(state: State<'_, PdfsState>, root: String, depth: Option<u32>) -> Result<PdfList, String> {
     let r = expand_home(&root);
     if !r.is_dir() {
-        return Err(format!("{} isn't there. Is Google Drive mounted?", r.display()));
+        return Err(format!("{} isn't there. Is your synced folder (Google Drive, Dropbox…) connected?", r.display()));
     }
     *state.root.lock().unwrap() = Some(r.clone());
     let depth = depth.unwrap_or(6);

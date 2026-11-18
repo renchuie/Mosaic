@@ -92,7 +92,7 @@
 {:else}
   <section class="card empty">
     <h1 class="display">Looking for your materials…</h1>
-    <p class="muted">Scanning {labs.root || "your Materials folder"}. The first scan of the Drive mount can take a moment.</p>
+    <p class="muted">Scanning {labs.root || "your Materials folder"}. The first scan can take a moment.</p>
   </section>
 {/if}
 

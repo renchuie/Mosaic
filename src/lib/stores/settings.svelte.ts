@@ -36,9 +36,11 @@ export type Settings = {
   cardAlign?: "left" | "center";
   /** review screen: write your answer in a scratchpad before the card can be turned over */
   cardScratch?: boolean;
-  /** where notes, materials and PDFs live (Nov 18): "drive" = the Drive folders above (default),
-   *  "local" = a vault folder on this computer (`vault`, holding Notes / Materials / PDFs) */
-  storage?: "drive" | "local";
+  /** where notes, materials and PDFs live: "drive" = your own folders (the paths above; how it
+   *  started, on Google Drive), "local" = a vault folder on this computer (`vault`, holding Notes /
+   *  Materials / PDFs), "synced" (Nov 19) = a vault inside a folder a sync service keeps in step
+   *  (Google Drive, Dropbox, OneDrive, iCloud…), with app data syncing through `<vault>/Sync` */
+  storage?: "drive" | "local" | "synced";
   /** notes (Nov 18, her ask): the header and page width a note gets unless it has its own
    *  (front matter `header:` / `width:`), whether notes open as the Mosaic page or as Markdown,
    *  and whether the formatting toolbar always shows (the ✎ button flips it too) */

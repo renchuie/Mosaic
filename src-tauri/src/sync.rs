@@ -34,7 +34,7 @@ pub(crate) fn sync_dir(dir: &str, create: bool) -> Result<Option<PathBuf>, Strin
     }
     let parent = d.parent().map(Path::to_path_buf).unwrap_or_default();
     if !parent.is_dir() {
-        return Err(format!("{} isn't there. Is Google Drive mounted?", parent.display()));
+        return Err(format!("{} isn't there. Is your synced folder (Google Drive, Dropbox…) connected?", parent.display()));
     }
     if !create {
         return Ok(None);

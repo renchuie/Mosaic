@@ -75,7 +75,7 @@
           {#each crumbs.slice(0, -1) as c}<span> › </span><button type="button" class="crumb" class:over={noteDrag.over === c.d} data-drop-dir={c.d} onclick={() => (dir = c.d)}>{c.name}</button>{/each}
         {:else}
           {@const nf = noteDirs().filter((x) => !x.includes("/")).length}
-          {all.length} {all.length === 1 ? "note" : "notes"} in {nf} {nf === 1 ? "folder" : "folders"} · Markdown files on your Drive
+          {all.length} {all.length === 1 ? "note" : "notes"} in {nf} {nf === 1 ? "folder" : "folders"}
         {/if}
       </p>
     </div>

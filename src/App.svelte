@@ -248,6 +248,9 @@
   .conn span {
     min-width: 0;
   }
+  .conn .btn {
+    white-space: nowrap;
+  }
   .conn .cx {
     width: 30px;
     height: 30px;

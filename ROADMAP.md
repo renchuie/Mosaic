@@ -339,3 +339,7 @@ Add things here as they come up (date, page, what happened). Each one is either 
   26. Nov 19 · Per-note version history (Obsidian-style File recovery): a version every 10 minutes
       of editing, 14 days, on each computer; ⋯ → Version history with changes view and restore.
       **Done.**
+  27. Nov 19 · Keeping files safe, part 2 (her "do all"): images in backups, in-app Trash with
+      restore to the same folder and a 30-day clean-up, conflict copies that keep both versions, a
+      calm "folder isn't connected" banner (and no more silently re-made empty Notes folder), and
+      "A synced folder" for Google Drive / Dropbox / OneDrive / iCloud / any folder. **Done.**

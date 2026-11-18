@@ -145,7 +145,7 @@ pub async fn scan_labs(
                 root: root_path.display().to_string(),
                 tree: None,
                 error: Some(format!(
-                    "Folder not found: {}. Is Google Drive mounted?",
+                    "Folder not found: {}. Is your synced folder (Google Drive, Dropbox…) connected?",
                     root_path.display()
                 )),
                 scanned_at: now_secs(),

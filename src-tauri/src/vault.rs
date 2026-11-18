@@ -92,11 +92,11 @@ pub async fn vault_copy(from: String, to: String, only_pdf: bool) -> Result<Copy
     let a = expand_home(&from);
     let b = expand_home(&to);
     if !a.is_dir() {
-        return Err(format!("{} isn't there. Is Google Drive mounted?", a.display()));
+        return Err(format!("{} isn't there. Is your synced folder (Google Drive, Dropbox…) connected?", a.display()));
     }
     let bp = b.parent().map(Path::to_path_buf).unwrap_or_default();
     if !b.is_dir() && !bp.is_dir() {
-        return Err(format!("{} isn't there. Is Google Drive mounted?", bp.display()));
+        return Err(format!("{} isn't there. Is your synced folder (Google Drive, Dropbox…) connected?", bp.display()));
     }
     tauri::async_runtime::spawn_blocking(move || {
         let mut r = CopyReport::default();

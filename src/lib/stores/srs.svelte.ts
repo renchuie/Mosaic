@@ -64,7 +64,9 @@ const cache = new Map<string, { mtime: number; cards: NoteCard[] }>();
 function cardsOf(e: NoteEntry): NoteCard[] {
   const c = cache.get(e.rel);
   if (c && c.mtime === e.mtime) return c.cards;
-  const cards = extractCards(splitNote(e.text).body);
+  // a conflict copy ("<note> (other version …)", front matter `conflict:`) repeats the note's
+  // cards: they'd count twice, so it has none until it's merged or deleted
+  const cards = e.p.meta.conflict ? [] : extractCards(splitNote(e.text).body);
   cache.set(e.rel, { mtime: e.mtime, cards });
   return cards;
 }

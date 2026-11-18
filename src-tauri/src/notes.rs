@@ -87,12 +87,17 @@ fn walk(root: &Path, dir: &Path, depth: u32, files: &mut Vec<NoteFile>, dirs: &m
 }
 
 #[tauri::command]
-pub async fn notes_list(state: State<'_, NotesState>, root: String) -> Result<NotesList, String> {
+pub async fn notes_list(state: State<'_, NotesState>, root: String, create: Option<bool>) -> Result<NotesList, String> {
     let r = expand_home(&root);
     if !r.is_dir() {
         let parent = r.parent().map(Path::to_path_buf).unwrap_or_default();
         if !parent.is_dir() {
-            return Err(format!("{} isn't there. Is Google Drive mounted?", parent.display()));
+            return Err(format!("{} isn't there. Is your synced folder (Google Drive, Dropbox…) connected?", parent.display()));
+        }
+        // a folder that held notes before and is gone now was moved or renamed (or its sync is
+        // off): say so instead of quietly starting an empty one in its place (Nov 19)
+        if create == Some(false) {
+            return Err(format!("Your notes folder isn't at {} any more. Moved or renamed it? Choose it in Settings → Files.", r.display()));
         }
         fs::create_dir(&r).map_err(|e| format!("Could not create {}: {e}", r.display()))?;
     }

@@ -1,6 +1,8 @@
 <script lang="ts">
-  // "Where your files live" (Nov 18, her ask): Google Drive (the folders below, synced) or a local
-  // vault on this computer (a folder she names and places, holding Notes / Materials / PDFs).
+  // "Where your files live" (Nov 18; Nov 19 "a synced folder" for any service): a Mosaic folder in
+  // a folder that a sync service keeps in step (Google Drive, Dropbox, OneDrive, iCloud Drive or any
+  // other), or a vault on this computer only. Both hold Notes / Materials / PDFs; the synced one
+  // also holds Sync (app data) and Backups. "Your own folders" = the original custom Drive paths.
   // Switching asks each time whether to copy the files over (never overwriting, never deleting)
   // and whether the app data (flashcard progress, calendar, tasks, courses) keeps syncing.
   import { DEFAULT_SETTINGS, saveSettings, settings } from "../../lib/stores/settings.svelte";
@@ -17,8 +19,44 @@
   type Report = { copied: number; skipped: number; failed: number };
 
   const local = $derived(settings.storage === "local" && !!settings.vault);
+  const synced = $derived(settings.storage === "synced" && !!settings.vault);
+  const custom = $derived(!local && !synced);
   let dialog = $state<HTMLDialogElement>();
-  let to = $state<"local" | "drive">("local");
+  let to = $state<"local" | "drive" | "synced">("local");
+
+  // ---- a synced folder: where each service keeps its folder, first match wins ----
+  const SERVICES: { id: string; name: string; paths: string[] }[] = [
+    { id: "gdrive", name: "Google Drive", paths: ["~/GoogleDrive", "~/Google Drive", "~/My Drive", "G:\\My Drive", "~/Library/CloudStorage/GoogleDrive"] },
+    { id: "dropbox", name: "Dropbox", paths: ["~/Dropbox", "~/Library/CloudStorage/Dropbox"] },
+    { id: "onedrive", name: "OneDrive", paths: ["~/OneDrive", "~/Library/CloudStorage/OneDrive"] },
+    { id: "icloud", name: "iCloud Drive", paths: ["~/iCloudDrive", "~/Library/Mobile Documents/com~apple~CloudDocs"] },
+    { id: "other", name: "Other", paths: [] },
+  ];
+  let service = $state("gdrive");
+  let notFound = $state(false);
+  let existing = $state(false);
+  async function pickService(id: string) {
+    service = id;
+    notFound = false;
+    const s = SERVICES.find((x) => x.id === id)!;
+    if (!s.paths.length) {
+      picking = true;
+      return void browse(place);
+    }
+    const info = inTauri ? await invoke<{ path: string; dir: boolean }[]>("paths_info", { paths: s.paths }).catch(() => []) : [];
+    const hit = info.find((i) => i.dir);
+    if (hit) place = hit.path;
+    else notFound = true;
+  }
+  // a folder that already has Mosaic in it (the other computer made it): use what's there
+  $effect(() => {
+    const t = target;
+    if (to !== "synced" || !inTauri) return void (existing = false);
+    void invoke<{ path: string; dir: boolean }[]>("paths_info", { paths: [`${t}/Notes`] }).then((r) => {
+      existing = !!r[0]?.dir;
+      if (existing) copy = false;
+    });
+  });
   let name = $state("Mosaic");
   let place = $state("~");
   let copy = $state(true);
@@ -48,13 +86,19 @@
   const target = $derived(join(place, cleanName || "Mosaic"));
   const drive = $derived(settings.driveRoots ?? { notesRoot: DEFAULT_SETTINGS.notesRoot, labsRoot: DEFAULT_SETTINGS.labsRoot, pdfRoot: DEFAULT_SETTINGS.pdfRoot, syncEnabled: true });
 
-  function start(where: "local" | "drive") {
+  function start(where: "local" | "drive" | "synced") {
+    // learn the home folder so paths show as "~/…" (and are saved that way)
+    if (!home && inTauri) void invoke<DirList>("vault_dirs", { path: "~" }).then((l) => (home = l.home)).catch(() => {});
     to = where;
     busy = done = error = "";
     picking = false;
     copy = true;
     keepSync = where === "drive" ? true : settings.syncEnabled;
-    if (where === "local") {
+    if (where === "synced") {
+      name = "Mosaic";
+      place = "~";
+      void pickService(service === "other" ? "gdrive" : service);
+    } else if (where === "local") {
       const v = settings.vault;
       if (v) {
         const i = Math.max(v.lastIndexOf("/"), v.lastIndexOf("\\"));
@@ -85,10 +129,37 @@
     (r.skipped ? `, ${r.skipped} already there (kept as they were)` : "") +
     (r.failed ? `, ${r.failed} couldn't be copied` : "") + ".";
 
+  /** the folders in use now, to copy from (and to come back to) */
+  const roots = () => ({ notesRoot: settings.notesRoot, labsRoot: settings.labsRoot, pdfRoot: settings.pdfRoot, syncEnabled: settings.syncEnabled });
   async function go() {
     error = done = "";
     try {
-      if (to === "local") {
+      if (to === "synced") {
+        if (!cleanName) return (error = "Give the folder a name.");
+        busy = "Setting up the folder…";
+        const made = inTauri ? await invoke<string>("vault_create", { path: target }) : target;
+        const v = tilde(made);
+        let report: Report | null = null;
+        if (copy && !existing) {
+          report = await copyAll([
+            [settings.notesRoot, `${v}/Notes`, false],
+            [settings.labsRoot, `${v}/Materials`, false],
+            [settings.pdfRoot, `${v}/PDFs`, true],
+          ]);
+        }
+        await saveSettings({
+          driveRoots: custom ? roots() : settings.driveRoots,
+          storage: "synced",
+          vault: v,
+          notesRoot: `${v}/Notes`,
+          labsRoot: `${v}/Materials`,
+          pdfRoot: `${v}/PDFs`,
+          syncEnabled: true,
+          syncDir: `${v}/Sync`,
+          backupDrive: settings.backupDrive ? `${v}/Backups` : "",
+        });
+        done = (report ? summary(report) + " " : "") + `Using ${v}. On your other computer, pick the same folder.`;
+      } else if (to === "local") {
         if (!cleanName) return (error = "Give the vault folder a name.");
         busy = "Making the vault…";
         const made = inTauri ? await invoke<string>("vault_create", { path: target }) : target;
@@ -102,7 +173,7 @@
           ]);
         }
         await saveSettings({
-          driveRoots: settings.storage === "local" ? settings.driveRoots : { notesRoot: settings.notesRoot, labsRoot: settings.labsRoot, pdfRoot: settings.pdfRoot, syncEnabled: settings.syncEnabled },
+          driveRoots: custom ? roots() : settings.driveRoots,
           storage: "local",
           vault: v,
           notesRoot: `${v}/Notes`,
@@ -122,7 +193,7 @@
           ]);
         }
         await saveSettings({ storage: "drive", notesRoot: drive.notesRoot, labsRoot: drive.labsRoot, pdfRoot: drive.pdfRoot, syncEnabled: keepSync });
-        done = (report ? summary(report) + " " : "") + "Back on Google Drive. Your vault folder stays on this computer.";
+        done = (report ? summary(report) + " " : "") + "Back to your own folders. The vault folder stays where it is.";
       }
       busy = "";
       onchanged();
@@ -147,36 +218,81 @@
     <div class="opt" class:on={!local}>
       <span class="ic" aria-hidden="true"><Icon name="cloud" size={20} /></span>
       <div class="txt">
-        <b>Google Drive</b>
-        <span>Your Google Drive folders. Everything syncs between your computers.</span>
+        <b>A synced folder</b>
+        <span>Google Drive, Dropbox, OneDrive, iCloud Drive or any folder that syncs. Follows you to your other computers.</span>
+        {#if synced}<span class="path">{settings.vault}</span>{:else if custom}<span class="path">Your own folders · {settings.notesRoot}</span>{/if}
       </div>
-      {#if !local}<span class="pill">In use</span>{:else}<button type="button" class="btn quiet sm" onclick={() => start("drive")}>Switch</button>{/if}
+      {#if !local}<span class="pill">In use</span>{:else}<button type="button" class="btn quiet sm" onclick={() => start("synced")}>Set up…</button>{/if}
     </div>
     <div class="opt" class:on={local}>
       <span class="ic" aria-hidden="true"><Icon name="laptop" size={20} /></span>
       <div class="txt">
         <b>This computer only</b>
-        <span>A vault folder on this computer with Notes, Materials and PDFs inside. Works without Drive.</span>
-        {#if local}<span class="path">{settings.vault} · app data {settings.syncEnabled ? "syncs through Drive" : "stays on this computer"}</span>{/if}
+        <span>A folder on this computer. Works offline, nothing leaves it.</span>
+        {#if local}<span class="path">{settings.vault} · app data {settings.syncEnabled ? "syncs" : "stays here"}</span>{/if}
       </div>
       {#if local}
         <span class="pill">In use</span>
       {:else}
-        <button type="button" class="btn quiet sm" onclick={() => start("local")}>Make a vault</button>
+        <button type="button" class="btn quiet sm" onclick={() => start("local")}>Switch…</button>
       {/if}
     </div>
   </div>
+  {#if !local}
+    <div class="row-btns">
+      {#if settings.vault && synced}<button type="button" class="btn quiet sm" onclick={openVault} disabled={!inTauri}>Open the folder</button>{/if}
+      <button type="button" class="btn quiet sm" onclick={() => start("synced")}>{synced ? "Use another synced folder…" : "Use one Mosaic folder…"}</button>
+      {#if synced && settings.driveRoots}<button type="button" class="btn quiet sm" onclick={() => start("drive")}>Back to my own folders</button>{/if}
+    </div>
+  {/if}
   {#if local}
     <div class="row-btns">
       <button type="button" class="btn quiet sm" onclick={openVault} disabled={!inTauri}>Open the vault folder</button>
       <button type="button" class="btn quiet sm" onclick={() => start("local")}>Use another folder…</button>
+      <button type="button" class="btn quiet sm" onclick={() => start(settings.driveRoots ? "drive" : "synced")}>{settings.driveRoots ? "Back to my own folders" : "Use a synced folder…"}</button>
     </div>
   {/if}
 </section>
 
 <dialog bind:this={dialog} aria-labelledby="st-h" onclose={() => (picking = false)}>
   <div class="dlg">
-    {#if to === "local"}
+    {#if to === "synced"}
+      <h2 id="st-h" class="h2">Use a synced folder</h2>
+      <div class="svc" role="radiogroup" aria-label="Service">
+        {#each SERVICES as sv}
+          <button type="button" role="radio" aria-checked={service === sv.id} class:on={service === sv.id} disabled={!!busy || !!done} onclick={() => pickService(sv.id)}>{sv.name}</button>
+        {/each}
+      </div>
+      {#if notFound}<p class="hint muted">Couldn't find a {SERVICES.find((x) => x.id === service)?.name} folder. Pick it below.</p>{/if}
+      <label class="field"><span class="label">Folder name</span><input class="input" bind:value={name} placeholder="Mosaic" disabled={!!busy || !!done} /></label>
+      <div class="field">
+        <span class="label">Inside</span>
+        <div class="where">
+          <code>{tilde(place)}</code>
+          <button type="button" class="btn quiet sm" disabled={!!busy || !!done} onclick={() => { picking = !picking; if (picking) void browse(place); }}>{picking ? "Done" : "Change…"}</button>
+        </div>
+        {#if picking && list}
+          <div class="picker">
+            <div class="pbar">
+              <button type="button" class="pb" disabled={!list.parent} onclick={() => list?.parent && browse(list.parent)}>‹ Up</button>
+              <button type="button" class="pb" onclick={() => browse("~")}>Home</button>
+              <span class="cur">{tilde(list.path)}</span>
+            </div>
+            <ul>
+              {#each list.dirs as d}<li><button type="button" onclick={() => list && browse(join(list.path, d))}><Icon name="folder" size={15} /> {d}</button></li>{:else}<li class="muted none">No folders in here.</li>{/each}
+            </ul>
+          </div>
+        {/if}
+        <span class="hint muted"><b>{tilde(target)}</b>{existing ? " already has Mosaic files: they'll be used." : ""}</span>
+      </div>
+      {#if !existing}
+        <fieldset class="field" disabled={!!busy || !!done}>
+          <span class="label">Your files</span>
+          <label class="radio"><input type="radio" bind:group={copy} value={true} /> <span><b>Copy them in</b><em>Notes, materials and PDFs. The old folders keep their copy.</em></span></label>
+          <label class="radio"><input type="radio" bind:group={copy} value={false} /> <span><b>Start empty</b></span></label>
+        </fieldset>
+      {/if}
+    {:else if to === "local"}
       <h2 id="st-h" class="h2">{local ? "Use another vault folder" : "Make a local vault"}</h2>
       <label class="field"><span class="label">Folder name</span><input class="input" bind:value={name} placeholder="Mosaic" disabled={!!busy || !!done} /></label>
       <div class="field">
@@ -193,7 +309,7 @@
               <span class="cur">{tilde(list.path)}</span>
             </div>
             <ul>
-              {#each list.dirs as d}<li><button type="button" onclick={() => list && browse(join(list.path, d))}>📁 {d}</button></li>{:else}<li class="muted none">No folders in here.</li>{/each}
+              {#each list.dirs as d}<li><button type="button" onclick={() => list && browse(join(list.path, d))}><Icon name="folder" size={15} /> {d}</button></li>{:else}<li class="muted none">No folders in here.</li>{/each}
             </ul>
           </div>
         {/if}
@@ -205,16 +321,17 @@
         <label class="radio"><input type="radio" bind:group={copy} value={false} /> <span><b>Start empty</b><em>Your Drive files stay where they are; switch back any time to see them.</em></span></label>
       </fieldset>
     {:else}
-      <h2 id="st-h" class="h2">Back to Google Drive</h2>
-      <p class="muted">Mosaic will use your Drive folders again: <code>{drive.notesRoot}</code>, <code>{drive.labsRoot}</code> and <code>{drive.pdfRoot}</code>.</p>
+      <h2 id="st-h" class="h2">Back to your own folders</h2>
+      <p class="muted"><code>{drive.notesRoot}</code>, <code>{drive.labsRoot}</code> and <code>{drive.pdfRoot}</code>.</p>
       <fieldset class="field" disabled={!!busy || !!done}>
         <span class="label">What you made in the vault</span>
         <label class="radio"><input type="radio" bind:group={copy} value={true} /> <span><b>Copy it into Drive</b><em>Nothing on Drive is overwritten; files with the same name are left as they are.</em></span></label>
         <label class="radio"><input type="radio" bind:group={copy} value={false} /> <span><b>Just switch</b><em>The vault folder stays on this computer untouched.</em></span></label>
       </fieldset>
     {/if}
-    <label class="check"><input type="checkbox" bind:checked={keepSync} disabled={!!busy || !!done} /> Keep syncing flashcard progress, calendar, tasks and courses through Google Drive</label>
-    {#if !keepSync}<p class="hint muted">Each computer keeps its own app data.</p>{/if}
+    {#if to !== "synced"}
+      <label class="check"><input type="checkbox" bind:checked={keepSync} disabled={!!busy || !!done} /> Keep syncing flashcard progress, calendar, tasks and courses</label>
+    {/if}
     {#if busy}<p class="busy">{busy}</p>{/if}
     {#if done}<p class="ok">{done}</p>{/if}
     {#if error}<p class="err" role="alert">{error}</p>{/if}
@@ -223,7 +340,7 @@
         <button type="button" class="btn primary" onclick={() => dialog?.close()}>Done</button>
       {:else}
         <button type="button" class="btn quiet" disabled={!!busy} onclick={() => dialog?.close()}>Cancel</button>
-        <button type="button" class="btn primary" disabled={!!busy} onclick={go}>{to === "local" ? (local ? "Use this folder" : "Make my vault") : "Switch to Drive"}</button>
+        <button type="button" class="btn primary" disabled={!!busy} onclick={go}>{to === "drive" ? "Switch back" : "Use this folder"}</button>
       {/if}
     </footer>
   </div>
@@ -233,6 +350,26 @@
   .lead {
     margin: 0 0 4px;
     font-size: 13.5px;
+  }
+  .svc {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .svc button {
+    min-height: 34px;
+    padding: 0 14px;
+    border: 0;
+    border-radius: 999px;
+    background: var(--chip);
+    color: var(--text);
+    font: inherit;
+    font-size: 13.5px;
+    cursor: pointer;
+  }
+  .svc button.on {
+    background: var(--primary);
+    color: var(--on-primary);
   }
   .opts {
     display: grid;
