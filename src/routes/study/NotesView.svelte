@@ -623,7 +623,7 @@
         {#if pinL}
           <aside class="pinned left" bind:this={treeHost}>
             <NoteTree current={rel} onnew={(f) => { newMode = "note"; newFolder = f; newOpen = true; }} onnewfolder={() => { newMode = "folder"; newFolder = dirOf(rel!); newOpen = true; }}>
-              {#snippet actions()}<button type="button" class="x" title="Unpin" aria-label="Unpin notes" onclick={() => (panels.pinL = false)}>📌</button>{/snippet}
+              {#snippet actions()}<button type="button" class="x" title="Unpin" aria-label="Unpin notes" onclick={() => (panels.pinL = false)}><Icon name="i:pin" size={15} /></button>{/snippet}
             </NoteTree>
           </aside>
         {/if}
@@ -684,7 +684,7 @@
 
         {#if pinR}
           <aside class="pinned right">
-            <div class="ph"><b>{label(pinR)}</b><button type="button" class="x" title="Unpin" aria-label="Unpin panel" onclick={() => (panels.pinR = null)}>📌</button></div>
+            <div class="ph"><b>{label(pinR)}</b><button type="button" class="x" title="Unpin" aria-label="Unpin panel" onclick={() => (panels.pinR = null)}><Icon name="i:pin" size={15} /></button></div>
             <div class="pbody"><NoteSide which={pinR} {note} {meta} {titleLines} ongotoline={gotoLine} ongotoheading={gotoHeading} onopenlink={openLink} /></div>
           </aside>
         {/if}
@@ -697,7 +697,7 @@
         <aside class="sheet left" bind:this={treeHost}>
           <NoteTree current={rel} onnew={(f) => { newMode = "note"; newFolder = f; newOpen = true; sheetL = false; }} onnewfolder={() => { newMode = "folder"; newFolder = dirOf(rel!); newOpen = true; sheetL = false; }}>
             {#snippet actions()}
-              {#if roomL && !ui.writing}<button type="button" class="x" title="Pin beside the note" aria-label="Pin" onclick={pinLeft}>📌</button>{/if}
+              {#if roomL && !ui.writing}<button type="button" class="x" title="Pin beside the note" aria-label="Pin" onclick={pinLeft}><Icon name="i:pin" size={15} /></button>{/if}
               <button type="button" class="x" aria-label="Close" onclick={() => (sheetL = false)}>×</button>
             {/snippet}
           </NoteTree>
@@ -707,7 +707,7 @@
         <aside class="sheet right">
           <div class="ph">
             <b>{label(sheetR)}</b>
-            {#if roomR && !ui.writing}<button type="button" class="x" title="Pin beside the note" aria-label="Pin" onclick={() => pinRight(sheetR!)}>📌</button>{/if}
+            {#if roomR && !ui.writing}<button type="button" class="x" title="Pin beside the note" aria-label="Pin" onclick={() => pinRight(sheetR!)}><Icon name="i:pin" size={15} /></button>{/if}
             <button type="button" class="x" aria-label="Close" onclick={() => (sheetR = null)}>×</button>
           </div>
           <div class="pbody"><NoteSide which={sheetR} {note} {meta} {titleLines} ongotoline={gotoLine} ongotoheading={gotoHeading} onopenlink={openLink} /></div>
@@ -1049,6 +1049,9 @@
     font-size: 15px;
   }
   .x {
+    display: inline-grid;
+    place-items: center;
+    padding: 0;
     width: 28px;
     height: 28px;
     border: 0;

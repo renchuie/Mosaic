@@ -6,6 +6,7 @@
   // The Mosaic note editor (N1b): blocks with no visible Markdown, saved as plain .md.
   // "/" menu, [[ note links, #tags, a toolbar on selected text, block handles (+ and drag),
   // flashcard arrows (→ one way, ⇄ both ways) and cloze, rich paste from Docs / web pages.
+  import Icon from "./Icon.svelte";
   import { onDestroy, onMount, untrack } from "svelte";
   import { Editor } from "@tiptap/core";
   import { NodeSelection, TextSelection } from "@tiptap/pm/state";
@@ -1387,7 +1388,7 @@
       {/if}
       {#if blockMenu.type === "blockquote" || blockMenu.type === "callout"}
         <button type="button" class="mi" onclick={() => blockAction("unwrap")}><span class="ic">¶</span>Back to plain text</button>
-        <button type="button" class="mi" onclick={() => { blockMenu = null; styleManager.tab = "callouts"; styleManager.open = true; }}><span class="ic">🎨</span>Edit callout and quote styles…</button>
+        <button type="button" class="mi" onclick={() => { blockMenu = null; styleManager.tab = "callouts"; styleManager.open = true; }}><span class="ic"><Icon name="palette" size={15} /></span>Edit callout and quote styles…</button>
       {/if}
       {#if blockMenu.type === "heading"}
         <button type="button" class="mi" onclick={() => blockAction("totoggle")}><span class="ic">▸</span>Make it a toggle (takes its section)</button>
@@ -1426,7 +1427,7 @@
             <button type="button" class="dot" data-color={c} title="{hlColor(c)?.label ?? c} (Ctrl+Shift+{i + 1})" aria-label="Highlight {hlColor(c)?.label ?? c}" onclick={() => run("hl", c)}></button>
           {/each}
           <button type="button" class="dot none" title="No highlight (Ctrl+Shift+0)" aria-label="Remove highlight" onclick={() => run("hl-off")}></button>
-          <button type="button" class="pal" title="Highlight colours and palettes" aria-label="Highlight colours and palettes" onclick={() => { styleManager.tab = "highlights"; styleManager.open = true; }}>🎨</button>
+          <button type="button" class="pal" title="Highlight colours and palettes" aria-label="Highlight colours and palettes" onclick={() => { styleManager.tab = "highlights"; styleManager.open = true; }}><Icon name="palette" size={15} /></button>
         </span>
         <span class="sep"></span>
         <!-- the same icons as the main toolbar: → card, ⇄ two-way card, { } cloze -->
@@ -1450,7 +1451,7 @@
           <span class="ic" style="background: color-mix(in srgb, {t.color} 60%, var(--white))">{t.icon}</span>{t.label}
         </button>
       {/each}
-      <button type="button" class="mi edit" onclick={() => { calloutMenu = null; styleManager.tab = "callouts"; styleManager.open = true; }}><span class="ic">🎨</span>Edit styles…</button>
+      <button type="button" class="mi edit" onclick={() => { calloutMenu = null; styleManager.tab = "callouts"; styleManager.open = true; }}><span class="ic"><Icon name="palette" size={15} /></span>Edit styles…</button>
     </div>
   {/if}
 
@@ -1478,7 +1479,7 @@
       <button type="button" title="Delete this column" aria-label="Delete this column" onclick={() => editor?.chain().focus().deleteColumn().run()}>−</button>
       <span class="sep"></span>
       <span class="cwrap">
-        <button type="button" title="Cell colour (select several cells by dragging across them)" aria-label="Cell colour" aria-expanded={cellPick} onclick={() => (cellPick = !cellPick)}>🎨 Colour</button>
+        <button type="button" title="Cell colour (select several cells by dragging across them)" aria-label="Cell colour" aria-expanded={cellPick} onclick={() => (cellPick = !cellPick)}><Icon name="palette" size={14} /> Colour</button>
         {#if cellPick}
           <span class="cpop" role="menu">
             {#each hlColors() as [k, c] (k)}
@@ -2016,6 +2017,9 @@
     box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--charcoal) 12%, transparent);
   }
   .bubble .pal {
+    display: inline-grid;
+    place-items: center;
+    color: var(--text-muted);
     min-width: 26px;
     padding: 0 4px;
     font-size: 13px;
