@@ -391,6 +391,18 @@ Markdown" view, the `<>` chip on the note header).
   "a · b" line per row, code gives a line per line, dividers / images are dropped (a pasted image
   FILE goes in as an inline image: in a cell it starts at most the cell's width and 200px tall, and its corner grip resizes it, saved as `![|width](src)` like block images, double-click the grip to fit); in a column, pasted columns / side by side open up into their
   blocks. Plain text with `<!--mosaic-` lines counts as Markdown.
+- Gaps in guided notes (Nov 18, her picks after her first full guided note; `src/lib/editor/gaps.ts`,
+  extension `Gaps` in blocks.ts at priority 1000): `findGaps` lists every slot to fill in: cloze
+  runs (empty = `BLANK_GAP`), the answer side of an arrow, list-card items (`indent + 1`, hint
+  "i of n"; items with their own arrow skipped), and body cells of a `:: table` except the key and
+  skipped columns (hint = column header). Tab / Shift-Tab inside or right after a gap, or Alt+↓ / ↑
+  anywhere, jumps to the next / previous empty one (wraps; a cloze gets selected). Enter at the end
+  of a filled list item moves into the next empty sibling instead of adding a line. Empty items /
+  cells show their hint faintly (`.b-gap[data-gap]`). Each h1–h3 with gaps gets a badge "N left" /
+  "✓" and, on hover once something is filled, "Review" (`onReviewSection` → route
+  `#/study/cards/review/note:<rel>#<a › b>`; srs `Scope` note `section`, `underSection` matches the
+  card's heading context by prefix; new cards are not capped there). NotesView's top bar shows the
+  note's total ("N left" ring, click = first gap). Print hides the badges.
 - Claude notes guide (Nov 18, her ask): `docs/claude-notes-guide.md` is the copy-ready section she
   pastes into her Claude prompt for guided notes: front matter, headings, toggles, callout kinds,
   highlight colours, tables, columns and every card syntax, with rules (no cards in callouts /

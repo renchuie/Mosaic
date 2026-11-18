@@ -309,3 +309,6 @@ Add things here as they come up (date, page, what happened). Each one is either 
       side list of groups, one group at a time, rows, search. **Done Nov 18.**
   18. New app icon and rail logo (her pick "M3": the Mosaic M, from her mosaic photo and sketches
       on the canvas). **Done Nov 18.**
+  19. Guided-note helpers (her picks 1, 2, 7, 8 after the first full guided note): Tab / Alt+↓
+      jumps to the next empty gap, "N left" counter in the top bar and per heading, hints in
+      empty items ("2 of 7", column names in empty cells), Review from a heading. **Done Nov 18.**

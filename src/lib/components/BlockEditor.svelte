@@ -18,6 +18,7 @@
   import { docToMd, mdToDoc, type PMNode as JNode } from "../editor/mdDoc";
   import { htmlToMd, richHtml } from "../editor/htmlToMd";
   import { splitNote } from "../notes";
+  import { goToGap } from "../editor/gaps";
   import "../editor/editor.css";
 
   let {
@@ -33,6 +34,8 @@
     foldKey,
     cardStatus,
     onpastemeta,
+    ongaps,
+    onreviewsection,
   }: {
     value: string;
     onchange: () => void;
@@ -51,6 +54,10 @@
     cardStatus?: (sid: string) => { s: "new" | "due" | "learning" | "later" | "known" | "paused"; tip: string } | null;
     /** pasted text that starts with front matter (a whole Mosaic note): its course / tags / … */
     onpastemeta?: (meta: Record<string, unknown>) => void;
+    /** guided notes: gaps still empty / all gaps (top-bar counter) */
+    ongaps?: (left: number, total: number) => void;
+    /** a section heading's Review button: its heading path (e.g. ["Lithium", "Levels"]) */
+    onreviewsection?: (path: string[]) => void;
   } = $props();
   // statuses change when she reviews (no edit in the note): redraw the dots
   $effect(() => {
@@ -1006,6 +1013,8 @@
         onOpenUrl: (h) => window.open(h, "_blank"),
         foldKey,
         cardStatus: (sid) => cardStatus?.(sid) ?? null,
+        onGapCount: (l, t) => !closing && ongaps?.(l, t),
+        onReviewSection: (p) => onreviewsection?.(p),
       }),
       content: mdToDoc(value),
       editorProps: {
@@ -1152,6 +1161,10 @@
 
   // ---- for the page -------------------------------------------------------------------------
   let lastOwners: ReturnType<typeof docToMd>["owners"] = [];
+  /** Guided notes: put the cursor in the next (1) / previous (-1) empty gap. */
+  export function gotoGap(dir: 1 | -1 = 1): boolean {
+    return !!editor && !editor.isDestroyed && goToGap(editor.view, dir);
+  }
   /** The note as Markdown (front matter and title not included). */
   export function markdown(): string {
     if (!editor) return value;

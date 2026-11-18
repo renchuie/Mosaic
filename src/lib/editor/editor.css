@@ -1068,3 +1068,61 @@ button.dot[data-color] {
   font-size: 13px;
   color: var(--text-muted);
 }
+
+/* ---- guided notes (Nov 18): hints in empty gaps, a badge after each section heading ---- */
+.mosaic-doc .b-gap {
+  position: relative;
+}
+.mosaic-doc .b-gap::after {
+  content: attr(data-gap);
+  position: absolute;
+  top: 1px;
+  left: calc(var(--ind, 0) * 1.6em + 1.6em + var(--cpl, var(--cp, 0px)));
+  color: color-mix(in srgb, var(--text-muted) 55%, transparent);
+  font-size: 0.86em;
+  line-height: inherit;
+  pointer-events: none;
+  white-space: nowrap;
+}
+/* in a table cell the hint is the column's name */
+.mosaic-doc td .b-gap::after,
+.mosaic-doc th .b-gap::after {
+  left: 0;
+  font-style: italic;
+}
+.mosaic-doc .b-secgap {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: 10px;
+  vertical-align: middle;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1;
+  user-select: none;
+}
+.mosaic-doc .b-gapcount {
+  padding: 4px 9px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--cloze-bg, var(--butter)) 70%, var(--white));
+  color: var(--muted-on-tint, var(--text-muted));
+}
+.mosaic-doc .b-gapcount.done {
+  background: color-mix(in srgb, var(--sage) 45%, var(--white));
+  color: var(--go-ink, var(--text));
+}
+.mosaic-doc .b-secreview {
+  padding: 4px 10px;
+  border: 0;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--accent) 22%, var(--white));
+  color: var(--text);
+  font: inherit;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+.mosaic-doc .b-h:hover .b-secreview,
+.mosaic-doc .b-secreview:focus-visible {
+  opacity: 1;
+}

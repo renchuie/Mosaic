@@ -73,7 +73,7 @@
 
   const label = $derived(
     (cram ? "Cram · " : "") +
-      (scope.kind === "all" ? "All decks" : scope.kind === "course" ? scope.name : scope.kind === "library" ? "Card library" : notes.files[scope.rel]?.p.title ?? "Note"),
+      (scope.kind === "all" ? "All decks" : scope.kind === "course" ? scope.name : scope.kind === "library" ? "Card library" : (notes.files[scope.rel]?.p.title ?? "Note") + (scope.section?.length ? ` › ${scope.section.join(" › ")}` : "")),
   );
 
   onMount(async () => {

@@ -153,6 +153,13 @@
       errorText = msg;
     }
   }
+  // guided notes: the counter in the top bar, and a section heading's Review button
+  let gaps = $state({ left: 0, total: 0 }); // reported by each note's editor as it opens and changes
+  async function reviewSection(path: string[]) {
+    if (!loadedRel) return;
+    await flush();
+    location.hash = `#/study/cards/review/note:${encodeURIComponent(loadedRel)}#${encodeURIComponent(path.join(" › "))}`;
+  }
   /** a whole note was pasted in: take its course, tags, date… where this note has none yet */
   function pasteMeta(m: Meta) {
     const patch: Meta = {};
@@ -526,6 +533,14 @@
           {#if meta.icon}<span class="wi">{meta.icon}</span>{/if}<b>{title}</b>{#if meta.course}<span class="wc">· {meta.course}</span>{/if}
         </div>
         <span class="grow"></span>
+        {#if gaps.total && !source}
+          <!-- guided notes: gaps still empty; a click goes to the next one -->
+          <button type="button" class="gapc" class:done={!gaps.left} title={gaps.left ? `${gaps.left} of ${gaps.total} gaps still to fill in. Click (or Alt+↓) for the next one; Tab moves on from inside a gap.` : "Every gap is filled in"}
+            onclick={() => blocks?.gotoGap(1)} disabled={!gaps.left}>
+            <svg viewBox="0 0 20 20" width="18" height="18" aria-hidden="true"><circle cx="10" cy="10" r="7.5" class="trk" /><circle cx="10" cy="10" r="7.5" class="val" style="stroke-dasharray: {(47.1 * (gaps.total - gaps.left)) / gaps.total} 47.1" /></svg>
+            {gaps.left ? `${gaps.left} left` : "All filled"}
+          </button>
+        {/if}
         <span class="st" class:bad={status === "conflict" || status === "error"} class:busy={status === "saving"}>
           {status === "saved" ? "Saved" : status === "saving" ? "Saving…" : status === "conflict" ? "Changed elsewhere" : "Couldn't save"}
         </span>
@@ -595,6 +610,7 @@
                     imageUrl={(src) => imageUrl(rel!, src)} onpasteimage={(d, ext) => savePastedImage(rel!, d, ext)} />
                 {:else}
                   <BlockEditor bind:this={blocks} value={body} onchange={changed} onopenlink={openLink} onfocuschange={setTyping} onleave={leaveFor(loadedRel!)} foldKey={loadedRel ?? undefined} {cardStatus} onpastemeta={pasteMeta}
+                    ongaps={(l, t) => (gaps = { left: l, total: t })} onreviewsection={reviewSection}
                     linkNames={() => allNotes().map(linkName)} tagNames={allTags}
                     imageUrl={(src) => imageUrl(rel!, src)} onpasteimage={(d, ext) => savePastedImage(rel!, d, ext)} />
                 {/if}
@@ -690,6 +706,42 @@
 <NoteMenu onnew={(f) => { newMode = "note"; newFolder = f; newOpen = true; sheetL = false; }} onnewfolder={(f) => { newMode = "folder"; newFolder = f; newOpen = true; sheetL = false; }} />
 
 <style>
+  .gapc {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 34px;
+    padding: 0 12px 0 8px;
+    border: 0;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--cloze-bg, var(--butter)) 60%, var(--white));
+    font: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text);
+    white-space: nowrap;
+    cursor: pointer;
+  }
+  .gapc.done {
+    background: color-mix(in srgb, var(--sage) 40%, var(--white));
+    cursor: default;
+  }
+  .gapc svg {
+    transform: rotate(-90deg);
+  }
+  .gapc .trk,
+  .gapc .val {
+    fill: none;
+    stroke-width: 3;
+  }
+  .gapc .trk {
+    stroke: color-mix(in srgb, var(--text) 14%, transparent);
+  }
+  .gapc .val {
+    stroke: var(--go-ink, var(--sage-deep));
+    stroke-linecap: round;
+    transition: stroke-dasharray 0.4s var(--spring-soft, ease);
+  }
   .nwrap {
     container-type: inline-size;
     min-width: 0;

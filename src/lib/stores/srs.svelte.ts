@@ -39,7 +39,8 @@ export type CardRef = {
   /** resolves image paths written in the card */
   img: (src: string) => string;
 };
-export type Scope = { kind: "all" } | { kind: "course"; name: string } | { kind: "note"; rel: string } | { kind: "library" };
+/** note scope with `section`: only cards under that heading path (a section's Review button) */
+export type Scope = { kind: "all" } | { kind: "course"; name: string } | { kind: "note"; rel: string; section?: string[] } | { kind: "library" };
 
 const scheduler = () => fsrs(generatorParameters({ request_retention: settings.retention || 0.9, enable_fuzz: true, maximum_interval: 3650 }));
 
@@ -94,8 +95,21 @@ export function allCards(): CardRef[] {
   return out;
 }
 
+const plainHead = (t: string) => t.replace(/[*_`=~]+/g, "").replace(/\s+/g, " ").trim().toLowerCase();
+/** the card's heading path starts with the section's path */
+const underSection = (ctx: string[], path: string[]) => {
+  const c = ctx.map(plainHead);
+  const p = path.map(plainHead);
+  return p.length <= c.length && p.every((x, k) => c[k] === x);
+};
 export const inScope = (s: Scope) => (r: CardRef) =>
-  s.kind === "all" ? true : s.kind === "course" ? r.course === s.name : s.kind === "library" ? !!r.item : r.note?.rel === s.rel;
+  s.kind === "all"
+    ? true
+    : s.kind === "course"
+      ? r.course === s.name
+      : s.kind === "library"
+        ? !!r.item
+        : r.note?.rel === s.rel && (!s.section?.length || underSection(r.card.context ?? [], s.section));
 
 /** Write ids into card lines that don't have one yet (skipping the note open in the editor). */
 export async function ensureIds(): Promise<number> {
@@ -158,7 +172,8 @@ export function queue(s: Scope): CardRef[] {
   const list = allCards().filter((r) => r.card.lineId).filter(inScope(s));
   const learning = list.filter((r) => statusOf(r.rec, now) === "learning").sort((a, b) => a.rec!.due - b.rec!.due);
   const review = list.filter((r) => statusOf(r.rec, now) === "review").sort((a, b) => a.rec!.due - b.rec!.due);
-  const fresh = list.filter((r) => !r.rec).slice(0, newLeftToday());
+  // a section reviewed right after class gets all of its new cards, not just today's allowance
+  const fresh = list.filter((r) => !r.rec).slice(0, s.kind === "note" && s.section?.length ? Infinity : newLeftToday());
   const out = [...learning];
   let i = 0;
   for (const r of review) {

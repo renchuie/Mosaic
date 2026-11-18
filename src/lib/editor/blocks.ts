@@ -6,6 +6,7 @@ import { Extension, InputRule, Mark, Node, getMarkRange, markInputRule, mergeAtt
 import { AllSelection, Plugin, PluginKey, Selection, TextSelection, type EditorState, type Transaction } from "@tiptap/pm/state";
 import { Decoration, DecorationSet, type EditorView } from "@tiptap/pm/view";
 import type { Mark as PMMark, Node as PMNode, NodeType } from "@tiptap/pm/model";
+import { gapsPlugin, type GapHooks } from "./gaps";
 import { Table, TableCell, TableHeader, TableRow } from "@tiptap/extension-table";
 import { CellSelection } from "@tiptap/pm/tables";
 import { Dropcursor, Gapcursor, Placeholder, UndoRedo } from "@tiptap/extensions";
@@ -20,6 +21,9 @@ export type EditorOpts = {
   foldKey?: string;
   /** a card line's review status (by its card id), for the small dot at the end of the line */
   cardStatus?: (sid: string) => { s: "new" | "due" | "learning" | "later" | "known" | "paused"; tip: string } | null;
+  /** guided notes: how many gaps are left (top-bar counter) and a section's Review button */
+  onGapCount?: (left: number, total: number) => void;
+  onReviewSection?: (path: string[]) => void;
 };
 /** Meta for a transaction that only asks the line decorations to be worked out again
  *  (card statuses changed after a review). */
@@ -1616,13 +1620,45 @@ function behaviour(opts: EditorOpts) {
   });
 }
 
+/** Guided notes: gap counter, hints, section badges, Tab / Alt+↓ to the next gap, and Enter on a
+ *  filled list item stepping into the next ready-made empty item (gaps.ts). Runs before the
+ *  editor's own Tab (indent) and Enter. */
+const Gaps = Extension.create<GapHooks>({
+  name: "mosaicGaps",
+  priority: 1000,
+  addOptions: () => ({}),
+  addProseMirrorPlugins() {
+    const o = this.options;
+    return [
+      gapsPlugin({ onCount: (l, t) => o.onCount?.(l, t), onReview: (p) => o.onReview?.(p) }),
+      new Plugin({
+        props: {
+          handleKeyDown(view, e) {
+            if (e.key !== "Enter" || e.shiftKey || e.ctrlKey || e.altKey || e.metaKey) return false;
+            const { $from, empty } = view.state.selection;
+            const node = $from.parent;
+            if (!empty || !LIST.includes(node.type.name) || !node.textContent.trim() || $from.parentOffset !== node.content.size) return false;
+            const holder = $from.node($from.depth - 1);
+            const i = $from.index($from.depth - 1);
+            const next = i + 1 < holder.childCount ? holder.child(i + 1) : null;
+            if (!next || next.type !== node.type || next.content.size || (next.attrs.indent ?? 0) !== (node.attrs.indent ?? 0)) return false;
+            const at = $from.after() + 1;
+            view.dispatch(view.state.tr.setSelection(TextSelection.create(view.state.doc, at)).scrollIntoView());
+            return true;
+          },
+        },
+      }),
+    ];
+  },
+});
+
 export function mosaicExtensions(opts: EditorOpts) {
   return [
     Doc, Text, Paragraph, Bullet, Ordered, Todo, Heading, Blockquote, Callout.configure({ onMenu: opts.onCalloutMenu }), CodeBlock, Raw, Hr,
     Image.configure({ imageUrl: opts.imageUrl }), Columns, Column, ColumnRules, Toggle, Pages, PageHalf, MTable, TableRow, MHeader, MCell,
     Wikilink, Arrow, InlineImage.configure({ imageUrl: opts.imageUrl }), HardBreak,
     Bold, Italic, Strike, Code, Highlight, Link, Cloze,
-    Hidden, Shortcuts, behaviour(opts), folding(opts),
+    Hidden, Shortcuts, behaviour(opts), folding(opts), Gaps.configure({ onCount: opts.onGapCount, onReview: opts.onReviewSection }),
     UndoRedo, Dropcursor.configure({ color: "var(--lavender, #c9b8f0)", width: 3 }), Gapcursor,
     Placeholder.configure({
       showOnlyCurrent: true,

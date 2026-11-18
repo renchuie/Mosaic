@@ -455,6 +455,10 @@ these pieces.
 - The only things that hide and reveal in the note itself: folded **callouts**, closed **toggle
   sections**, and folding under a heading (that last one is a view setting, not saved in the file).
 - Checkboxes can be ticked.
+- Gaps help her fill in: Tab jumps from one empty blank / answer / list item / table cell to the
+  next, empty list items show "2 of 7" and empty table cells their column name, each heading shows
+  how many gaps are left in it, and once some are filled she can review just that section's cards.
+  So: put blanks where the lecture actually says the fact, and give tables clear column headers.
 - Everything else is static text: there are no buttons, drop-downs, timers, drag-and-drop,
   matching games, scoring or scripts inside a note. Clozes show their answer in the note (they only
   hide in review).

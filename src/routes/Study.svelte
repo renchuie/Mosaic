@@ -20,7 +20,11 @@
     if (!route.rest.startsWith("cards/review") && !cram) return null;
     const s = route.rest.replace(/^cards\/(review|cram)\/?/, "");
     if (s.startsWith("course:")) return { kind: "course", name: s.slice(7) };
-    if (s.startsWith("note:")) return { kind: "note", rel: s.slice(5) };
+    if (s.startsWith("note:")) {
+      // note:<rel>#<heading › path> = one section of a note
+      const [rel, sec] = s.slice(5).split("#");
+      return { kind: "note", rel, section: sec ? sec.split(" › ").filter(Boolean) : undefined };
+    }
     if (s === "library") return { kind: "library" };
     return { kind: "all" };
   });
