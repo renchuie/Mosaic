@@ -347,5 +347,5 @@ Add things here as they come up (date, page, what happened). Each one is either 
       states and messages cut down across Settings, notes, cards, PDFs, materials, courses and
       tasks; the rule is in CLAUDE.md "Writing UI text". **Done.**
   29. Nov 19 · F1 flashcards pulled forward (her "FLASHCARD SYSTEM TIME"), in her order: card
-      browser (**Done**), decks + limits (**Done**), stats page, smarter reviews (leeches, sibling burying,
+      browser (**Done**), decks + limits (**Done**), stats page (**Done**), smarter reviews (leeches, sibling burying,
       edit from review), Anki .apkg import with review history.

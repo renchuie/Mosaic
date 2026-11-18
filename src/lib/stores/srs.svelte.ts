@@ -397,3 +397,9 @@ export function retention(days = 30): number | null {
   }
   return rev ? (rev - again) / rev : null;
 }
+
+/** The chance (0–1) of remembering a reviewed card right now, from its FSRS memory state. */
+export function recallOf(rec: SrsRec, now = Date.now()): number {
+  const r = scheduler().retrievability(toF(rec), new Date(now));
+  return typeof r === "number" ? r : parseFloat(String(r)) / 100;
+}

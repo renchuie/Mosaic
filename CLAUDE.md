@@ -922,6 +922,15 @@ Recall Labs. Decisions she approved:
   `due` after limits and `held` for reviews over the limit. Per-deck "today" counts come from the
   cards themselves: `born` (stamped on a card's first rating since Nov 19) today = new today,
   `last_review` today otherwise = reviewed today (cards, not ratings).
+- Stats (`src/routes/study/CardStats.svelte`, `#/study/cards/stats`, "Stats" in the Cards hero;
+  bars from `src/lib/components/BarChart.svelte`: stacked columns, hover tooltip per column, one
+  dashed gridline with a round max): range Month / 3 months / Year (a year is drawn by week);
+  tiles reviews, time, days studied + streak, retention (not Again, from `reviewDays`), recall now
+  (average FSRS retrievability of seen cards, `recallOf` in srs); charts reviews per day
+  (remembered / new / again), time, next 30 days, card states, intervals; By course (cards,
+  mature, recall now) and Most forgotten (lapses). Day counts exist only for all cards together
+  (`reviewDays` has no per-card log), so they can't be split by course or deck; card-based parts
+  can. Preview-only test hook `window.__synced` {put, get} seeds records (nothing is saved there).
 
 ## Study S4 (built): card library
 

@@ -63,6 +63,7 @@
       <p class="muted small">{all.total} cards{backfilled ? ` · ${backfilled} new found in notes` : ""}</p>
       <span class="links">
         <a class="libbtn" href="#/study/cards/browse"><Icon name="search" size={15} /> Browse</a>
+        <a class="libbtn" href="#/study/cards/stats"><Icon name="i:chart-column" size={15} /> Stats</a>
         <a class="libbtn" href="#/study/cards/library"><Icon name="book" size={15} /> Card library</a>
       </span>
     </div>

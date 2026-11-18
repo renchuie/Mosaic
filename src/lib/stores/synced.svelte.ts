@@ -49,6 +49,9 @@ export function put(coll: string, id: string, v: unknown) {
   changed();
 }
 
+// browser preview only: UI tests seed records through window.__synced (nothing is saved there)
+if (!inTauri && typeof window !== "undefined") (window as unknown as { __synced: unknown }).__synced = { put, get: (c: string, id: string) => db.colls[c]?.[id]?.v };
+
 export function del(coll: string, id: string) {
   if (!db.colls[coll]?.[id]) return;
   db.colls[coll][id] = { u: Date.now(), m: sync.machine, x: 1, v: null };
