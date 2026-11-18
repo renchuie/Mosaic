@@ -1,7 +1,8 @@
 # Mosaic notes: formatting guide for Claude
 
 Paste everything below the line into your notes prompt (or into a Claude Project's instructions).
-Edit the parts in [square brackets] to fit you.
+Edit the parts in [square brackets] to fit you. To bring Claude's note into Mosaic, download the .md
+file and use Notes → Import (or drop the file on the Notes home); pasting works too.
 
 ---
 

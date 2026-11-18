@@ -420,6 +420,15 @@ Markdown" view, the `<>` chip on the note header).
   A concept still to be filled in (`Lithium ;;` with empty `;;;` descriptors under it) is no
   card (`kindOf`; it used to become a list card of the property names); a space typed right after
   an arrow pill isn't saved twice (serializeInline drops the text's leading space after an arrow).
+  The empty line she kept seeing under "Lithium ;;" came from PASTING Claude's note: the clipboard's
+  formatted copy went through `htmlToMd`, which added empty lines. Now (BlockEditor paste) plain text
+  written in Mosaic syntax (`{{…}}`, ` :: ` / ` ;; ` / ` <:: ` arrows, `> [!kind]`, `<!--mosaic-`,
+  `:: table`) wins over the formatted copy, and pasted front matter goes to the note's properties
+  (`onpastemeta` → NotesView `pasteMeta`: only keys the note lacks; tags are merged). Importing
+  (her "there's no import"): `importNote` in the notes store saves a .md as is under its own file
+  name (made unique); `importFiles` in noteOps (one file opens, several give a message); Notes home
+  "Import" button and dropping .md files from the file manager onto Notes home (`dragHasFiles`),
+  and a folder's right-click "Import notes here…".
   The guide ends with "Reference: everything Mosaic can and can't do" (note features,
   interactivity limits, the flashcard and review system, quizzes / library / PDFs / labs, limits)
   and a brainstorming prompt, so Claude can invent activities that are buildable. Update both parts

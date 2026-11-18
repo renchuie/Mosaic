@@ -17,6 +17,7 @@
   setPaletteSource(activePalette);
   import { docToMd, mdToDoc, type PMNode as JNode } from "../editor/mdDoc";
   import { htmlToMd, richHtml } from "../editor/htmlToMd";
+  import { splitNote } from "../notes";
   import "../editor/editor.css";
 
   let {
@@ -31,6 +32,7 @@
     onleave,
     foldKey,
     cardStatus,
+    onpastemeta,
   }: {
     value: string;
     onchange: () => void;
@@ -47,6 +49,8 @@
     foldKey?: string;
     /** a card line's review status by its card id (dot at the end of the line) */
     cardStatus?: (sid: string) => { s: "new" | "due" | "learning" | "later" | "known" | "paused"; tip: string } | null;
+    /** pasted text that starts with front matter (a whole Mosaic note): its course / tags / … */
+    onpastemeta?: (meta: Record<string, unknown>) => void;
   } = $props();
   // statuses change when she reviews (no edit in the note): redraw the dots
   $effect(() => {
@@ -1077,8 +1081,19 @@
           // copied from inside the editor: let ProseMirror keep the blocks as they are
           if (/data-pm-slice/.test(html)) return false;
           let md = "";
-          if (html && richHtml(html)) md = htmlToMd(html);
+          // plain text written in Mosaic's own syntax (a note from Claude, the Markdown view…) is used
+          // as written, even when a formatted copy came along: converting that copy back added empty
+          // lines and lost card syntax (Nov 18, her pasted guided note)
+          const mosaicMd = /\{\{[^{}\n]*\}\}|\S[ \t]+(?:<::|:{2,3}|;{2,3})(?:[ \t]|$)|<!--\s*\/?mosaic-|^\s*>\s*\[![\w-]+\]|^::\s*table\b/m.test(plain);
+          if (mosaicMd) md = plain;
+          else if (html && richHtml(html)) md = htmlToMd(html);
           else if (/^(#{1,6}\s|[-*+]\s|\d+[.)]\s|>\s|\|.*\|)|\*\*|\[\[|\{\{|\s::\s|==\S|<mark\b|<!--\s*mosaic-/im.test(plain)) md = plain;
+          // a whole note pasted in: its front matter goes to the note's properties, not the page
+          const fm = /^\uFEFF?---\r?\n([\s\S]*?)\r?\n---[ \t]*(?:\r?\n|$)/.exec(md);
+          if (fm && /^[A-Za-z_][\w-]*:/m.test(fm[1])) {
+            md = md.slice(fm[0].length);
+            onpastemeta?.(splitNote(fm[0]).meta);
+          }
           if (!md) return false;
           const blocks = fitPaste(mdToDoc(md).content ?? [], pasteSpot());
           if (!blocks.length) return false;

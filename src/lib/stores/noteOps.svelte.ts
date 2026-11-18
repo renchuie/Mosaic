@@ -4,7 +4,7 @@
 // by NoteMenu.svelte, mounted once on the notes page. Drop targets are any element with
 // `data-drop-dir` (the folder path, "" = top level).
 import { del, entries, get, put } from "./synced.svelte";
-import { dirOf, moveFolder, moveNote, notes, renameNote, trashFolder, trashNote } from "./notes.svelte";
+import { dirOf, importNote, moveFolder, moveNote, noteHref, notes, renameNote, trashFolder, trashNote } from "./notes.svelte";
 import { setLastNote, ui } from "./ui.svelte";
 
 export type FolderLook = { icon?: string; color?: string };
@@ -125,6 +125,32 @@ export const doTrashFolder = queued(async function doTrashFolder(dir: string) {
     say(errText(e));
   }
 });
+
+// ---- importing Markdown files ----------------------------------------------------------------
+
+export const IMPORT_ACCEPT = ".md,.markdown,.txt,text/markdown,text/plain";
+const importable = (f: File) => /\.(md|markdown|txt)$/i.test(f.name);
+
+/** Import .md files into a folder; one file opens right away, several give a message. */
+export async function importFiles(files: FileList | File[] | null | undefined, folder: string) {
+  const list = [...(files ?? [])];
+  const ok = list.filter(importable);
+  if (!ok.length) {
+    if (list.length) say("Only Markdown files (.md) can be imported as notes.");
+    return;
+  }
+  const made: string[] = [];
+  try {
+    for (const f of ok) made.push(await importNote(folder, f.name, await f.text()));
+  } catch (e) {
+    say(errText(e));
+  }
+  if (made.length === 1) location.hash = noteHref(made[0]);
+  else if (made.length) say(`Imported ${made.length} notes${folder ? ` into ${folder.split("/").pop()}` : ""}.`);
+  if (ok.length < list.length) say(`Imported ${made.length}; ${list.length - ok.length} file(s) weren't Markdown.`);
+}
+/** true when a drag carries files from outside (not a drag of something inside the app) */
+export const dragHasFiles = (e: DragEvent) => !!e.dataTransfer && [...e.dataTransfer.types].includes("Files");
 
 // ---- dragging ------------------------------------------------------------------------------
 

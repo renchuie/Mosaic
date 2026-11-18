@@ -6,10 +6,13 @@
   import { splitNote, previewLine } from "../../lib/notes";
   import { courses } from "../../lib/stores/courses.svelte";
   import { dirOf, noteHref, notes, recentNotes, type NoteEntry, noteDirs } from "../../lib/stores/notes.svelte";
-  import { dragStart, folderLook, noteDrag, openMenu } from "../../lib/stores/noteOps.svelte";
+  import { dragHasFiles, dragStart, folderLook, IMPORT_ACCEPT, importFiles, noteDrag, openMenu } from "../../lib/stores/noteOps.svelte";
+  import Icon from "../../lib/components/Icon.svelte";
 
   let { onnew }: { onnew: (folder: string) => void } = $props();
   let dir = $state("");
+  let picker = $state<HTMLInputElement>();
+  let dropping = $state(false);
 
   const all = $derived(Object.values(notes.files));
   const inside = (d: string, e: NoteEntry) => (d ? e.rel.startsWith(d + "/") : true);
@@ -56,7 +59,11 @@
   const crumbs = $derived(dir ? dir.split("/").map((p, i, a) => ({ name: p, d: a.slice(0, i + 1).join("/") })) : []);
 </script>
 
-<div class="home">
+<!-- Markdown files dragged in from the file manager are imported into the folder shown -->
+<div class="home" class:dropping role="region" aria-label="Folders"
+  ondragover={(e) => { if (dragHasFiles(e)) { e.preventDefault(); dropping = true; } }}
+  ondragleave={(e) => { if (!(e.currentTarget as HTMLElement).contains(e.relatedTarget as Node)) dropping = false; }}
+  ondrop={(e) => { if (!dragHasFiles(e)) return; e.preventDefault(); dropping = false; void importFiles(e.dataTransfer?.files, dir); }}>
   <header class="top">
     <div>
       <h1 class="display">{dir ? dir.split("/").pop() : "Folders"}</h1>
@@ -70,7 +77,11 @@
         {/if}
       </p>
     </div>
-    <button type="button" class="btn primary" onclick={() => onnew(dir)}>+ Note</button>
+    <div class="acts">
+      <button type="button" class="btn quiet" title="Bring in .md files (a guided note from Claude…)" onclick={() => picker?.click()}><Icon name="file" size={16} /> Import</button>
+      <button type="button" class="btn primary" onclick={() => onnew(dir)}>+ Note</button>
+    </div>
+    <input bind:this={picker} type="file" accept={IMPORT_ACCEPT} multiple hidden onchange={(e) => { const i = e.currentTarget as HTMLInputElement; void importFiles(i.files, dir).then(() => (i.value = "")); }} />
   </header>
 
   {#if notes.error}<p class="err">{notes.error}</p>{/if}
@@ -113,6 +124,21 @@
 </div>
 
 <style>
+  .acts {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+  .acts .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .home.dropping {
+    border-radius: var(--radius);
+    box-shadow: inset 0 0 0 3px color-mix(in srgb, var(--accent) 55%, transparent);
+    background: color-mix(in srgb, var(--accent) 8%, transparent);
+  }
   .home {
     display: grid;
     gap: var(--gap);

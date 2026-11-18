@@ -164,6 +164,14 @@ function uniqueRel(folder: string, title: string) {
   }
 }
 
+/** Bring in a Markdown file from elsewhere (a guided note from Claude…) as it is, front matter
+ *  and all, under its own file name (made unique in the folder). */
+export async function importNote(folder: string, fileName: string, text: string): Promise<string> {
+  const rel = uniqueRel(folder, fileName.replace(/\.(md|markdown|txt)$/i, "").trim() || "Imported note");
+  await saveNote(rel, text.replace(/^\uFEFF/, "").replace(/\r\n?/g, "\n"));
+  return rel;
+}
+
 export async function createNote(folder: string, title: string, template = "blank", meta: Meta = {}): Promise<string> {
   const t = TEMPLATES[template] ?? TEMPLATES.blank;
   const rel = uniqueRel(folder, title);

@@ -7,7 +7,7 @@
   import { PALETTE } from "../../lib/calendar";
   import { linkName, noteDirs, noteHref, notes, dirOf, getNote } from "../../lib/stores/notes.svelte";
   import {
-    doMoveFolder, doMoveNote, doRenameFolder, doRenameNote, doTrashFolder, doTrashNote, folderLook, noteDrag, noteMenu, setFolderLook,
+    doMoveFolder, doMoveNote, doRenameFolder, doRenameNote, doTrashFolder, doTrashNote, folderLook, IMPORT_ACCEPT, importFiles, noteDrag, noteMenu, setFolderLook,
   } from "../../lib/stores/noteOps.svelte";
   import { EMOJI } from "./NoteHead.svelte";
 
@@ -23,6 +23,8 @@
   const count = $derived(m?.kind === "folder" ? Object.keys(notes.files).filter((r) => r.startsWith(m.rel + "/")).length : 0);
   const look = $derived(m?.kind === "folder" ? folderLook(m.rel) : {});
   let text = $state("");
+  let picker = $state<HTMLInputElement>();
+  let importTo = "";
   let box = $state<HTMLDivElement>();
   let pos = $state({ x: 0, y: 0 });
 
@@ -71,6 +73,8 @@
 
 <svelte:window onkeydown={(e) => { if (e.key === "Escape" && noteMenu.open) { e.preventDefault(); close(); } }} />
 
+<input bind:this={picker} type="file" accept={IMPORT_ACCEPT} multiple hidden onchange={(e) => { const i = e.currentTarget as HTMLInputElement; void importFiles(i.files, importTo).then(() => (i.value = "")); }} />
+
 <div use:portal class="nm-root">
   {#if m}
     <button type="button" class="nm-scrim" aria-label="Close menu" onclick={close} oncontextmenu={(e) => { e.preventDefault(); close(); }}></button>
@@ -86,6 +90,7 @@
         {:else}
           <button type="button" class="mi" role="menuitem" onclick={() => { const d = m.rel; close(); onnew(d); }}><Icon name="plus" size={15} />New note here</button>
           <button type="button" class="mi" role="menuitem" onclick={() => { const d = m.rel; close(); onnewfolder(d); }}><Icon name="folder" size={15} />New folder inside</button>
+          <button type="button" class="mi" role="menuitem" onclick={() => { importTo = m.rel; close(); picker?.click(); }}><Icon name="file" size={15} />Import notes here…</button>
           <span class="nm-sep"></span>
           <button type="button" class="mi" role="menuitem" onclick={() => view("rename")}><Icon name="pen" size={15} />Rename</button>
           <button type="button" class="mi" role="menuitem" onclick={() => view("look")}><span class="nm-ic">{look.icon ?? "🎨"}</span>Icon and colour</button>

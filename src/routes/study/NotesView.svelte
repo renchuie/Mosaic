@@ -153,6 +153,18 @@
       errorText = msg;
     }
   }
+  /** a whole note was pasted in: take its course, tags, date… where this note has none yet */
+  function pasteMeta(m: Meta) {
+    const patch: Meta = {};
+    for (const [k, v] of Object.entries(m)) {
+      if (k === "tags" && Array.isArray(v)) {
+        const have = Array.isArray(meta.tags) ? meta.tags : [];
+        const all = [...new Set([...have, ...v.map(String)])];
+        if (all.length !== have.length) patch.tags = all;
+      } else if (meta[k] === undefined || meta[k] === "") patch[k] = v;
+    }
+    if (Object.keys(patch).length) setMeta(patch);
+  }
   function setMeta(patch: Meta) {
     meta = { ...meta, ...patch };
     for (const k of Object.keys(patch)) if (patch[k] === undefined || patch[k] === "") delete meta[k];
@@ -582,7 +594,7 @@
                     linkNames={() => allNotes().map(linkName)} tagNames={allTags}
                     imageUrl={(src) => imageUrl(rel!, src)} onpasteimage={(d, ext) => savePastedImage(rel!, d, ext)} />
                 {:else}
-                  <BlockEditor bind:this={blocks} value={body} onchange={changed} onopenlink={openLink} onfocuschange={setTyping} onleave={leaveFor(loadedRel!)} foldKey={loadedRel ?? undefined} {cardStatus}
+                  <BlockEditor bind:this={blocks} value={body} onchange={changed} onopenlink={openLink} onfocuschange={setTyping} onleave={leaveFor(loadedRel!)} foldKey={loadedRel ?? undefined} {cardStatus} onpastemeta={pasteMeta}
                     linkNames={() => allNotes().map(linkName)} tagNames={allTags}
                     imageUrl={(src) => imageUrl(rel!, src)} onpasteimage={(d, ext) => savePastedImage(rel!, d, ext)} />
                 {/if}
