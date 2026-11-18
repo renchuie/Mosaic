@@ -74,7 +74,7 @@
           <span class="ext">
             <b>{x.exam.title}</b>
             <span>
-              {x.total} cards · {x.late ? `${x.late} not due again until after the exam` : "every reviewed card comes up before it"}{x.unseen ? ` · ${x.unseen} never studied` : ""}
+              {x.total} cards{x.late ? ` · ${x.late} due after the exam` : ""}{x.unseen ? ` · ${x.unseen} new` : ""}
             </span>
             {#if fitted[x.exam.key] !== undefined}<span class="okm">Moved {fitted[x.exam.key]} cards to the days before the exam.</span>{/if}
           </span>
@@ -111,14 +111,13 @@
       <div class="main">
         <section class="card">
           <h2 class="h2">Decks</h2>
-          <p class="muted small">A deck is every card in a course's notes, or in one note.</p>
           <ul class="decks">
             {#each byCourse as d (d.id)}
               <li style="--c: {d.c.color}">
                 <span class="dot"></span><b>{d.c.name}</b>
                 <span class="nums"><span class="n-due">{d.k.due}</span><span class="n-new">{d.k.newToday}</span><span class="muted">{d.k.total}</span></span>
                 <a class="btn quiet sm" href="#/study/cards/review/course:{enc(d.c.name)}" class:off={!d.k.due && !d.k.newToday}>Review</a>
-                <a class="cram" href="#/study/cards/cram/course:{enc(d.c.name)}" title="Go through every card without changing the schedule">Cram</a>
+                <a class="cram" href="#/study/cards/cram/course:{enc(d.c.name)}" title="Practice without changing the schedule">Cram</a>
               </li>
             {/each}
           </ul>
@@ -192,8 +191,8 @@
             <select class="input" value={String(settings.retention)} onchange={(e) => saveSettings({ retention: Number(e.currentTarget.value) })}>
               {#each [0.8, 0.85, 0.9, 0.93, 0.95] as r}<option value={String(r)}>{Math.round(r * 100)}%{r === 0.9 ? " (recommended)" : r >= 0.93 ? " (more reviews)" : " (fewer reviews)"}</option>{/each}
             </select></label>
-          <label class="chk"><input type="checkbox" checked={settings.examAware} onchange={(e) => saveSettings({ examAware: e.currentTarget.checked })} /> Before an exam, bring that course's cards up by the evening before</label>
-          <p class="muted small">Scheduling uses FSRS, the same method as modern Anki. Higher retention means you remember more, with more reviews.</p>
+          <label class="chk"><input type="checkbox" checked={settings.examAware} onchange={(e) => saveSettings({ examAware: e.currentTarget.checked })} /> Due before the course's next exam</label>
+          <p class="muted small">Higher retention means more reviews.</p>
         </section>
       </aside>
     </div>

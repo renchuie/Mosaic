@@ -81,7 +81,7 @@
     </div>
     <div class="acts">
       <button type="button" class="btn quiet" title="Deleted notes and folders" onclick={() => (trashOpen = true)}><Icon name="trash" size={16} /> Trash</button>
-      <button type="button" class="btn quiet" title="Bring in .md files (a guided note from Claude…)" onclick={() => picker?.click()}><Icon name="file" size={16} /> Import</button>
+      <button type="button" class="btn quiet" title="Import .md files" onclick={() => picker?.click()}><Icon name="file" size={16} /> Import</button>
       <button type="button" class="btn primary" onclick={() => onnew(dir)}>+ Note</button>
     </div>
     <input bind:this={picker} type="file" accept={IMPORT_ACCEPT} multiple hidden onchange={(e) => { const i = e.currentTarget as HTMLInputElement; void importFiles(i.files, dir).then(() => (i.value = "")); }} />

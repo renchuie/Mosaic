@@ -100,7 +100,7 @@
           {#each list as v (v.t)}
             <li><button type="button" class:on={sel === v.t} onclick={() => pick(v.t)}>{day(v.t)}</button></li>
           {:else}
-            <li class="empty">No earlier versions yet. One is kept every 10 minutes while you edit.</li>
+            <li class="empty">No earlier versions yet.</li>
           {/each}
         {/if}
       </ul>

@@ -101,11 +101,11 @@
     <header><h2 id="oc-title" class="h2">Image occlusion</h2><button type="button" class="x" aria-label="Close" onclick={() => dialog?.close()}>×</button></header>
     {#if !image}
       <label class="drop">
-        <b>Choose an image</b> or paste one (Ctrl+V): a diagram, pathway, structure or slide.
+        <b>Choose an image</b> or paste one (Ctrl+V).
         <input type="file" accept="image/*" onchange={(e) => useFile(e.currentTarget.files?.[0])} />
       </label>
     {:else}
-      <p class="muted small">Drag over each label you want to hide. Every box becomes a card. Click a box's × to remove it.</p>
+      <p class="muted small">Drag over labels to hide. Each box is a card.</p>
       <!-- svelte-ignore a11y_no_static_element_interactions -->
       <div class="stage" bind:this={box} onpointerdown={down} onpointermove={move} onpointerup={up}>
         <img {src} alt="" draggable="false" />

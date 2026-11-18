@@ -261,7 +261,7 @@
     <div class="rows">
       <label class="row" for="ev-t"><span>Title</span></label>
       <!-- svelte-ignore a11y_autofocus -->
-      <input id="ev-t" class="input" bind:value={f.title} autofocus placeholder={type === "task" ? "e.g. Finish PGx case write-up" : "e.g. Heart failure review"} />
+      <input id="ev-t" class="input" bind:value={f.title} autofocus placeholder={type === "task" ? "Task" : "Title"} />
 
       <label class="row" for="ev-n"><span>Description</span></label>
       <textarea id="ev-n" class="input" rows="2" bind:value={f.notes} placeholder="Add a description"></textarea>

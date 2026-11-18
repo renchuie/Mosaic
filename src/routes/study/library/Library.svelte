@@ -126,7 +126,7 @@
     </div>
   {:else}
     <section class="card empty">
-      <p>{all.length ? "Nothing matches." : "No library cards yet. Add one above, import a CSV (a Top 300 list works well with the Drug type), or make an image occlusion card."}</p>
+      <p>{all.length ? "Nothing matches." : "No library cards yet."}</p>
     </section>
   {/if}
 </div>

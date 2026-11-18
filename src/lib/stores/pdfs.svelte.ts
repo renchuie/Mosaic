@@ -109,7 +109,7 @@ export async function readPdf(rel: string): Promise<{ bytes: Uint8Array; mtime: 
   const mem = memory.get(rel);
   if (mem) return { bytes: mem, mtime: 0, backed: true };
   const res = await fetch(pdfUrl(rel), { cache: "no-store" });
-  if (!res.ok) throw new Error(res.status === 404 ? "This PDF isn't there any more (moved, renamed, or Drive not mounted)." : `Could not open the PDF (${res.status})`);
+  if (!res.ok) throw new Error(res.status === 404 ? "This PDF isn't there any more." : `Could not open the PDF (${res.status})`);
   const bytes = new Uint8Array(await res.arrayBuffer());
   const [mtime, backed] = inTauri ? await invoke<[number, boolean]>("pdfs_stat", { rel }) : [0, false];
   return { bytes, mtime, backed };

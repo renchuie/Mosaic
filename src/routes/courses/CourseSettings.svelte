@@ -134,7 +134,7 @@
             </div>
           </div>
         {:else}
-          <p class="muted small">Your grade is points earned ÷ points possible across every assessment.</p>
+          <p class="muted small">Points earned ÷ points possible.</p>
         {/if}
 
         <div class="two">

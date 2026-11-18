@@ -106,7 +106,7 @@
     {/snippet}
     <ul class="root" class:over={noteDrag.over === ""} data-drop-dir="" data-drag-scroll>{@render branch(tree)}</ul>
     {#if !Object.keys(notes.files).length && notes.loaded}
-      <p class="muted none">No notes yet. Make your first one with “+ Note”.</p>
+      <p class="muted none">No notes yet.</p>
     {/if}
   {/if}
 </nav>

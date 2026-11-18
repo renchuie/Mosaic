@@ -36,7 +36,7 @@
       <h2 id="tm-title" class="h2">Tags</h2>
       <button type="button" class="x" aria-label="Close" onclick={() => dialog?.close()}>×</button>
     </header>
-    <p class="muted">Rename tags, change their colours, and choose which ones count as exams for your countdowns.</p>
+    <p class="muted">Exam tags count toward countdowns.</p>
 
     <ul>
       {#each tags() as [id, t] (id)}
@@ -70,7 +70,7 @@
 
     <form class="add" onsubmit={add}>
       <input type="color" bind:value={newColor} aria-label="New tag colour" />
-      <input class="input" bind:value={newName} placeholder="New tag, e.g. Quiz or Group project" aria-label="New tag name" />
+      <input class="input" bind:value={newName} placeholder="New tag" aria-label="New tag name" />
       <button type="submit" class="btn primary" disabled={!newName.trim()}>Add tag</button>
     </form>
   </div>

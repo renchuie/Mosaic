@@ -47,7 +47,7 @@
       <button type="button" class="x" aria-label="Close" onclick={() => dialog?.close()}>×</button>
     </header>
     <div class="howto">
-      <p class="sm">Ask Claude for a quiz in the Mosaic format, then paste its answer below.</p>
+      <p class="sm">Paste a quiz in the Mosaic format.</p>
       <button type="button" class="btn quiet sm" onclick={copyGuide}><Icon name={copied ? "check" : "note"} size={15} /> {copied ? "Copied! Paste it into Claude" : "Copy format for Claude"}</button>
     </div>
     <label class="field">

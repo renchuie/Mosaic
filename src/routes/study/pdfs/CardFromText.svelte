@@ -97,7 +97,7 @@
       <button type="button" class="x" aria-label="Close" onclick={() => dialog?.close()}>×</button>
     </header>
     {#if mode === "cloze"}
-      <p class="muted small">Click or drag over the words to hide. Each separate gap becomes its own card.</p>
+      <p class="muted small">Click or drag the words to hide. Each gap is a card.</p>
       <div class="words" aria-label="Words">
         {#each words as w, i}
           <button type="button" class="w" class:on={w.on} aria-pressed={w.on} onpointerdown={(e) => down(i, e)} onpointerenter={() => enter(i)} onkeydown={(e) => (e.key === " " || e.key === "Enter") && (e.preventDefault(), (w.on = !w.on))}>{w.w}</button>
@@ -105,7 +105,7 @@
       </div>
       <p class="prev"><span class="label">Makes {gaps} {gaps === 1 ? "card" : "cards"}</span> <code>{clozeText}</code></p>
     {:else}
-      <label class="field"><span class="label">Question</span><textarea class="input" rows="2" bind:value={front} placeholder="e.g. Mechanism of warfarin?"></textarea></label>
+      <label class="field"><span class="label">Question</span><textarea class="input" rows="2" bind:value={front} placeholder="Question"></textarea></label>
       <label class="field"><span class="label">Answer</span><textarea class="input" rows="3" bind:value={back}></textarea></label>
     {/if}
     <label class="field"><span class="label">Course</span><select class="input" bind:value={crs}><option value="">None</option>{#each courseNames() as c}<option value={c}>{c}</option>{/each}</select></label>

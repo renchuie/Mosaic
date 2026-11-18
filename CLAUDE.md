@@ -18,6 +18,14 @@ laptop (NVIDIA GPU) through `./install.sh`.
 - Work follows `ROADMAP.md`: one focus per week until v1.0 on Dec 31, 2026. Stay inside the current
   week's focus; log anything else under "Found this week" in that file.
 
+## Writing UI text (Nov 19, her ask: "less wordy, less like the app is babying the user")
+
+- Labels say what a thing is; a hint is a few words and only when the label isn't enough; empty
+  states just say it's empty ("No notes yet.", never "Your notes show up here. Click…"); tooltips
+  are a name plus a shortcut ("Reverse card (<-)"); messages say what happened, not how it works.
+  No "e.g." placeholders with her personal examples. No explanations of internals (FSRS, file
+  formats, folder names) in the UI; that belongs in docs.
+
 ## Product direction (her words, Nov 16)
 
 The full vision, principles and what she likes or dislikes in each inspiration are in

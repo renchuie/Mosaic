@@ -173,11 +173,11 @@
         annots = parsed.annots;
         clean = parsed.clean;
         readOnly = parsed.readOnly;
-        readOnlyWhy = parsed.readOnly ? "This PDF is locked (encrypted), so marks can't be saved into it." : "";
+        readOnlyWhy = parsed.readOnly ? "This PDF is locked; marks can't be saved." : "";
       } catch {
         annots = [];
         readOnly = true;
-        readOnlyWhy = "Mosaic can read this PDF but not save into it (the file is unusual or damaged).";
+        readOnlyWhy = "This PDF can't be saved into.";
       }
       onDisk = new Set(annots.map((a) => a.id));
       await openDoc(clean);
@@ -868,7 +868,7 @@
               {/each}
             </ul>
           {:else}
-            <p class="muted small empty">No marks yet. Pick Highlight (H) and select text, or select text and choose Card to make a flashcard.</p>
+            <p class="muted small empty">No marks yet.</p>
           {/if}
         {:else}
           {#if outline.length}

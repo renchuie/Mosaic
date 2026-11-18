@@ -214,7 +214,7 @@
           {#if showProblems}<ul>{#each quiz.problems as p}<li><span class="ln">line {p.line}</span> {p.msg}</li>{/each}</ul>{/if}
         </div>
       {/if}
-      <p class="muted sm keys">Keys: 1–9 or A–I pick an option, T / F for true or false, Enter checks and goes on.</p>
+      <p class="muted sm keys">Keys: 1–9 / A–I pick · T / F · Enter checks</p>
     </section>
   {:else if phase === "q" && cur}
     {#key at}

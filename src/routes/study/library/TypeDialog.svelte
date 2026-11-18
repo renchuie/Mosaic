@@ -74,7 +74,7 @@
         </div>
         <div class="field">
           <span class="label">Cards (templates)</span>
-          <p class="muted small">Write <code>{"{{Field}}"}</code> to insert a field. <code>{"{{#Field}}…{{/Field}}"}</code> only shows when the field is filled; a card whose front is empty isn't made. Markdown works: **bold**, - lists.</p>
+          <p class="muted small"><code>{"{{Field}}"}</code> inserts a field; <code>{"{{#Field}}…{{/Field}}"}</code> shows only when it's filled.</p>
           {#each d.templates as t, i (t.id)}
             <div class="tpl">
               <div class="th"><input class="input" bind:value={t.name} aria-label="Template name" /><button type="button" class="ib" aria-label="Remove template" onclick={() => (d!.templates = d!.templates.filter((_, j) => j !== i))}>×</button></div>

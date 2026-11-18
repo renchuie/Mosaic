@@ -212,7 +212,7 @@
       const prev = probe();
       probeResult = prev
         ? `Lab storage is working and kept its data from ${new Date(Number(prev)).toLocaleString()}.`
-        : "Lab storage is working. Run this check again after restarting the app to confirm it keeps data.";
+        : "Lab storage works.";
     } catch (e) {
       probeResult = `Lab storage problem: ${e instanceof Error ? e.message : e}`;
     }
@@ -287,7 +287,7 @@
     {#if group === "you"}
       <div class="scard">
         <div class="srow" id="set-name" class:flash={flash === "name"}>
-          <div class="rl"><b id="name-l">Your name</b><span>Shown on the dashboard and in the avatar at the bottom of the rail.</span></div>
+          <div class="rl"><b id="name-l">Your name</b><span>Shown on the dashboard.</span></div>
           <input class="input short" bind:value={name} aria-labelledby="name-l" autocomplete="given-name" onblur={saveName} onkeydown={(e) => e.key === "Enter" && (e.currentTarget as HTMLInputElement).blur()} />
         </div>
         <div class="srow">
@@ -323,11 +323,11 @@
       <div class="scard">
         <h3>Layout</h3>
         <div class="srow" id="set-window" class:flash={flash === "window"}>
-          <div class="rl"><b id="frame-l">Window</b><span>{(settings.frame ?? "curve") === "curve" ? "The page touches the window edges, with a curve beside the rail." : settings.frame === "sheet" ? "A frosted rail column and a straight page." : "The rail and page float inside a glass border."}</span></div>
+          <div class="rl"><b id="frame-l">Window</b><span>{(settings.frame ?? "curve") === "curve" ? "Edge to edge, curved beside the rail." : settings.frame === "sheet" ? "A frosted rail column and a straight page." : "The rail and page float inside a glass border."}</span></div>
           {@render seg("frame", [{ v: "curve", name: "Curve" }, { v: "sheet", name: "Glass rail" }, { v: "float", name: "Floating" }], settings.frame ?? "curve", (v) => saveSettings({ frame: v as "curve" | "sheet" | "float" }))}
         </div>
         <div class="srow" id="set-spacing" class:flash={flash === "spacing"}>
-          <div class="rl"><b id="density-l">Spacing</b><span>How roomy cards and lists are.</span></div>
+          <div class="rl"><b id="density-l">Spacing</b></div>
           {@render seg("density", [{ v: "spacious", name: "Spacious" }, { v: "original", name: "Original" }, { v: "compact", name: "Compact" }], settings.density, (v) => saveSettings({ density: v as "spacious" | "original" | "compact" }))}
         </div>
       </div>
@@ -336,26 +336,26 @@
       <div class="scard">
         <h3>Every note</h3>
         <div class="srow" id="set-nhead" class:flash={flash === "nhead"}>
-          <div class="rl"><b id="nhead-l">Header</b><span>Compact is one line. Full has a big icon and title. A note can have its own in its ⋯ menu.</span></div>
+          <div class="rl"><b id="nhead-l">Header</b><span>Each note can change it in ⋯.</span></div>
           {@render seg("nhead", [{ v: "compact", name: "Compact" }, { v: "full", name: "Full" }], settings.noteHeader ?? "compact", (v) => saveSettings({ noteHeader: v as "compact" | "full" }))}
         </div>
         <div class="srow" id="set-nwidth" class:flash={flash === "nwidth"}>
-          <div class="rl"><b id="nwidth-l">Page width</b><span>For notes you haven't set a width on.</span></div>
+          <div class="rl"><b id="nwidth-l">Page width</b></div>
           {@render seg("nwidth", [{ v: "readable", name: "Readable" }, { v: "wide", name: "Wide" }, { v: "full", name: "Full" }], settings.noteWidth ?? "readable", (v) => saveSettings({ noteWidth: v as "readable" | "wide" | "full" }))}
         </div>
         <div class="srow" id="set-nopen" class:flash={flash === "nopen"}>
-          <div class="rl"><b id="nopen-l">Open notes as</b><span>The &lt;&gt; chip in a note still switches.</span></div>
+          <div class="rl"><b id="nopen-l">Open notes as</b></div>
           {@render seg("nopen", [{ v: "page", name: "Mosaic page" }, { v: "markdown", name: "Markdown" }], settings.noteOpen ?? "page", (v) => saveSettings({ noteOpen: v as "page" | "markdown" }))}
         </div>
         <div class="srow" id="set-ntools" class:flash={flash === "ntools"}>
-          <div class="rl"><b id="ntools-l">Formatting toolbar</b><span>The ✎ button in a note flips this too.</span></div>
+          <div class="rl"><b id="ntools-l">Formatting toolbar</b></div>
           {@render seg("ntools", [{ v: "typing", name: "While I type" }, { v: "always", name: "Always" }], settings.noteTools ? "always" : "typing", (v) => saveSettings({ noteTools: v === "always" }))}
         </div>
       </div>
       <div class="scard">
         <h3>Flashcards in notes</h3>
         <div class="srow" id="set-cardbg" class:flash={flash === "cardbg"}>
-          <div class="rl"><b id="cardbg-l">Card lines</b><span>How a line that makes a flashcard looks.</span></div>
+          <div class="rl"><b id="cardbg-l">Card lines</b></div>
           {@render seg("cardbg", [{ v: "on", name: "Soft background" }, { v: "off", name: "Plain, arrow only" }], settings.cardBg === false ? "off" : "on", (v) => saveSettings({ cardBg: v === "on" }))}
         </div>
         <div class="srow col" id="set-arrow" class:flash={flash === "arrow"}>
@@ -380,7 +380,7 @@
       <div class="scard">
         <h3>Styles</h3>
         <div class="srow" id="set-styles" class:flash={flash === "styles"}>
-          <div class="rl"><b>Highlights, callouts and quotes</b><span>Your callout types, how quotes look, your highlight colours and palettes.</span></div>
+          <div class="rl"><b>Highlights, callouts and quotes</b><span>Callouts, quotes and highlight colours.</span></div>
           <div class="btns">
             <button type="button" class="btn quiet sm" onclick={() => { styleManager.tab = "callouts"; styleManager.open = true; }}>Callouts</button>
             <button type="button" class="btn quiet sm" onclick={() => { styleManager.tab = "quotes"; styleManager.open = true; }}>Quotes</button>
@@ -393,26 +393,26 @@
       <div class="scard">
         <h3>Review</h3>
         <div class="srow" id="set-calign" class:flash={flash === "calign"}>
-          <div class="rl"><b id="calign-l">Card text</b><span>Lists and tables stay left-aligned either way.</span></div>
+          <div class="rl"><b id="calign-l">Card text</b></div>
           {@render seg("calign", [{ v: "left", name: "Left" }, { v: "center", name: "Centred" }], settings.cardAlign === "center" ? "center" : "left", (v) => saveSettings({ cardAlign: v as "left" | "center" }))}
         </div>
         <div class="srow" id="set-scratch" class:flash={flash === "scratch"}>
-          <div class="rl"><b id="scratch-l">Scratchpad</b><span>Write your answer before you see the card's, then rate yourself.</span></div>
+          <div class="rl"><b id="scratch-l">Scratchpad</b><span>Type your answer before revealing.</span></div>
           {@render seg("scratch", [{ v: "off", name: "Off" }, { v: "on", name: "On" }], settings.cardScratch ? "on" : "off", (v) => saveSettings({ cardScratch: v === "on" }))}
         </div>
       </div>
       <div class="scard">
         <h3>Scheduling</h3>
         <div class="srow" id="set-newday" class:flash={flash === "newday"}>
-          <div class="rl"><b id="newday-l">New cards a day</b><span>Cards you haven't seen yet, introduced each day.</span></div>
+          <div class="rl"><b id="newday-l">New cards a day</b></div>
           <input class="input num" type="number" min="0" max="500" aria-labelledby="newday-l" value={settings.newPerDay} onchange={(e) => saveSettings({ newPerDay: Math.max(0, Number(e.currentTarget.value) || 0) })} />
         </div>
         <div class="srow" id="set-retention" class:flash={flash === "retention"}>
-          <div class="rl"><b id="ret-l">Target retention</b><span>Higher means you remember more, with more reviews (FSRS, like modern Anki).</span></div>
+          <div class="rl"><b id="ret-l">Target retention</b><span>Higher means more reviews, better recall.</span></div>
           {@render seg("ret", [0.85, 0.9, 0.93, 0.95].map((r) => ({ v: String(r), name: `${Math.round(r * 100)}%` })), String(settings.retention), (v) => saveSettings({ retention: Number(v) }))}
         </div>
         <div class="srow" id="set-examaware" class:flash={flash === "examaware"}>
-          <div class="rl"><b id="exam-l">Exam-aware</b><span>Before an exam, that course's cards come up by the evening before.</span></div>
+          <div class="rl"><b id="exam-l">Exam-aware</b><span>Cards come due before the course's next exam.</span></div>
           {@render seg("exam", [{ v: "off", name: "Off" }, { v: "on", name: "On" }], settings.examAware ? "on" : "off", (v) => saveSettings({ examAware: v === "on" }))}
         </div>
       </div>
@@ -423,10 +423,10 @@
       </div>
       <form class="scard" id="set-folders" class:flash={flash === "folders"} onsubmit={saveFolders}>
         <h3>Folders</h3>
-        <label class="srow col"><span class="rl"><b>Notes</b><span>Markdown files, so they open in any other app too. “~” is your home folder.</span></span><input class="input" bind:value={notesRoot} spellcheck="false" /></label>
-        <label class="srow col"><span class="rl"><b>Materials</b><span>Recall labs, quizzes and everything else; every folder inside becomes a dashboard.</span></span><input class="input" bind:value={root} spellcheck="false" /></label>
+        <label class="srow col"><span class="rl"><b>Notes</b><span>Markdown files.</span></span><input class="input" bind:value={notesRoot} spellcheck="false" /></label>
+        <label class="srow col"><span class="rl"><b>Materials</b><span>Labs, quizzes and study files.</span></span><input class="input" bind:value={root} spellcheck="false" /></label>
         <label class="srow"><span class="rl"><b>Materials: folder levels to scan</b><span>Lower is faster.</span></span><input class="input num" type="number" min="1" max="8" bind:value={depth} /></label>
-        <label class="srow col"><span class="rl"><b>PDFs</b><span>Study → PDFs lists every PDF in here. Annotations go into the PDF; the original is kept once in a hidden “.studydesk-originals” folder.</span></span><input class="input" bind:value={pdfRoot} spellcheck="false" /></label>
+        <label class="srow col"><span class="rl"><b>PDFs</b><span>Marks are saved into the PDF; the original is kept.</span></span><input class="input" bind:value={pdfRoot} spellcheck="false" /></label>
         <label class="srow"><span class="rl"><b>PDFs: folder levels to search</b></span><input class="input num" type="number" min="1" max="12" bind:value={pdfDepth} /></label>
         <div class="srow end"><button class="btn primary" type="submit">Save folders</button>{#if saved === "folders"}<span class="muted">Saved</span>{/if}</div>
       </form>
@@ -435,10 +435,10 @@
       <form class="scard" id="set-synconoff" class:flash={flash === "synconoff"} onsubmit={saveSync}>
         <h3>Sync</h3>
         <div class="srow">
-          <div class="rl"><b id="sync-l">Sync between computers</b><span>Flashcard progress, calendar, tasks, courses, lab progress and study days.</span></div>
+          <div class="rl"><b id="sync-l">Sync between computers</b><span>Reviews, calendar, tasks, courses and progress.</span></div>
           {@render seg("sync", [{ v: "off", name: "Off" }, { v: "on", name: "On" }], syncOn ? "on" : "off", (v) => (syncOn = v === "on"))}
         </div>
-        <label class="srow col"><span class="rl"><b>Sync folder</b><span>The same folder on your PC and laptop. Each computer writes its own file here and reads the others.</span></span><input class="input" bind:value={syncDir} spellcheck="false" disabled={!syncOn} /></label>
+        <label class="srow col"><span class="rl"><b>Sync folder</b><span>The same folder on every computer.</span></span><input class="input" bind:value={syncDir} spellcheck="false" disabled={!syncOn} /></label>
         <div class="srow end"><button class="btn primary" type="submit">Save</button>{#if saved === "sync"}<span class="muted">Saved</span>{/if}</div>
       </form>
       <div class="scard" id="set-syncstatus" class:flash={flash === "syncstatus"}>
@@ -476,7 +476,7 @@
         <label class="srow col"><span class="rl"><b>On this computer</b>{#if backups.error.local}<span class="bad">{backups.error.local}</span>{/if}</span><input class="input" bind:value={bLocal} spellcheck="false" placeholder="Off" /></label>
         <label class="srow col"><span class="rl"><b>In your synced folder</b>{#if backups.error.drive}<span class="bad">{backups.error.drive}</span>{/if}</span><input class="input" bind:value={bDrive} spellcheck="false" placeholder="Off" /></label>
         <label class="srow"><span class="rl"><b>Keep</b><span>Days per computer.</span></span><input class="input num" type="number" min="1" max="365" bind:value={bKeep} /></label>
-        <label class="srow"><span class="rl"><b>Note history</b><span>Earlier versions of each note, on this computer. Note ⋯ → Version history. Days kept.</span></span><input class="input num" type="number" min="1" max="365" bind:value={hDays} /></label>
+        <label class="srow"><span class="rl"><b>Note history</b><span>Days of earlier versions kept.</span></span><input class="input num" type="number" min="1" max="365" bind:value={hDays} /></label>
         <div class="srow end">
           <button class="btn primary" type="submit">Save</button>
           <button class="btn quiet" type="button" onclick={backupNow} disabled={!inTauri || backups.running}>{backups.running ? "Backing up…" : "Back up now"}</button>
@@ -511,7 +511,7 @@
               <label class:off={!pick.pv.notes}><input type="checkbox" bind:checked={what.notes} disabled={!pick.pv.notes} /> Notes</label>
               <label><input type="checkbox" bind:checked={what.settings} /> Settings</label>
             </div>
-            <p class="muted bnote">Today’s state is backed up first, so this can be undone.</p>
+            <p class="muted bnote">A backup is taken first.</p>
             <div class="btns">
               <button class="btn primary" type="button" onclick={doRestore} disabled={bbusy || (!what.data && !what.notes && !what.settings)}>{bbusy ? "Restoring…" : "Restore"}</button>
               <button class="btn quiet" type="button" onclick={() => (pick = null)}>Cancel</button>
@@ -537,7 +537,7 @@
     {:else if group === "calendar"}
       <div class="scard">
         <div class="srow col" id="set-examwords" class:flash={flash === "examwords"}>
-          <div class="rl"><b id="words-l">Words that mark an exam</b><span>Separate with commas, e.g. “Exam, Quiz, Final”. Events tagged Other with these words count as exams.</span></div>
+          <div class="rl"><b id="words-l">Words that mark an exam</b><span>Comma-separated. Events with these words count as exams.</span></div>
           <input class="input" bind:value={keywords} aria-labelledby="words-l" spellcheck="false" onblur={saveWords} onkeydown={(e) => e.key === "Enter" && (e.currentTarget as HTMLInputElement).blur()} />
         </div>
       </div>
@@ -558,7 +558,7 @@
       <div class="scard" id="set-import" class:flash={flash === "import"}>
         <h3>Bring over progress from your browser</h3>
         <div class="srow col">
-          <div class="rl"><span>If you used your labs in a web browser before, that progress lives in the browser. Open a lab there, press F12, choose Console, paste this line and press Enter. It copies your progress to the clipboard.</span></div>
+          <div class="rl"><span>In that browser, open a lab, press F12 → Console and run this line. Then paste here.</span></div>
           <pre><code>{snippet}</code></pre>
           <textarea class="input" bind:value={importText} rows="4" spellcheck="false" placeholder="Paste it here" aria-label="Paste your progress here"></textarea>
           <div class="btns"><button class="btn primary" type="button" onclick={importProgress} disabled={!inTauri || !importText.trim()}>Import progress</button></div>

@@ -267,7 +267,7 @@
             <span class="jt"><b>{lastLab.lab.title}</b><span class="muted sm">Lab{lastLab.progress.avgBest !== null ? ` · best ${lastLab.progress.avgBest}%` : ""}{lastLab.progress.missed ? ` · ${lastLab.progress.missed} to revisit` : ""}</span></span>
           </a>
         {/if}
-        {#if !lastPdf && !lastNote && !lastLab}<p class="muted">What you open shows up here.</p>{/if}
+        {#if !lastPdf && !lastNote && !lastLab}<p class="muted">Nothing opened yet.</p>{/if}
       </div>
     </section>
 
@@ -292,7 +292,7 @@
           {/each}
         </ul>
       {:else}
-        <p class="muted">Nothing shaky yet. Cards you keep forgetting and lab questions to revisit show up here.</p>
+        <p class="muted">Nothing shaky yet.</p>
       {/if}
     </section>
 
@@ -305,7 +305,7 @@
           {/each}
         </div>
       {:else}
-        <p class="muted">Your note folders show up here.</p>
+        <p class="muted">No note folders yet.</p>
       {/if}
     </section>
 
@@ -370,7 +370,7 @@
               <span class="bar thin"><span style="width: {l.progress.avgBest ?? 0}%"></span></span></span>
           </a>
         {:else}
-          <p class="muted">Your labs show up here.</p>
+          <p class="muted">No labs yet.</p>
         {/each}
       </div>
     </section>

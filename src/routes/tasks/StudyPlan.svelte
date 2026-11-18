@@ -140,7 +140,7 @@
             <div class="clock display">
               {fmtClock(curSpent)}<small>of {fmtClock(curTotal)}</small>
             </div>
-            {#if over}<p class="overmsg">Time’s up — check it off when you’re done, or keep going.</p>{/if}
+            {#if over}<p class="overmsg">Time's up.</p>{/if}
             <div class="hbtns">
               {#if isRunning(date, cur.id)}
                 <button class="btn primary" type="button" onclick={pauseBlock}><Icon name="pause" size={16} /> Pause</button>
@@ -275,7 +275,7 @@
             {/each}
           {/if}
           {#if !cardIdea && !calIdeas.length && !taskIdeas.length && !labIdeas.length}
-            <p class="muted">Nothing to suggest yet. Tasks with estimates, your Recall Labs and Study events on the calendar show up here.</p>
+            <p class="muted">Nothing to suggest yet.</p>
           {/if}
         </section>
       {/if}

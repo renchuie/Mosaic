@@ -269,7 +269,7 @@
     <a class="btn quiet sm" href="#/study/cards"><Icon name="back" size={15} /> Cards</a>
     <span class="scope">{label}</span>
     <span class="prog" aria-hidden="true"><i style="width: {progress}%"></i></span>
-    <button type="button" class="btn quiet sm scrbtn" class:on={scratchOn} aria-pressed={scratchOn} title="Scratchpad: write what you remember before the answer shows" onclick={() => saveSettings({ cardScratch: !scratchOn })}>✎ Scratchpad</button>
+    <button type="button" class="btn quiet sm scrbtn" class:on={scratchOn} aria-pressed={scratchOn} title="Scratchpad" onclick={() => saveSettings({ cardScratch: !scratchOn })}>✎ Scratchpad</button>
     <span class="left" aria-label="Cards left">
       <span class="n-new" title="New">{left.n}</span>
       <span class="n-learn" title="Learning">{left.l}</span>

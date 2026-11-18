@@ -93,7 +93,7 @@ export const doTrashNote = queued(async function doTrashNote(rel: string) {
     followMove(rel, null);
     await p;
   } catch (e) {
-    say(`Couldn't move it to the trash, so it's still here (${errText(e)})`);
+    say(`Couldn't delete it (${errText(e)})`);
   }
 });
 
@@ -124,7 +124,7 @@ export const doTrashFolder = queued(async function doTrashFolder(dir: string) {
     await p;
     for (const [k] of entries("noteFolders")) if (k === dir || k.startsWith(dir + "/")) del("noteFolders", k);
   } catch (e) {
-    say(`Couldn't move it to the trash, so it's still here (${errText(e)})`);
+    say(`Couldn't delete it (${errText(e)})`);
   }
 });
 
@@ -138,7 +138,7 @@ export async function importFiles(files: FileList | File[] | null | undefined, f
   const list = [...(files ?? [])];
   const ok = list.filter(importable);
   if (!ok.length) {
-    if (list.length) say("Only Markdown files (.md) can be imported as notes.");
+    if (list.length) say("Only .md files can be imported.");
     return;
   }
   const made: string[] = [];

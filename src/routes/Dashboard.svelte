@@ -155,7 +155,7 @@
         <div class="c-body">
           <span class="label">Recall Labs</span>
           <h2 class="display">{labs.error ? "Can’t reach your labs folder" : labs.scanning ? "Looking for your labs…" : "No labs found yet"}</h2>
-          <p>{labs.error ?? "Labs are .html files with a recall-lab-version meta tag, anywhere in your labs folder."}</p>
+          <p>{labs.error ?? "No labs found."}</p>
         </div>
         <a class="btn primary" href="#/settings/files">Check Settings</a>
       </section>
@@ -298,7 +298,7 @@
         {#each allLabs.slice(0, 5) as l}
           <a class="btn quiet" href={labHref(l.item.rel)}><Icon name="play" size={14} /> {l.lab.title}</a>
         {:else}
-          <p class="muted">Your labs will show up here.</p>
+          <p class="muted">No labs yet.</p>
         {/each}
       </div>
     </section>

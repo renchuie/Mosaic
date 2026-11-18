@@ -813,7 +813,7 @@ const Arrow = Node.create({
       "data-back": String(!!node.attrs.back),
       "data-desc": String(!!node.attrs.desc),
       "data-concept": String(!!node.attrs.concept),
-      title: node.attrs.concept ? "Concept: quizzed both ways; lines indented under it with ;;; are its facts" : node.attrs.desc ? "Descriptor: a fact about the concept above (asks “Concept › this”)" : node.attrs.back ? "Reverse flashcard: asks for the left side (click: → one way)" : node.attrs.two ? "Flashcard both ways (click: ← reverse)" : "Flashcard (click: ⇄ both ways)",
+      title: node.attrs.concept ? "Concept (;;)" : node.attrs.desc ? "Descriptor (;;;)" : node.attrs.back ? "Reverse card" : node.attrs.two ? "Flashcard both ways (click: ← reverse)" : "Flashcard (click: ⇄ both ways)",
     },
     [
       "http://www.w3.org/2000/svg svg",
@@ -1331,7 +1331,7 @@ function decorations(doc: PMNode, status?: EditorOpts["cardStatus"]): Decoration
         const isConcept = arrowNode && any && ((arrowNode as PMNode).attrs.concept || ((arrowNode as PMNode).attrs.two && allBold));
         if (isConcept) {
           out.push(Decoration.inline(pos + 1, pos + 1 + arrowAt, { class: "b-concept" }));
-          out.push(Decoration.node(pos + 1 + arrowAt, pos + 2 + arrowAt, { class: "concept", title: "Concept: quizzed both ways; lines indented under it with ;;; are its facts" }));
+          out.push(Decoration.node(pos + 1 + arrowAt, pos + 2 + arrowAt, { class: "concept", title: "Concept (;;)" }));
         }
       }
       // card status (Nov 18): a small dot at the end of a card line, hover for when it's next due

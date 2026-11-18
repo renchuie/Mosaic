@@ -76,7 +76,7 @@
       {/each}
     </ul>
   {:else}
-    <p class="empty">Headings you add show up here. Type <kbd>#</kbd> and a space at the start of a line.</p>
+    <p class="empty">No headings yet.</p>
   {/if}
 {:else if which === "cards"}
   {#if cards.length}
@@ -98,7 +98,7 @@
     </ul>
     <a class="btn primary review" href="#/study/cards/review/note:{encodeURIComponent(note.rel)}">Review this note</a>
   {:else}
-    <p class="empty">No flashcards yet. Type <kbd>::</kbd> between a question and its answer, select a word and press <b>Cloze</b>, or add a table of flashcards from the <kbd>/</kbd> menu.</p>
+    <p class="empty">No flashcards yet.</p>
   {/if}
 {:else if which === "backlinks"}
   {#if back.length}
@@ -106,7 +106,7 @@
       {#each back as b (b.e.rel)}<li><a href={noteHref(b.e.rel)}><b>{b.e.p.title}</b>{#if b.context}<span>{plainText(b.context)}</span>{/if}</a></li>{/each}
     </ul>
   {:else}
-    <p class="empty">No notes link here yet. Type <kbd>[[</kbd> in another note and pick this one.</p>
+    <p class="empty">No links yet.</p>
   {/if}
 {:else}
   {#if course || meta.date || typeof meta.pdf === "string"}

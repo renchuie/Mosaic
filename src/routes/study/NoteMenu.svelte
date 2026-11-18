@@ -136,7 +136,7 @@
       {:else if m.view === "delete"}
         <div class="nm-form">
           <p class="nm-q">Delete {m.kind === "note" ? "the note" : "the folder"} <b>“{name}”</b>{#if m.kind === "folder"} and {count === 1 ? "the 1 note" : `all ${count} notes`} in it{/if}?</p>
-          <p class="nm-hint">You can get it back from Trash on Notes home.</p>
+          <p class="nm-hint">It goes to Trash.</p>
           <div class="nm-row">
             <button type="button" class="btn quiet sm" onclick={close}>Cancel</button>
             <button type="button" class="btn sm danger" onclick={remove}>Delete</button>

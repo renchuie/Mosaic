@@ -208,7 +208,6 @@
   {#if mode !== "status"}
     <label class="check"><input type="checkbox" bind:checked={showDone} /> Show recently done</label>
   {/if}
-  <span class="muted hint">Drag cards between columns. Click a card to edit it.</span>
 </div>
 
 <div class="scroller" bind:this={scroller} class:dragging={!!drag}>
@@ -318,7 +317,7 @@
         {#if addingCol}
           <form onsubmit={addColumn}>
             <!-- svelte-ignore a11y_autofocus -->
-            <input class="input" bind:value={newCol} placeholder={mode === "tag" ? "New tag, e.g. Group project" : "New column, e.g. Waiting on group"} autofocus aria-label="New column name" />
+            <input class="input" bind:value={newCol} placeholder={mode === "tag" ? "New tag" : "New column"} autofocus aria-label="New column name" />
             <div class="row"><button type="submit" class="btn primary">Add</button><button type="button" class="btn quiet" onclick={() => (addingCol = false)}>Cancel</button></div>
           </form>
         {:else}

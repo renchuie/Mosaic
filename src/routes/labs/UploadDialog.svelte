@@ -153,7 +153,7 @@
     </ul>
     {#if error}<p class="error" role="alert">{error}</p>{/if}
     <footer>
-      <span class="muted sm">Copied into your Materials folder; the originals stay put.</span>
+      <span class="muted sm">Copied into Materials.</span>
       <span class="sp"></span>
       <button type="button" class="btn quiet" onclick={() => dialog?.close()}>Cancel</button>
       <button type="submit" class="btn primary" disabled={!count || saving}>{saving ? "Saving…" : `Add ${count || ""} ${count === 1 ? "file" : "files"}`}</button>

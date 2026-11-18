@@ -208,7 +208,7 @@
         for (let i = 2; getNote(copy); i++) copy = `${base} (other version ${stamp} ${i}).md`;
         const t = splitNote(theirs);
         await saveNote(copy, joinNote({ ...t.meta, conflict: `other version of ${linkName(getNote(r)!)}` }, t.body));
-        say(`The other version is saved as “${copy.split("/").pop()!.replace(/\.md$/i, "")}” (its flashcards are left out).`);
+        say(`The other version is saved as “${copy.split("/").pop()!.replace(/\.md$/i, "")}”.`);
       }
     } catch (e) {
       console.error("conflict copy", e);
@@ -648,7 +648,6 @@
                     <b>{m.label}</b><small>{m.hint}</small>
                   </button>
                 {/each}
-                <p class="mhint">To make one page again: ⠿ on a block in a half → Join halves.</p>
               </div>
             {/if}
           </span>
@@ -720,7 +719,7 @@
                     {#each back as b (b.e.rel)}<a href={noteHref(b.e.rel)}><b>{b.e.p.title}</b>{#if b.context}<span>{plainText(b.context)}</span>{/if}</a>{/each}
                   </div>
                 {:else}
-                  <p class="muted">No notes link here yet. Type <kbd>[[</kbd> in another note and pick “{title}”.</p>
+                  <p class="muted">No links yet.</p>
                 {/if}
                 <button type="button" class="more" onclick={() => (showMentions = !showMentions)}>{showMentions ? "▾" : "▸"} Unlinked mentions</button>
                 {#if showMentions}
@@ -1265,13 +1264,6 @@
   .refs .muted {
     margin: 0 0 8px;
     font-size: 13px;
-  }
-  .refs kbd {
-    font: inherit;
-    font-weight: 700;
-    padding: 0 5px;
-    border-radius: 5px;
-    background: var(--chip);
   }
   .more {
     border: 0;

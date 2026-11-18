@@ -87,7 +87,7 @@
     {#if styleManager.tab === "callouts"}
     <section>
       <h3>Callout types</h3>
-      <p class="muted small">Rename them, change their icon and colour, put them in your order, or add your own. In the file a callout is written as <code>&gt; [!word]</code>, so your notes still open anywhere.</p>
+      <p class="muted small">Written as <code>&gt; [!word]</code> in the file.</p>
       <ul>
         {#each calloutTypes() as [k, t], i (k)}
           <li class:hidden={t.hidden}>
@@ -102,7 +102,7 @@
                 <button type="button" class="mini" disabled={i === calloutTypes().length - 1} aria-label="Move down" onclick={() => moveCallout(k, 1)}>↓</button>
               </span>
               {#if isBuiltinCallout(k)}
-                <button type="button" class="btn quiet sm" onclick={() => upd(k, t, { hidden: !t.hidden })} title={t.hidden ? "Show it in the / menu again" : "Hide it from the / menu (callouts you already wrote keep their look)"}>{t.hidden ? "Show" : "Hide"}</button>
+                <button type="button" class="btn quiet sm" onclick={() => upd(k, t, { hidden: !t.hidden })} title={t.hidden ? "Show it in the / menu again" : "Hide from the / menu"}>{t.hidden ? "Show" : "Hide"}</button>
               {:else if confirming === k}
                 <button type="button" class="btn quiet sm danger" onclick={() => { deleteCallout(k); confirming = null; }}>Delete</button>
               {:else}
@@ -161,7 +161,7 @@
 
     <section>
       <h3>Palettes</h3>
-      <p class="muted small">Pick the set of highlighters you want on the toolbars. Its colours fill the highlight dots in order and the shortcuts <b>Ctrl+Shift+1…{MAX_PALETTE}</b> (<b>Ctrl+Shift+0</b> removes a highlight). <b>Theme</b> always matches the theme you're using.</p>
+      <p class="muted small">The palette on the toolbars and <b>Ctrl+Shift+1…{MAX_PALETTE}</b>. <b>Ctrl+Shift+0</b> removes.</p>
       <ul>
         <li>
           <div class="pline">
@@ -232,7 +232,7 @@
 
     <section>
       <h3>Your colours</h3>
-      <p class="muted small">Every colour a palette can use. In the file a highlight is <code>==text==</code> (yellow) or <code>&lt;mark class="word"&gt;</code>.</p>
+      <p class="muted small">Written as <code>==text==</code> or <code>&lt;mark class="word"&gt;</code>.</p>
       <div class="colors">
         {#each hlColors() as [k, c] (k)}
           <button type="button" class="ccard" class:on={editColor === k} onclick={() => (editColor = editColor === k ? null : k)}>
@@ -265,7 +265,7 @@
       {/if}
       <form class="add" onsubmit={addColor}>
         <input type="color" bind:value={newColHex} aria-label="New colour" />
-        <input class="input" bind:value={newColLabel} placeholder="New colour, e.g. Mint or Exam pink" aria-label="New colour name" />
+        <input class="input" bind:value={newColLabel} placeholder="New colour" aria-label="New colour name" />
         <button type="submit" class="btn primary" disabled={!newColLabel.trim()}>Add</button>
       </form>
     </section>

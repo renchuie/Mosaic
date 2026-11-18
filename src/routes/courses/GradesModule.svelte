@@ -46,7 +46,7 @@
       <Icon name="bulb" size={22} />
       <div>
         <b>Add the grading breakdown from the syllabus</b>
-        <p class="muted">Weighted categories (like Exams 60%) or total points. Then enter scores as they come in, and see what you need on the rest.</p>
+        <p class="muted">Set up grading from the syllabus.</p>
       </div>
       <button type="button" class="btn primary" onclick={() => courseEditor.open(id)}>Set up grading</button>
     </div>
@@ -63,7 +63,7 @@
       </div>
     {/if}
     {#if whatIfOn}
-      <p class="wi">Type a score you might get on anything not graded yet; the header shows where that would leave you. Nothing is saved.</p>
+      <p class="wi">Try scores for what's left. Nothing is saved.</p>
     {/if}
 
     {#each cats as c (c.id)}

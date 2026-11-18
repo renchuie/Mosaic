@@ -106,7 +106,7 @@
             <p class="need">Everything is graded.</p>
           {/if}
           {#if g && g.floor !== null}
-            <div class="range" title="Where you'll finish if you score 0% or 100% on everything left">
+            <div class="range" title="Worst and best case">
               <span>Worst {fmt(g.floor)}</span>
               <span class="rb"><span style="left: {g.floor}%; width: {Math.max(1, (g.ceiling ?? 0) - g.floor)}%"></span>{#if g.current !== null}<i style="left: {g.current}%"></i>{/if}</span>
               <span>Best {fmt(g.ceiling)}</span>
@@ -193,7 +193,7 @@
             </ul>
             {#if courseNotes.length > 8}<a class="more" href="#/study/notes">All {courseNotes.length} notes</a>{/if}
           {:else}
-            <p class="muted small">Notes with this course set show here. Start one, or use “Take notes” on a class in the calendar.</p>
+            <p class="muted small">No notes for this course yet.</p>
           {/if}
         </section>
 
@@ -212,7 +212,7 @@
 
         <section class="card">
           <div class="sh"><h2 class="h2">Scratch pad</h2></div>
-          <textarea class="input notes" rows="7" bind:value={notes} oninput={typed} placeholder="Anything about this course: syllabus quirks, what the professor emphasises, group members, links…"></textarea>
+          <textarea class="input notes" rows="7" bind:value={notes} oninput={typed} placeholder="Notes about this course…"></textarea>
         </section>
       </aside>
     </div>

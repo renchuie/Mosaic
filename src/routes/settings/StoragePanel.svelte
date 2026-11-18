@@ -193,7 +193,7 @@
           ]);
         }
         await saveSettings({ storage: "drive", notesRoot: drive.notesRoot, labsRoot: drive.labsRoot, pdfRoot: drive.pdfRoot, syncEnabled: keepSync });
-        done = (report ? summary(report) + " " : "") + "Back to your own folders. The vault folder stays where it is.";
+        done = (report ? summary(report) + " " : "") + "Back to your own folders.";
       }
       busy = "";
       onchanged();
@@ -213,13 +213,12 @@
 
 <section class="card storage">
   <h2 class="h2">Where your files live</h2>
-  <p class="muted lead">Your notes, materials and PDFs. Flashcard progress, calendar, tasks and courses are app data; they follow the sync setting.</p>
   <div class="opts">
     <div class="opt" class:on={!local}>
       <span class="ic" aria-hidden="true"><Icon name="cloud" size={20} /></span>
       <div class="txt">
         <b>A synced folder</b>
-        <span>Google Drive, Dropbox, OneDrive, iCloud Drive or any folder that syncs. Follows you to your other computers.</span>
+        <span>Google Drive, Dropbox, OneDrive, iCloud or any synced folder.</span>
         {#if synced}<span class="path">{settings.vault}</span>{:else if custom}<span class="path">Your own folders · {settings.notesRoot}</span>{/if}
       </div>
       {#if !local}<span class="pill">In use</span>{:else}<button type="button" class="btn quiet sm" onclick={() => start("synced")}>Set up…</button>{/if}
@@ -228,7 +227,7 @@
       <span class="ic" aria-hidden="true"><Icon name="laptop" size={20} /></span>
       <div class="txt">
         <b>This computer only</b>
-        <span>A folder on this computer. Works offline, nothing leaves it.</span>
+        <span>Nothing leaves this computer.</span>
         {#if local}<span class="path">{settings.vault} · app data {settings.syncEnabled ? "syncs" : "stays here"}</span>{/if}
       </div>
       {#if local}
@@ -288,7 +287,7 @@
       {#if !existing}
         <fieldset class="field" disabled={!!busy || !!done}>
           <span class="label">Your files</span>
-          <label class="radio"><input type="radio" bind:group={copy} value={true} /> <span><b>Copy them in</b><em>Notes, materials and PDFs. The old folders keep their copy.</em></span></label>
+          <label class="radio"><input type="radio" bind:group={copy} value={true} /> <span><b>Copy them in</b><em>The old folders keep theirs.</em></span></label>
           <label class="radio"><input type="radio" bind:group={copy} value={false} /> <span><b>Start empty</b></span></label>
         </fieldset>
       {/if}
@@ -317,20 +316,20 @@
       </div>
       <fieldset class="field" disabled={!!busy || !!done}>
         <span class="label">Your files</span>
-        <label class="radio"><input type="radio" bind:group={copy} value={true} /> <span><b>Copy my notes, materials and PDFs into the vault</b><em>{local ? "Your current vault keeps its copy." : "Your Drive folders keep their copy. Only PDF files are copied from the PDF folder."}</em></span></label>
-        <label class="radio"><input type="radio" bind:group={copy} value={false} /> <span><b>Start empty</b><em>Your Drive files stay where they are; switch back any time to see them.</em></span></label>
+        <label class="radio"><input type="radio" bind:group={copy} value={true} /> <span><b>Copy my notes, materials and PDFs into the vault</b><em>{local ? "Your current vault keeps its copy." : "The old folders keep theirs."}</em></span></label>
+        <label class="radio"><input type="radio" bind:group={copy} value={false} /> <span><b>Start empty</b><em>The old files stay where they are.</em></span></label>
       </fieldset>
     {:else}
       <h2 id="st-h" class="h2">Back to your own folders</h2>
       <p class="muted"><code>{drive.notesRoot}</code>, <code>{drive.labsRoot}</code> and <code>{drive.pdfRoot}</code>.</p>
       <fieldset class="field" disabled={!!busy || !!done}>
         <span class="label">What you made in the vault</span>
-        <label class="radio"><input type="radio" bind:group={copy} value={true} /> <span><b>Copy it into Drive</b><em>Nothing on Drive is overwritten; files with the same name are left as they are.</em></span></label>
+        <label class="radio"><input type="radio" bind:group={copy} value={true} /> <span><b>Copy it into Drive</b><em>Nothing is overwritten.</em></span></label>
         <label class="radio"><input type="radio" bind:group={copy} value={false} /> <span><b>Just switch</b><em>The vault folder stays on this computer untouched.</em></span></label>
       </fieldset>
     {/if}
     {#if to !== "synced"}
-      <label class="check"><input type="checkbox" bind:checked={keepSync} disabled={!!busy || !!done} /> Keep syncing flashcard progress, calendar, tasks and courses</label>
+      <label class="check"><input type="checkbox" bind:checked={keepSync} disabled={!!busy || !!done} /> Keep syncing app data</label>
     {/if}
     {#if busy}<p class="busy">{busy}</p>{/if}
     {#if done}<p class="ok">{done}</p>{/if}
@@ -347,10 +346,6 @@
 </dialog>
 
 <style>
-  .lead {
-    margin: 0 0 4px;
-    font-size: 13.5px;
-  }
   .svc {
     display: flex;
     flex-wrap: wrap;

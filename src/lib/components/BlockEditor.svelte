@@ -85,27 +85,27 @@
     { id: "quote", label: "Quote", icon: "❝", group: "Basic", keys: ">", run: () => editor?.chain().focus().wrapIn("blockquote").run() },
     { id: "table", label: "Table", icon: "▦", group: "Basic", run: () => editor?.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run() },
     { id: "hr", label: "Divider", icon: "―", group: "Basic", keys: "---", run: () => insertAfter({ type: "hr" }) },
-    { id: "thead1", label: "Toggle heading 1", keys: "/thead1", icon: "▸H1", group: "Basic", hint: "a heading that folds what's inside it", run: () => insertToggle(1) },
+    { id: "thead1", label: "Toggle heading 1", keys: "/thead1", icon: "▸H1", group: "Basic", hint: "folds its section", run: () => insertToggle(1) },
     { id: "thead2", label: "Toggle heading 2", keys: "/thead2", icon: "▸H2", group: "Basic", run: () => insertToggle(2) },
     { id: "thead3", label: "Toggle heading 3", keys: "/thead3", icon: "▸H3", group: "Basic", run: () => insertToggle(3) },
-    { id: "cols2", label: "2 columns", icon: "▥", group: "Basic", hint: "or drag a block beside another", run: () => insertColumns(2) },
+    { id: "cols2", label: "2 columns", icon: "▥", group: "Basic", hint: "", run: () => insertColumns(2) },
     { id: "cols3", label: "3 columns", icon: "▥▥", group: "Basic", run: () => insertColumns(3) },
     { id: "code", label: "Code", icon: "</>", group: "Basic", keys: "```", run: () => editor?.chain().focus().setNode("codeBlock").run() },
     { id: "image", label: "Image", icon: "▣", group: "Basic", hint: "or paste one", run: () => pickImage() },
     { id: "link", label: "Link to a note", icon: "↗", group: "Basic", keys: "[[", run: () => editor?.chain().focus().insertContent("[[").run() },
     { id: "card", label: "Flashcard", icon: "→", group: "Study", hint: "Question → answer", keys: "::", run: () => editor?.chain().focus().insertContent({ type: "arrow", attrs: { two: false } }).run() },
-    { id: "listcard", label: "List flashcard", icon: "→•", group: "Study", hint: "the bullets under it are the answer", keys: "::", run: () => listCard() },
+    { id: "listcard", label: "List flashcard", icon: "→•", group: "Study", hint: "bullets are the answer", keys: "::", run: () => listCard() },
     { id: "card2", label: "Two-way flashcard", icon: "⇄", group: "Study", hint: "both directions", keys: ":::", run: () => editor?.chain().focus().insertContent({ type: "arrow", attrs: { two: true } }).run() },
-    { id: "card3", label: "Reverse flashcard", icon: "←", group: "Study", hint: "shows the right side, asks for the left", keys: "<-", run: () => editor?.chain().focus().insertContent({ type: "arrow", attrs: { back: true } }).run() },
-    { id: "concept", label: "Concept", icon: "◆", group: "Study", hint: "a term and its meaning, asked both ways", keys: ";;", run: () => editor?.chain().focus().insertContent({ type: "arrow", attrs: { concept: true } }).run() },
-    { id: "descriptor", label: "Descriptor (a fact about a concept)", icon: "›", group: "Study", hint: "indent it under a concept: asks “Concept › this”", keys: ";;;", run: () => editor?.chain().focus().insertContent({ type: "arrow", attrs: { desc: true } }).run() },
+    { id: "card3", label: "Reverse flashcard", icon: "←", group: "Study", hint: "asks for the left", keys: "<-", run: () => editor?.chain().focus().insertContent({ type: "arrow", attrs: { back: true } }).run() },
+    { id: "concept", label: "Concept", icon: "◆", group: "Study", hint: "term and meaning", keys: ";;", run: () => editor?.chain().focus().insertContent({ type: "arrow", attrs: { concept: true } }).run() },
+    { id: "descriptor", label: "Descriptor (a fact about a concept)", icon: "›", group: "Study", hint: "a fact under a concept", keys: ";;;", run: () => editor?.chain().focus().insertContent({ type: "arrow", attrs: { desc: true } }).run() },
     { id: "cloze", label: "Cloze (hidden part)", icon: "{ }", group: "Study", hint: "select text, then Cloze", keys: "{{ }}", run: () => insertCloze() },
     { id: "tcards", label: "Table of flashcards", icon: "▦→", group: "Study", hint: "one card per cell", run: () => tableCards() },
   ];
   /** The "/" menu: basic and study blocks, then her callout types. */
   const slashItems = (): (MenuItem & { run: () => void })[] => [
     ...SLASH_BASE,
-    { id: "q-src", label: "Quote with source", icon: "❝—", group: "Basic", hint: "the last line, starting with —, is the source", run: () => quoteWithSource() },
+    { id: "q-src", label: "Quote with source", icon: "❝—", group: "Basic", hint: "last line — source", run: () => quoteWithSource() },
     ...visibleCallouts().map(([k, t]) => ({ id: `c-${k}`, label: `${t.label} callout`, icon: t.icon || "•", group: "Callouts", run: () => editor?.chain().focus().wrapIn("callout", { kind: k, title: "" }).run() })),
   ];
 
@@ -1432,8 +1432,8 @@
         <span class="sep"></span>
         <!-- the same icons as the main toolbar: → card, ⇄ two-way card, { } cloze -->
         <button type="button" class="study" title="Flashcard: question → this answer" aria-label="Make a flashcard" onclick={() => makeCard()}>→</button>
-        <button type="button" class="study" title="Two-way flashcard: question ⇄ this answer" aria-label="Make a two-way flashcard" onclick={() => makeCard(true)}>⇄</button>
-        <button type="button" class="study" title="Reverse flashcard: asks for the left side" aria-label="Make a reverse flashcard" onclick={() => makeCard(false, true)}>←</button>
+        <button type="button" class="study" title="Two-way card (:::)" aria-label="Make a two-way flashcard" onclick={() => makeCard(true)}>⇄</button>
+        <button type="button" class="study" title="Reverse card (<-)" aria-label="Make a reverse flashcard" onclick={() => makeCard(false, true)}>←</button>
         <button type="button" class="study" class:on={active("cloze")} title="Cloze: hide this part" aria-label="Cloze" onclick={() => run("mark", "cloze")}>{"{ }"}</button>
         <span class="sep"></span>
         <button type="button" title="Link to a note with this name" onclick={noteLink}>[[ ]]</button>
@@ -1479,7 +1479,7 @@
       <button type="button" title="Delete this column" aria-label="Delete this column" onclick={() => editor?.chain().focus().deleteColumn().run()}>−</button>
       <span class="sep"></span>
       <span class="cwrap">
-        <button type="button" title="Cell colour (select several cells by dragging across them)" aria-label="Cell colour" aria-expanded={cellPick} onclick={() => (cellPick = !cellPick)}><Icon name="palette" size={14} /> Colour</button>
+        <button type="button" title="Cell colour" aria-label="Cell colour" aria-expanded={cellPick} onclick={() => (cellPick = !cellPick)}><Icon name="palette" size={14} /> Colour</button>
         {#if cellPick}
           <span class="cpop" role="menu">
             {#each hlColors() as [k, c] (k)}
@@ -1490,7 +1490,7 @@
         {/if}
       </span>
       {#if tableBar.sized}
-        <button type="button" title="Even out: the selected columns (drag across their cells) share the space equally; with nothing selected, all columns do. Columns you sized and didn't select keep their width." onclick={evenOut}>⇔ Even out</button>
+        <button type="button" title="Even out column widths" onclick={evenOut}>⇔ Even out</button>
       {/if}
       <span class="sep"></span>
       <!-- ▾ Flashcards: on / off, and how the table becomes cards (canvas "New flashcard types") -->
@@ -1528,7 +1528,7 @@
                   <button type="button" class:on={(tableBar.copts.key ?? 0) === i} onclick={() => setCopts({ key: i, skip: (tableBar?.copts.skip ?? []).filter((x) => x !== i) })}>{h || `Column ${i + 1}`}</button>
                 {/each}
               </span>
-              <span class="fcount"><b>{tableBar.count} {tableBar.count === 1 ? "card" : "cards"}</b> · review history stays with each cell when you change these</span>
+              <span class="fcount"><b>{tableBar.count} {tableBar.count === 1 ? "card" : "cards"}</b></span>
             {/if}
           </span>
         {/if}

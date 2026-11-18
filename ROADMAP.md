@@ -343,3 +343,6 @@ Add things here as they come up (date, page, what happened). Each one is either 
       restore to the same folder and a 30-day clean-up, conflict copies that keep both versions, a
       calm "folder isn't connected" banner (and no more silently re-made empty Notes folder), and
       "A synced folder" for Google Drive / Dropbox / OneDrive / iCloud / any folder. **Done.**
+  28. Nov 19 · Text pass (her "less wordy, less babying"): ~100 labels, hints, tooltips, empty
+      states and messages cut down across Settings, notes, cards, PDFs, materials, courses and
+      tasks; the rule is in CLAUDE.md "Writing UI text". **Done.**

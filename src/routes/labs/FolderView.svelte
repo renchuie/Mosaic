@@ -194,7 +194,7 @@
       {:else if !folder.folders.length && !ownQuizzes.length}
         <section class="card empty">
           <h2 class="h2">No recall labs here yet</h2>
-          <p class="muted">Drop a recall lab's .html file anywhere on this page, or use Upload. Labs are .html files with a <code>recall-lab-version</code> meta tag.</p>
+          <p class="muted">Drop lab files here, or use Upload.</p>
         </section>
       {/if}
 
@@ -243,7 +243,7 @@
               {/each}
             </div>
           </div>
-          <p class="hint muted">An exam date adds this folder to your dashboard countdown.</p>
+          <p class="hint muted">Adds a countdown to the dashboard.</p>
         </section>
       {/if}
 
@@ -257,7 +257,7 @@
             {/each}
           </ul>
         {:else}
-          <p class="muted hint">Notes (.md, .txt, .docx …) in this folder show up here.</p>
+          <p class="muted hint">No notes.</p>
         {/if}
       </section>
       {/if}
@@ -272,7 +272,7 @@
             {/each}
           </ul>
         {:else}
-          <p class="muted hint">Slides, PDFs and other files in this folder show up here.</p>
+          <p class="muted hint">No other files.</p>
         {/if}
       </section>
       {/if}
@@ -634,12 +634,6 @@
   .empty {
     display: grid;
     gap: 8px;
-  }
-  code {
-    font-size: 13px;
-    background: var(--chip);
-    border-radius: 6px;
-    padding: 1px 6px;
   }
 
   .field {

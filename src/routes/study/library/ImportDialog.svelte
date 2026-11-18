@@ -43,12 +43,11 @@
   <div class="wrap">
     <header><h2 id="im-title" class="h2">Import cards</h2><button type="button" class="x" aria-label="Close" onclick={() => dialog?.close()}>×</button></header>
     {#if done !== null}
-      <p class="ok">Imported {done} {done === 1 ? "item" : "items"}. They're in the card library and start as new cards.</p>
+      <p class="ok">Imported {done} {done === 1 ? "item" : "items"}. </p>
       <button type="button" class="btn primary" onclick={() => dialog?.close()}>Done</button>
     {:else}
       <p class="muted small">
-        A CSV or TSV file (a spreadsheet saved as CSV works), or Anki's <b>File → Export → Notes in Plain Text</b>.
-        Anki's .apkg packages aren't read directly; the plain-text export carries the same notes.
+        CSV, TSV, or Anki's <b>Export → Notes in Plain Text</b>.
       </p>
       <div class="row">
         <label class="btn quiet file">Choose file<input type="file" accept=".csv,.tsv,.txt,text/plain,text/csv" onchange={pick} /></label>

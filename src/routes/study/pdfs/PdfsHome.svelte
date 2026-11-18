@@ -85,7 +85,7 @@
     <div class="card warn">
       <b>Can't see the PDF folder.</b>
       <p class="muted">{pdfs.error}</p>
-      <p class="muted small">Change the folder in Settings if your PDFs live somewhere else.</p>
+      <p class="muted small">Folder: Settings → Files.</p>
     </div>
   {/if}
 
@@ -120,7 +120,7 @@
   {#if !pdfs.loaded}
     <p class="muted">Looking for PDFs…</p>
   {:else if !shown.length}
-    <div class="card"><p class="muted">{pdfs.files.length ? "Nothing matches." : "No PDFs found yet. Put lecture slides and readings anywhere in the PDF folder (Settings) and they show up here."}</p></div>
+    <div class="card"><p class="muted">{pdfs.files.length ? "Nothing matches." : "No PDFs found."}</p></div>
   {:else if !q && !course}
     {#if dir}
       <nav class="crumbs" aria-label="Folder">
