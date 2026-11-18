@@ -143,6 +143,12 @@ export function parseInline(s: string, marks: PMMark[] = [], ctx: Ctx = { arrow:
       i = j + d.length;
       return true;
     };
+    // a run of 3+ underscores is a blank line to write on (guided notes), never emphasis
+    if (c === "_" && (m = /^_{3,}/.exec(rest))) {
+      buf += m[0];
+      i += m[0].length;
+      continue;
+    }
     if (c === "=" && pair("==", { type: "highlight", attrs: { color: null } })) continue;
     if (c === "*" && pair("**", { type: "bold" })) continue;
     if (c === "_" && pair("__", { type: "bold" }, true)) continue;
@@ -168,6 +174,15 @@ export function parseInline(s: string, marks: PMMark[] = [], ctx: Ctx = { arrow:
 const RANK: Record<string, number> = { cloze: 0, link: 1, highlight: 2, bold: 3, italic: 4, strike: 5 };
 const sameMark = (a: PMMark, b: PMMark) => a.type === b.type && JSON.stringify(a.attrs ?? {}) === JSON.stringify(b.attrs ?? {});
 
+/** is t[i] part of a run of 3+ underscores (a blank to write on, read back as plain text)? */
+function inRun(t: string, i: number): boolean {
+  let a = i;
+  let b = i;
+  while (t[a - 1] === "_") a--;
+  while (t[b] === "_") b++;
+  return b - a >= 3;
+}
+
 function escapeText(t: string, cell: boolean): string {
   let o = "";
   for (let i = 0; i < t.length; i++) {
@@ -176,7 +191,7 @@ function escapeText(t: string, cell: boolean): string {
     const r = t.slice(i);
     if (c === "\\" && next !== undefined && PUNCT.test(next)) o += "\\\\";
     else if (c === "*" && (next === "*" || !isSpace(next))) o += "\\*";
-    else if (c === "_" && !isWord(t[i - 1]) && !isSpace(next)) o += "\\_";
+    else if (c === "_" && !isWord(t[i - 1]) && !isSpace(next) && !inRun(t, i)) o += "\\_";
     else if (((c === "~" && next === "~") || (c === "=" && next === "=")) && !isSpace(t[i + 2])) o += "\\" + c;
     else if (c === "`") o += "\\`";
     else if ((c === "[" && (next === "[" || /^\[[^\]\n]*\]\(/.test(r))) || (c === "{" && next === "{")) o += "\\" + c;

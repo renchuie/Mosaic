@@ -162,9 +162,120 @@ Rules for cards:
 - Never write `<!--sd:...-->` comments; Mosaic adds its own card ids.
 - Don't make a card when a heading or an obvious fact would give the answer away.
 
-## Guided notes
+## Guided notes: activities to fill in during lecture
 
-[Your own instructions about guided notes go here, for example:]
-- For the blanks I fill in during lecture, use clozes (`{{answer}}`), so each blank is also a
-  review card afterwards.
-- Leave one empty bullet `- ` under each section for my own notes.
+These are notes I complete WHILE I listen. Leave gaps for me with the activities below. Mosaic
+turns what I fill in into flashcards, and an empty gap is never a card, so nothing half-finished
+ends up in my reviews.
+
+Spread the activities through the note, roughly one every short paragraph, and mix the types.
+Blank only what is worth remembering (drug names, classes, mechanisms, numbers, monitoring,
+counselling points), never filler words. Every activity's answer goes in that section's answer key
+(see the end of this section).
+
+### 1. Fill in the blank
+
+Write the full sentence with `{{_____}}` (five underscores) where the answer goes. At most two
+blanks per sentence. Add a hint after `::` when the answer could be several things:
+
+```
+ACE inhibitors block the conversion of angiotensin I to {{_____}}.
+The target resting heart rate on a beta blocker is under {{_____::number, bpm}}.
+```
+
+(I double-click a blank and type, and the line becomes a cloze card.)
+
+### 2. Fill out the table
+
+A comparison table with `:: table` on the line above it. Fill in the first column (what each row is
+about, usually the drug) and the column headers; leave the cells for me. Fill one row completely
+as a worked example only when the pattern isn't obvious.
+
+```
+:: table
+
+| Drug | Class | Mechanism | Key ADE | Monitoring |
+| --- | --- | --- | --- | --- |
+| Lisinopril |  |  |  |  |
+| Spironolactone |  |  |  |  |
+```
+
+### 3. Short answer
+
+A question with ` ::` and nothing after it. I write the answer after the arrow.
+
+```
+Why must potassium be monitored with spironolactone ::
+```
+
+### 4. List recall
+
+A question ending in ` ::`, then one empty bullet per expected item (indented 2 spaces), so I can
+see how many there are.
+
+```
+Four pillars of HFrEF therapy ::
+  - 
+  - 
+  - 
+  - 
+```
+
+### 5. Drug profile frame
+
+The drug name in **bold** on its own line, then empty descriptor bullets for me to complete:
+
+```
+**Sacubitril/valsartan**
+  - Class ;;;
+  - Mechanism ;;;
+  - Key ADE ;;;
+  - Counselling point ;;;
+```
+
+### 6. Predict, then reveal
+
+A question to think about before the professor explains it, as a folded question callout (the
+title shows, the answer stays hidden until I open it). Don't put blanks inside callouts.
+
+```
+> [!question]- Predict: why can an ACE inhibitor cause a dry cough?
+> ACE also breaks down bradykinin, so bradykinin builds up in the lungs.
+```
+
+### 7. Patient case
+
+An `example` callout with a short case, then 2 to 3 short-answer questions (activity 3) under it.
+
+```
+> [!example] Patient case
+> JT, 64 M, HFrEF (EF 30%), on lisinopril 20 mg daily. K+ 5.6, SCr up from 1.1 to 1.4.
+
+What change would you make to his lisinopril ::
+What should be rechecked, and when ::
+```
+
+### 8. Exam spotlight
+
+When something is clearly high-yield, an `exam` callout saying so, followed (outside the
+callout) by a fill-in blank or short answer about it.
+
+### 9. Answer key (end of every `##` section)
+
+After each `##` section's activities, a folded callout with every answer in order, numbered to
+match the order of the gaps. It stays closed so I can check myself after lecture.
+
+```
+> [!success]- Answer key
+> 1. angiotensin II
+> 2. 70 bpm
+> 3. Lisinopril: ACE inhibitor · blocks ACE · cough, hyperkalaemia · SCr, K+
+```
+
+### Also
+
+- Start the note with a `## Learning objectives` checklist (`- [ ] …`) taken from the lecture's
+  objectives, so I can tick them off.
+- End with a closed toggle `### Check yourself` holding 3 to 5 exam-style questions as folded
+  question callouts with the answers inside.
+- Link related notes with `[[Note name]]` where they exist (for example `[[Heart failure]]`).

@@ -398,7 +398,15 @@ Markdown" view, the `<>` chip on the note header).
   checked with the parser (scratchpad `tstest/test23.ts`). That check found two fixes: a line
   starting with `<mark class=…>` got a `\` on save (LINE_START in mdDoc.ts now skips `<mark`), and
   card context after a closed toggle kept the toggle's heading (extractCards restores the headings
-  at `<!--/mosaic-toggle-->`).
+  at `<!--/mosaic-toggle-->`). Its "Guided notes" part (her ask: fill-in material for lecture) uses
+  blanks `{{_____}}` (a cloze gap of only underscores / dots / dashes / ? is NOT a card until
+  filled: `BLANK_GAP` in cards.ts, and the group index still counts it so the key stays put), empty
+  `Q ::`, empty list bullets, empty `;;;` descriptors under a **bold** drug line and empty table
+  cells (none are cards until filled), folded `[!question]-` callouts to predict then reveal, and a
+  folded `[!success]- Answer key` per section; checked blank (0 cards) and filled (scratchpad
+  `tstest/test27.ts`). Fixed with it: a run of 3+ underscores is plain text, never emphasis
+  (parseInline + `inRun` in escapeText; `{{_____}}` used to save as `{{**_**}}`). In the editor,
+  double-clicking a blank selects it and typing stays inside the cloze (Playwright-checked).
 - Print / save as PDF (Nov 18): note ⋯ → "Print or save as PDF…" calls `window.print()` (the GTK
   print dialog; "Print to File" gives a PDF). `src/styles/print.css` keeps only `.printroot` (the
   note's `.scroll`): everything that neither holds it nor sits inside it is hidden, the frames

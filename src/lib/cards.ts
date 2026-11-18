@@ -57,6 +57,8 @@ export type TableCardOpts = {
 };
 
 export const ID_RE = /\s*<!--sd:([a-z0-9]{4,})-->/;
+/** a cloze gap with nothing written in it yet: underscores, dots, dashes, a question mark */
+const BLANK_GAP = /^[\s_.…?\-–—]*$/;
 const CLOZE_RE = /\{\{(?:c(\d+)::)?([^{}]+?)(?:::([^{}]*))?\}\}/g;
 
 type Line = { i: number; raw: string; indent: number; text: string; id: string | null; bullet: boolean };
@@ -294,12 +296,17 @@ export function extractCards(body: string): NoteCard[] {
     } else if (kind === "cloze") {
       // group by cN; un-numbered clozes are each their own group
       const groups: string[] = [];
+      const filled = new Set<string>();
       let auto = 0;
       for (const m of l.text.matchAll(CLOZE_RE)) {
         const g = m[1] ? `c${m[1]}` : `a${++auto}`;
         if (!groups.includes(g)) groups.push(g);
+        if (!BLANK_GAP.test(m[2])) filled.add(g);
       }
       groups.forEach((g, gi) => {
+        // a gap still blank (guided notes: {{_____}} to fill in during class) is no card yet; the
+        // index gi still counts it, so the card keeps its key once it's filled in
+        if (!filled.has(g)) return;
         let n = 0;
         const front = l.text.replace(CLOZE_RE, (_all, num, text, hint) => {
           const mine = (num ? `c${num}` : `a${++n}`) === g;
