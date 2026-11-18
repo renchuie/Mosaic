@@ -212,7 +212,10 @@ const Callout = Node.create<{ onMenu: (pos: number, rect: DOMRect) => void }>({
       // the same title as plain text, shown only on paper (an input can't wrap onto a second line)
       const ptitle = document.createElement("span");
       ptitle.className = "b-ctitle-print";
-      head.append(badge, view, title, ptitle, fold);
+      // checklist count (Nov 18, her "Listen for / confirm" lists): "2 to check" / "✓ all checked"
+      const ticks = document.createElement("span");
+      ticks.className = "b-cticks";
+      head.append(badge, view, title, ptitle, ticks, fold);
       const body = document.createElement("div");
       body.className = "b-cbody";
       dom.append(head, body);
@@ -226,6 +229,18 @@ const Callout = Node.create<{ onMenu: (pos: number, rect: DOMRect) => void }>({
         dom.dataset.fold = cur.attrs.fold === "-" ? "closed" : cur.attrs.fold === "+" ? "open" : "";
         fold.title = cur.attrs.fold === "-" ? "Unfold" : "Fold to the title";
         fold.setAttribute("aria-expanded", String(cur.attrs.fold !== "-"));
+        let all = 0;
+        let open = 0;
+        cur.descendants((c) => {
+          if (c.type.name === "todo") {
+            all++;
+            if (!c.attrs.checked) open++;
+          }
+          return c.type.name !== "callout";
+        });
+        ticks.hidden = !all;
+        ticks.classList.toggle("done", all > 0 && !open);
+        ticks.textContent = !all ? "" : open ? `${open} to check` : "✓ all checked";
       };
       paint();
       const set = (attrs: Record<string, unknown>) => {

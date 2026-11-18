@@ -414,6 +414,14 @@ match the order of the gaps. It stays closed so I can check myself after lecture
 
 - Start the note with a `## Learning objectives` checklist (`- [ ] …`) taken from the lecture's
   objectives, so I can tick them off.
+- Things to listen for or confirm during the lecture go in a folded callout as checkboxes, one
+  per item, so I can tick them as they come up (the callout header shows "N to check"):
+
+  ```
+  > [!note]- Listen for / confirm
+  > - [ ] Listen for: hypomania duration (not on the slides)
+  > - [ ] Confirm: is valproate first-line here?
+  ```
 - End with a closed toggle `### Check yourself` holding 3 to 5 exam-style questions as folded
   question callouts with the answers inside.
 - Link related notes with `[[Note name]]` where they exist (for example `[[Heart failure]]`).
@@ -454,7 +462,7 @@ these pieces.
 
 - The only things that hide and reveal in the note itself: folded **callouts**, closed **toggle
   sections**, and folding under a heading (that last one is a view setting, not saved in the file).
-- Checkboxes can be ticked.
+- Checkboxes can be ticked; a callout holding checkboxes shows "N to check" / "✓ all checked".
 - Gaps help her fill in: Tab jumps from one empty blank / answer / list item / table cell to the
   next, empty list items show "2 of 7" and empty table cells their column name, each heading shows
   how many gaps are left in it, and once some are filled she can review just that section's cards.

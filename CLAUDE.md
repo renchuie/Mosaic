@@ -403,6 +403,10 @@ Markdown" view, the `<>` chip on the note header).
   `#/study/cards/review/note:<rel>#<a › b>`; srs `Scope` note `section`, `underSection` matches the
   card's heading context by prefix; new cards are not capped there). NotesView's top bar shows the
   note's total ("N left" ring, click = first gap). Print hides the badges.
+- Checklists in callouts (Nov 18, her "Listen for / confirm" lists): `- [ ]` lines inside a
+  callout already parse and tick; the callout header shows "N to check" / "✓ all checked"
+  (`.b-cticks`, counted in the callout node view's `paint`). Her prompt and the guide now write
+  Listen for / confirm items as checkboxes.
 - Claude notes guide (Nov 18, her ask): `docs/claude-notes-guide.md` is the copy-ready section she
   pastes into her Claude prompt for guided notes: front matter, headings, toggles, callout kinds,
   highlight colours, tables, columns and every card syntax, with rules (no cards in callouts /

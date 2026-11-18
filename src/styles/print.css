@@ -32,4 +32,5 @@
   .printroot tr, .printroot figure, .printroot .b-callout, .printroot pre, .printroot h1, .printroot h2,
   .printroot h3, .printroot h4 { break-inside: avoid; }
   .printroot h1, .printroot h2, .printroot h3, .printroot h4 { break-after: avoid; }
+  .printroot .b-cticks { display: none !important; }
 }

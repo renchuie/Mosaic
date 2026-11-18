@@ -1126,3 +1126,23 @@ button.dot[data-color] {
 .mosaic-doc .b-secreview:focus-visible {
   opacity: 1;
 }
+
+/* checklist count in a callout header (Listen for / confirm) */
+.b-cticks {
+  flex: none;
+  align-self: center;
+  margin-left: auto;
+  padding: 2px 9px;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  white-space: nowrap;
+  background: color-mix(in srgb, var(--cc, var(--text)) 18%, var(--white));
+  color: var(--muted-on-tint);
+}
+.b-cticks.done {
+  background: color-mix(in srgb, var(--sage-deep, #7fb3a6) 30%, var(--white));
+  color: var(--go-ink);
+}
+.b-cticks[hidden] { display: none; }
+.mosaic-doc .b-cticks:not([hidden]) + .b-cfold { margin-left: 6px; }
