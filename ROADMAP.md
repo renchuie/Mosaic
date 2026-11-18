@@ -331,3 +331,5 @@ Add things here as they come up (date, page, what happened). Each one is either 
   23. Nov 19 · Performance pass (her "scrolling isn't smooth, deleting has a brief moment"): file
       commands that froze the window while Drive answered are async now, deleting shows at once,
       no blur over scrolling content, the note's scroll handler runs once per frame. **Done.**
+  24. Nov 19 · Icon picker (her ask): clean line icons in colours first, every emoji second, for
+      notes, folders, courses and tags. **Done.**

@@ -27,7 +27,10 @@ icon: 🫀
 - `course` must be written exactly as one of: [Therapeutics IV, Pharmacy Law, Clinical
   Pharmacogenetics, Advanced Pharmacy Practice, Clinical Applications, Top 200/300 drugs].
 - `tags`: 1 to 4 short lowercase tags, joined with dashes.
-- `icon`: one emoji that fits the topic (optional).
+- `icon`: one emoji that fits the topic, or a clean line icon written `i:<name>:<colour>` such as
+  `"i:pill:pink"` or `"i:brain:purple"` (in quotes; names like pill, brain, heart-pulse, stethoscope,
+  flask-conical, microscope, syringe, book-open; colours grey, red, pink, orange, yellow, green,
+  blue, purple, or leave it off for plain). Optional.
 - Do NOT start the body with a `# Title`; the file name is the title.
 
 ### Structure
@@ -454,7 +457,7 @@ these pieces.
   or "drug A | drug B" (see "Split note" above; needs `width: full`; at most one per section, top level).
 - **Links:** `[[Note name]]`, `[[Note name|shown text]]`, `[[Note name#Heading]]`; links to a PDF
   page `[[folder/file.pdf#p3|Slides, p. 3]]` open the PDF at that page. `#tags` anywhere.
-- **Front matter:** `course`, `tags`, `date`, `icon` (emoji), `cover` (lilac, blush, peach, butter,
+- **Front matter:** `course`, `tags`, `date`, `icon` (emoji or `"i:name:colour"` line icon), `cover` (lilac, blush, peach, butter,
   mint, sage, sky or sunset), `width` (wide or full), `header` (full or compact).
 - **Images:** only pictures I paste in myself (Claude can't add images).
 

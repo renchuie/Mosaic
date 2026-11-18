@@ -1,5 +1,9 @@
 <script lang="ts">
-  // Small stroke icon set (24px grid) so the app needs no icon font.
+  import { ICON_BY_NAME } from "../iconSet";
+  import { colourCss, parseIcon } from "../icons";
+  // Small stroke icon set (24px grid) so the app needs no icon font. `name` can also be any stored
+  // icon value (see icons.ts): "i:<lucide name>[:colour]" draws a line icon, anything else that
+  // isn't one of these names is shown as text (an emoji).
   const paths: Record<string, string> = {
     dashboard: "M4 4h7v7H4zM13 4h7v4h-7zM13 10h7v10h-7zM4 13h7v7H4z",
     labs: "M9 3h6M10 3v6l-5 9a2 2 0 0 0 1.8 3h10.4a2 2 0 0 0 1.8-3l-5-9V3M7.5 15h9",
@@ -52,8 +56,29 @@
     user: "M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM4.5 20.5a7.5 7.5 0 0 1 15 0",
     palette: "M12 3a9 9 0 1 0 0 18c1.2 0 1.6-.9 1.6-1.6 0-1-.8-1.3-.8-2.1 0-.9.7-1.6 1.6-1.6H17a4 4 0 0 0 4-4C21 6.9 17 3 12 3zM7.5 12.5h.01M9.5 8h.01M14.5 8h.01M17 11.5h.01",
   };
-  let { name, size = 20 }: { name: string; size?: number } = $props();
+  let { name, size = 20, colour = true }: { name: string; size?: number; colour?: boolean } = $props();
+  const p = $derived(paths[name] ? null : parseIcon(name));
+  const line = $derived(p?.kind === "line" ? ICON_BY_NAME[p.name] : undefined);
 </script>
+
+{#if p?.kind === "line" && line}
+<svg
+  width={size}
+  height={size}
+  viewBox="0 0 24 24"
+  fill="none"
+  stroke="currentColor"
+  stroke-width="1.8"
+  stroke-linecap="round"
+  stroke-linejoin="round"
+  aria-hidden="true"
+  style={colour && p.colour ? `color: ${colourCss(p.colour)}` : undefined}
+>
+  {#each line as [tag, attrs]}<svelte:element this={tag} {...attrs} />{/each}
+</svg>
+{:else if p?.kind === "text"}
+<span class="emo" style="font-size: {Math.round(size * 0.92)}px" aria-hidden="true">{p.text}</span>
+{:else}
 
 <svg
   width={size}
@@ -68,3 +93,12 @@
 >
   <path d={paths[name]} />
 </svg>
+{/if}
+
+<style>
+  .emo {
+    display: inline-block;
+    line-height: 1;
+    font-family: "Noto Color Emoji", "Apple Color Emoji", "Segoe UI Emoji", sans-serif;
+  }
+</style>

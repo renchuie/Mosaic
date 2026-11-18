@@ -10,15 +10,11 @@
     sky: "radial-gradient(55% 140% at 12% 10%, #CBE1FF, transparent 70%), radial-gradient(55% 140% at 88% 20%, #D6F1FF, transparent 70%), radial-gradient(60% 140% at 50% 120%, #E6DAFF, transparent 70%), #F3F8FF",
     sunset: "radial-gradient(55% 140% at 12% 10%, #FFC4B3, transparent 70%), radial-gradient(55% 140% at 88% 20%, #FFB3CF, transparent 70%), radial-gradient(60% 140% at 50% 120%, #D5BEFF, transparent 70%), #FFF0EC",
   };
-  export const EMOJI = [
-    "💊", "🧪", "🧬", "🫀", "🧠", "🫁", "🩺", "💉", "🩸", "🦠", "🧫", "🔬", "🏥", "⚕️", "🧑‍⚕️", "⚖️",
-    "📚", "📖", "📝", "✏️", "📌", "📎", "🗂️", "📅", "⏰", "💡", "🎯", "✅", "❗", "❓", "⭐", "✨",
-    "🌸", "🌷", "🌿", "🍀", "🌙", "☀️", "🔥", "🌈", "❤️", "🧡", "💛", "💚", "💙", "💜", "🍵", "☕", "🎧", "🐱", "🦋", "🐻",
-  ];
 </script>
 
 <script lang="ts">
   import Icon from "../../lib/components/Icon.svelte";
+  import IconPicker from "../../lib/components/IconPicker.svelte";
   import NoteToolbar from "./NoteToolbar.svelte";
   import type { Meta } from "../../lib/notes";
   import { courseByName, courseNames } from "../../lib/stores/courses.svelte";
@@ -76,7 +72,6 @@
   const coverStyle = $derived(cover ? (COVERS[cover] ? `background: ${COVERS[cover]}` : `background: center / cover no-repeat url("${coverUrl(cover)}")`) : "");
 
   let pick = $state<"icon" | "cover" | "menu" | "course" | null>(null);
-  let emojiText = $state("");
   let tagText = $state("");
   let addingTag = $state(false);
   let confirmDel = $state(false);
@@ -180,14 +175,14 @@
   <div class="inner">
     {#if cover && icon}
       <!-- with a cover the icon sits on the cover's edge, on its own line, and the title lines up below -->
-      <button type="button" class="icon over" title="Change icon" onclick={() => (pick = pick === "icon" ? null : "icon")}>{icon}</button>
+      <button type="button" class="icon over" title="Change icon" onclick={() => (pick = pick === "icon" ? null : "icon")}><Icon name={icon} size={full ? 30 : 24} /></button>
     {/if}
     {#if full}
       <div class="crumbs">{["Notes", ...(dirOf(rel) ? dirOf(rel).split("/") : [])].join(" › ")}</div>
     {/if}
     <div class="titlerow">
       {#if icon && !cover}
-        <button type="button" class="icon" title="Change icon" onclick={() => (pick = pick === "icon" ? null : "icon")}>{icon}</button>
+        <button type="button" class="icon" title="Change icon" onclick={() => (pick = pick === "icon" ? null : "icon")}><Icon name={icon} size={full ? 30 : 24} /></button>
       {:else if !icon}
         <button type="button" class="icon ghost" title="Add an icon" aria-label="Add an icon" onclick={() => (pick = "icon")}><Icon name="smile" size={18} /></button>
       {/if}
@@ -216,15 +211,8 @@
 
   {#if pick === "icon"}
     <button type="button" class="scrim" aria-label="Close" onclick={() => (pick = null)}></button>
-    <div class="pop emoji" role="dialog" aria-label="Choose an icon">
-      <div class="grid">
-        {#each EMOJI as e}<button type="button" onclick={() => { onmeta({ icon: e }); pick = null; }}>{e}</button>{/each}
-      </div>
-      <div class="row">
-        <input class="input" bind:value={emojiText} placeholder="Or paste any emoji" maxlength="8"
-          onkeydown={(e) => { if (e.key === "Enter" && emojiText.trim()) { onmeta({ icon: emojiText.trim() }); pick = null; emojiText = ""; } }} />
-        {#if icon}<button type="button" class="btn quiet sm" onclick={() => { onmeta({ icon: undefined }); pick = null; }}>Remove</button>{/if}
-      </div>
+    <div class="pop emoji">
+      <IconPicker value={icon || undefined} onpick={(v, recoloured) => { onmeta({ icon: v }); if (!recoloured) pick = null; }} />
     </div>
   {/if}
   {#if pick === "cover"}
@@ -308,6 +296,10 @@
   }
   .icon {
     flex: none;
+    display: grid;
+    place-items: center;
+    padding: 0;
+    color: var(--text);
     width: 46px;
     height: 46px;
     border: var(--edge, 0);
@@ -622,37 +614,15 @@
   .emoji {
     left: 40px;
     top: 64px;
-    width: 340px;
+    width: auto;
   }
   .hascover .emoji {
     top: 96px;
-  }
-  .grid {
-    display: grid;
-    grid-template-columns: repeat(8, 1fr);
-    gap: 2px;
-  }
-  .grid button {
-    aspect-ratio: 1;
-    border: 0;
-    border-radius: 10px;
-    background: none;
-    font-size: 22px;
-    cursor: pointer;
-    transition: transform 0.2s var(--spring, ease);
-  }
-  .grid button:hover {
-    background: var(--panel);
-    transform: scale(1.15);
   }
   .row {
     display: flex;
     gap: 6px;
     margin-top: 8px;
-  }
-  .row .input {
-    flex: 1;
-    min-height: 36px;
   }
   .covers {
     right: 14px;

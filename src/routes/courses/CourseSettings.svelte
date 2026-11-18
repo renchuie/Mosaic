@@ -1,6 +1,7 @@
 <script lang="ts">
   import Icon from "../../lib/components/Icon.svelte";
-  import { PALETTE, TAG_ICONS } from "../../lib/calendar";
+  import { PALETTE } from "../../lib/calendar";
+  import IconPicker from "../../lib/components/IconPicker.svelte";
   import { DEFAULT_SCALE, type Category, type ScaleStep } from "../../lib/grades";
   import { assessments, deleteCourse, getCourse, saveCourse, TERM, type Course } from "../../lib/stores/courses.svelte";
   import { newId } from "../../lib/stores/synced.svelte";
@@ -98,9 +99,7 @@
           <div class="pick">
             {#each PALETTE as c}<button type="button" class="dot" class:on={d.color === c} style="background: {c}" aria-label="Colour {c}" onclick={() => (d!.color = c)}></button>{/each}
           </div>
-          <div class="pick">
-            {#each TAG_ICONS as ic}<button type="button" class="ico" class:on={d.icon === ic} aria-label={ic} onclick={() => (d!.icon = ic)}><Icon name={ic} size={17} /></button>{/each}
-          </div>
+          <IconPicker value={d.icon} colours={false} remove={false} onpick={(v) => v && (d!.icon = v)} />
         </div>
       </section>
 
@@ -265,20 +264,6 @@
   }
   .dot.on {
     box-shadow: 0 0 0 2px var(--surface), 0 0 0 4px var(--charcoal);
-  }
-  .ico {
-    display: grid;
-    place-items: center;
-    width: 36px;
-    height: 36px;
-    border: 0;
-    border-radius: 11px;
-    background: var(--panel);
-    color: var(--text-muted);
-  }
-  .ico.on {
-    background: var(--charcoal);
-    color: var(--on-primary);
   }
   .seg {
     display: flex;

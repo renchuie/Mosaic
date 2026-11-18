@@ -9,7 +9,7 @@
   import {
     doMoveFolder, doMoveNote, doRenameFolder, doRenameNote, doTrashFolder, doTrashNote, folderLook, IMPORT_ACCEPT, importFiles, noteDrag, noteMenu, setFolderLook,
   } from "../../lib/stores/noteOps.svelte";
-  import { EMOJI } from "./NoteHead.svelte";
+  import IconPicker from "../../lib/components/IconPicker.svelte";
 
   let { onnew, onnewfolder }: { onnew: (folder: string) => void; onnewfolder: (folder: string) => void } = $props();
 
@@ -80,7 +80,7 @@
     <button type="button" class="nm-scrim" aria-label="Close menu" onclick={close} oncontextmenu={(e) => { e.preventDefault(); close(); }}></button>
     <div class="menu nm" bind:this={box} style="left: {pos.x}px; top: {pos.y}px" role="menu" aria-label="{m.kind === 'note' ? 'Note' : 'Folder'} options">
       {#if m.view === "menu"}
-        <p class="nm-h">{#if m.kind === "folder" && look.icon}<span>{look.icon}</span>{/if}<b>{name}</b></p>
+        <p class="nm-h">{#if m.kind === "folder" && look.icon}<span class="nm-ic"><Icon name={look.icon} size={16} /></span>{/if}<b>{name}</b></p>
         {#if m.kind === "note"}
           <a class="mi" role="menuitem" href={noteHref(m.rel)} onclick={close}><Icon name="note" size={15} />Open</a>
           <button type="button" class="mi" role="menuitem" onclick={() => view("rename")}><Icon name="pen" size={15} />Rename</button>
@@ -93,7 +93,7 @@
           <button type="button" class="mi" role="menuitem" onclick={() => { importTo = m.rel; close(); picker?.click(); }}><Icon name="file" size={15} />Import notes here…</button>
           <span class="nm-sep"></span>
           <button type="button" class="mi" role="menuitem" onclick={() => view("rename")}><Icon name="pen" size={15} />Rename</button>
-          <button type="button" class="mi" role="menuitem" onclick={() => view("look")}><span class="nm-ic">{look.icon ?? "🎨"}</span>Icon and colour</button>
+          <button type="button" class="mi" role="menuitem" onclick={() => view("look")}><span class="nm-ic"><Icon name={look.icon ?? "palette"} size={15} /></span>Icon and colour</button>
           <button type="button" class="mi" role="menuitem" onclick={() => view("move")}><Icon name="folder" size={15} />Move to…</button>
           <span class="nm-sep"></span>
           <button type="button" class="mi del" role="menuitem" onclick={() => view("delete")}><Icon name="trash" size={15} />Delete folder</button>
@@ -112,15 +112,8 @@
       {:else if m.view === "look"}
         <div class="nm-look">
           <p class="label">Icon</p>
-          <div class="nm-emoji">
-            {#each EMOJI as e}<button type="button" class:on={look.icon === e} onclick={() => setFolderLook(m.rel, { icon: e })}>{e}</button>{/each}
-          </div>
-          <div class="nm-row">
-            <input class="input" bind:value={text} placeholder="Or paste any emoji" maxlength="8"
-              onkeydown={(e) => { if (e.key === "Enter" && text.trim()) { setFolderLook(m.rel, { icon: text.trim() }); text = ""; } }} />
-            {#if look.icon}<button type="button" class="btn quiet sm" onclick={() => setFolderLook(m.rel, { icon: undefined })}>No icon</button>{/if}
-          </div>
-          <p class="label">Colour</p>
+          <IconPicker value={look.icon} onpick={(v) => setFolderLook(m!.rel, { icon: v })} />
+          <p class="label">Folder colour</p>
           <div class="nm-sw">
             <button type="button" class="auto" class:on={!look.color} title="Automatic (the course's colour)" onclick={() => setFolderLook(m.rel, { color: undefined })}>Auto</button>
             {#each PALETTE as c}<button type="button" class:on={look.color === c} style="--c: {c}" aria-label="Colour {c}" onclick={() => setFolderLook(m.rel, { color: c })}></button>{/each}
@@ -134,7 +127,7 @@
           {#each targets as d}
             {@const lk = d ? folderLook(d) : {}}
             <button type="button" class="mi" onclick={() => moveTo(d)} style="padding-left: {12 + (d ? d.split('/').length - 1 : 0) * 14}px">
-              <span class="nm-ic" style={lk.color ? `color: ${lk.color}` : ""}>{#if lk.icon}{lk.icon}{:else}<Icon name="folder" size={15} />{/if}</span>{d ? d.split("/").pop() : "Notes (top level)"}
+              <span class="nm-ic" style={lk.color ? `color: ${lk.color}` : ""}><Icon name={lk.icon ?? "folder"} size={15} /></span>{d ? d.split("/").pop() : "Notes (top level)"}
             </button>
           {:else}
             <p class="nm-hint">No other folders yet.</p>
@@ -155,7 +148,7 @@
 
   {#if noteDrag.item}
     <div class="nm-ghost" class:ok={noteDrag.over !== undefined} style="transform: translate({noteDrag.x + 14}px, {noteDrag.y + 10}px)">
-      <span>{noteDrag.item.icon}</span><b>{noteDrag.item.label}</b>
+      {#if noteDrag.item.icon}<span><Icon name={noteDrag.item.icon} size={16} /></span>{/if}<b>{noteDrag.item.label}</b>
       {#if noteDrag.over !== undefined}<em>→ {noteDrag.over ? noteDrag.over.split("/").pop() : "Notes"}</em>{/if}
     </div>
   {/if}
@@ -246,20 +239,15 @@
     padding: 8px;
   }
   .nm-look {
-    width: 300px;
+    width: 340px;
   }
   .nm:has(.nm-look) {
-    width: 316px;
+    width: 356px;
   }
   .nm-row {
     display: flex;
     gap: 6px;
     justify-content: flex-end;
-  }
-  .nm-row .input {
-    flex: 1;
-    min-width: 0;
-    min-height: 36px;
   }
   .nm-row.end {
     margin-top: 2px;
@@ -284,28 +272,6 @@
   }
   .label {
     margin: 0;
-  }
-  .nm-emoji {
-    display: grid;
-    grid-template-columns: repeat(9, 1fr);
-    gap: 1px;
-    max-height: 150px;
-    overflow-y: auto;
-  }
-  .nm-emoji button {
-    aspect-ratio: 1;
-    border: 0;
-    border-radius: 8px;
-    background: none;
-    font-size: 18px;
-    cursor: pointer;
-  }
-  .nm-emoji button:hover,
-  .nm-emoji button.on {
-    background: var(--panel);
-  }
-  .nm-emoji button.on {
-    box-shadow: inset 0 0 0 2px var(--accent);
   }
   .nm-sw {
     display: flex;

@@ -555,7 +555,7 @@
         <button type="button" class="ico" title="Search notes" aria-label="Search notes" onclick={() => openLeft(true)}><Icon name="search" size={18} /></button>
         <button type="button" class="ico plus" title="New note" aria-label="New note" onclick={() => { newMode = "note"; newFolder = dirOf(rel!); newOpen = true; }}>+</button>
         <div class="where" class:show={headHidden} aria-hidden={!headHidden}>
-          {#if meta.icon}<span class="wi">{meta.icon}</span>{/if}<b>{title}</b>{#if meta.course}<span class="wc">· {meta.course}</span>{/if}
+          {#if typeof meta.icon === "string" && meta.icon}<span class="wi"><Icon name={meta.icon} size={16} /></span>{/if}<b>{title}</b>{#if meta.course}<span class="wc">· {meta.course}</span>{/if}
         </div>
         <span class="grow"></span>
         <span class="st" class:bad={status === "conflict" || status === "error"} class:busy={status === "saving"}>

@@ -1,4 +1,5 @@
 <script lang="ts">
+  import Icon from "./Icon.svelte";
   // A folder tile (from the mockups): a tab on top and a frosted body. The open folder
   // (`open`, e.g. the one used last) takes its colour and shows a few sheets peeking out;
   // any folder shows its sheets when hovered. Sheets are note snippets or PDF page sketches.
@@ -44,12 +45,12 @@
   {/each}
   {#if href}
     <a class="front" {href}>
-      <span class="name">{#if icon}<span class="ico">{icon}</span>{:else}<span class="dot"></span>{/if}{name}</span>
+      <span class="name">{#if icon}<span class="ico"><Icon name={icon} size={17} /></span>{:else}<span class="dot"></span>{/if}{name}</span>
       {#each lines as l}<span class="line">{l}</span>{/each}
     </a>
   {:else}
     <button type="button" class="front" {onclick}>
-      <span class="name">{#if icon}<span class="ico">{icon}</span>{:else}<span class="dot"></span>{/if}{name}</span>
+      <span class="name">{#if icon}<span class="ico"><Icon name={icon} size={17} /></span>{:else}<span class="dot"></span>{/if}{name}</span>
       {#each lines as l}<span class="line">{l}</span>{/each}
     </button>
   {/if}
@@ -58,7 +59,8 @@
 <style>
   .ico {
     flex: none;
-    font-size: 17px;
+    display: inline-grid;
+    place-items: center;
     line-height: 1;
   }
   .fold.over {

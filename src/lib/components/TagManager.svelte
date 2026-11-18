@@ -1,6 +1,7 @@
 <script lang="ts">
   import Icon from "./Icon.svelte";
-  import { BUILTIN_TAGS, PALETTE, TAG_ICONS } from "../calendar";
+  import { BUILTIN_TAGS, PALETTE } from "../calendar";
+  import IconPicker from "./IconPicker.svelte";
   import { deleteTag, events, saveTag, tagIcon, tagManager, tagStyle, tags } from "../stores/calendar.svelte";
 
   let dialog = $state<HTMLDialogElement>();
@@ -60,11 +61,7 @@
                 <button type="button" class="dot" class:on={t.color.toLowerCase() === c.toLowerCase()} style="background: {c}" aria-label="Colour {c}" onclick={() => saveTag(id, { ...t, color: c })}></button>
               {/each}
               <label class="custom">Any colour <input type="color" value={t.color} onchange={(e) => saveTag(id, { ...t, color: e.currentTarget.value })} /></label>
-              <div class="icons" role="radiogroup" aria-label="Icon for {t.name}">
-                {#each TAG_ICONS as ic}
-                  <button type="button" role="radio" aria-checked={tagIcon(id) === ic} aria-label={ic} class="ico" class:on={tagIcon(id) === ic} onclick={() => saveTag(id, { ...t, icon: ic })}><Icon name={ic} size={17} /></button>
-                {/each}
-              </div>
+              <div class="icons"><IconPicker value={tagIcon(id)} colours={false} remove={false} onpick={(v) => v && saveTag(id, { ...t, icon: v })} /></div>
             </div>
           {/if}
         </li>
@@ -146,20 +143,6 @@
     width: 100%;
     padding-top: 8px;
     border-top: 1px solid var(--hairline);
-  }
-  .ico {
-    display: grid;
-    place-items: center;
-    width: 38px;
-    height: 38px;
-    border: 0;
-    border-radius: 12px;
-    background: var(--surface);
-    color: var(--text-muted);
-  }
-  .ico.on {
-    background: var(--charcoal);
-    color: var(--on-primary);
   }
   .check {
     display: inline-flex;
