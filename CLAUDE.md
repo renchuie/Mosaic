@@ -909,6 +909,19 @@ Recall Labs. Decisions she approved:
   `ensureIds()` itself (cards without an id can't be tracked, and it can be opened directly).
   srs helpers: `forget(key)`, `reschedule(key, ms)` (review / learning cards only). Cards page's
   old "All cards" list is gone.
+- Decks (store `src/lib/stores/decks.svelte.ts`, synced collection `decks`; editor
+  `src/routes/study/DeckEditor.svelte`; Cards page "Decks" → New deck, click a name to edit): a
+  deck is a saved filter, so decks overlap (like Anki's filtered decks) and the course / note /
+  library lists stay as automatic decks. Rules: courses, folders + single notes + card library
+  ("where"), tags, an exam (`examWindow`: that course's notes dated after its previous exam, up to
+  the exam; undated notes count). Each kind that is set must match; inside a kind any entry. Scope
+  `{kind: "deck", id}`, routes `#/study/cards/review/deck:<id>` and `cram/deck:<id>`; the card
+  browser's source menu lists decks. Limits: deck `newPerDay` / `reviewsPerDay` (unset = default)
+  on top of the global new-cards allowance and `settings.reviewsPerDay` (Settings → Flashcards,
+  blank = none); learning cards are never held back. `limitsLeft(scope)` in srs; `counts()` gives
+  `due` after limits and `held` for reviews over the limit. Per-deck "today" counts come from the
+  cards themselves: `born` (stamped on a card's first rating since Nov 19) today = new today,
+  `last_review` today otherwise = reviewed today (cards, not ratings).
 
 ## Study S4 (built): card library
 

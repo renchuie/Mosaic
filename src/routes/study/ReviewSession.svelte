@@ -11,6 +11,7 @@
   import { courseByName } from "../../lib/stores/courses.svelte";
   import { notes } from "../../lib/stores/notes.svelte";
   import OcclusionView from "../../lib/components/OcclusionView.svelte";
+  import { getDeck } from "../../lib/stores/decks.svelte";
   import { allCards, cramQueue, cramReviewed, ensureIds, grade, LEARN_AHEAD, preview, queue, RATINGS, statusOf, undo, type CardRef, type Scope } from "../../lib/stores/srs.svelte";
   import { get } from "../../lib/stores/synced.svelte";
   import { settings, saveSettings } from "../../lib/stores/settings.svelte";
@@ -73,7 +74,7 @@
 
   const label = $derived(
     (cram ? "Cram · " : "") +
-      (scope.kind === "all" ? "All decks" : scope.kind === "course" ? scope.name : scope.kind === "library" ? "Card library" : (notes.files[scope.rel]?.p.title ?? "Note") + (scope.section?.length ? ` › ${scope.section.join(" › ")}` : "")),
+      (scope.kind === "all" ? "All decks" : scope.kind === "deck" ? (getDeck(scope.id)?.name ?? "Deck") : scope.kind === "course" ? scope.name : scope.kind === "library" ? "Card library" : (notes.files[scope.rel]?.p.title ?? "Note") + (scope.section?.length ? ` › ${scope.section.join(" › ")}` : "")),
   );
 
   onMount(async () => {

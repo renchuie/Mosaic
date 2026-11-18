@@ -15,7 +15,7 @@
   const noteRel = $derived(route.rest.startsWith("notes/") ? route.rest.slice(6) : null);
   // the Notes pages draw their own top bar (same strip) and fill the panel
   const notesPages = $derived(/^notes(\/|$)/.test(route.rest));
-  // #/study/cards/review/<scope> or #/study/cards/cram/<scope>; scope = all | library | course:<name> | note:<rel>
+  // #/study/cards/review/<scope> or #/study/cards/cram/<scope>; scope = all | library | deck:<id> | course:<name> | note:<rel>
   const cram = $derived(route.rest.startsWith("cards/cram"));
   const scope = $derived.by((): Scope | null => {
     if (!route.rest.startsWith("cards/review") && !cram) return null;
@@ -27,6 +27,7 @@
       return { kind: "note", rel, section: sec ? sec.split(" › ").filter(Boolean) : undefined };
     }
     if (s === "library") return { kind: "library" };
+    if (s.startsWith("deck:")) return { kind: "deck", id: s.slice(5) };
     return { kind: "all" };
   });
   // #/study/pdfs/<rel>?p=<page>

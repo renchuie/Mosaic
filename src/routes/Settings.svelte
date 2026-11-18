@@ -69,6 +69,7 @@
     { id: "calign", g: "flashcards", label: "Card text", words: "align centre center left review text" },
     { id: "scratch", g: "flashcards", label: "Scratchpad", words: "scratchpad write answer type" },
     { id: "newday", g: "flashcards", label: "New cards a day", words: "new cards per day limit" },
+    { id: "revday", g: "flashcards", label: "Reviews a day", words: "review limit per day maximum" },
     { id: "retention", g: "flashcards", label: "Target retention", words: "retention fsrs remember" },
     { id: "examaware", g: "flashcards", label: "Exam-aware scheduling", words: "exam aware before cram schedule" },
     { id: "storage", g: "files", label: "Where your files live", words: "vault local drive google storage computer" },
@@ -406,6 +407,10 @@
         <div class="srow" id="set-newday" class:flash={flash === "newday"}>
           <div class="rl"><b id="newday-l">New cards a day</b></div>
           <input class="input num" type="number" min="0" max="500" aria-labelledby="newday-l" value={settings.newPerDay} onchange={(e) => saveSettings({ newPerDay: Math.max(0, Number(e.currentTarget.value) || 0) })} />
+        </div>
+        <div class="srow" id="set-revday" class:flash={flash === "revday"}>
+          <div class="rl"><b id="revday-l">Reviews a day</b><span>Blank = no limit.</span></div>
+          <input class="input num" type="number" min="0" max="9999" aria-labelledby="revday-l" placeholder="–" value={settings.reviewsPerDay || ""} onchange={(e) => saveSettings({ reviewsPerDay: Math.max(0, Number(e.currentTarget.value) || 0) || undefined })} />
         </div>
         <div class="srow" id="set-retention" class:flash={flash === "retention"}>
           <div class="rl"><b id="ret-l">Target retention</b><span>Higher means more reviews, better recall.</span></div>

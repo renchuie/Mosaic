@@ -7,6 +7,8 @@
   import { saveSettings, settings } from "../../lib/stores/settings.svelte";
   import { allCards, counts, dayRev, ensureIds, examReadiness, fitBeforeExam, fmtInterval, forecast, retention, setSuspended, statusOf } from "../../lib/stores/srs.svelte";
   import { items } from "../../lib/stores/library.svelte";
+  import { decks } from "../../lib/stores/decks.svelte";
+  import DeckEditor from "./DeckEditor.svelte";
 
   const enc = (s: string) => encodeURIComponent(s);
   let backfilled = $state(0);
@@ -26,6 +28,13 @@
       .filter((x) => x.k.total),
   );
   const lib = $derived(counts({ kind: "library" }));
+  const mine = $derived(decks().map(([id, d]) => ({ id, d, k: counts({ kind: "deck", id }) })));
+  let deckOpen = $state(false);
+  let deckId = $state<string | null>(null);
+  const editDeck = (id: string | null) => {
+    deckId = id;
+    deckOpen = true;
+  };
   const ready = $derived(examReadiness());
   let fitted = $state<Record<string, number>>({});
   const byNote = $derived(
@@ -37,6 +46,7 @@
 
 </script>
 
+<DeckEditor bind:open={deckOpen} id={deckId} />
 <div class="cards">
   <section class="hero">
     <div class="big">
@@ -102,7 +112,21 @@
     <div class="cols">
       <div class="main">
         <section class="card">
-          <h2 class="h2">Decks</h2>
+          <div class="dh"><h2 class="h2">Decks</h2><button type="button" class="btn quiet sm" onclick={() => editDeck(null)}><Icon name="i:plus" size={15} /> New deck</button></div>
+          {#if mine.length}
+            <ul class="decks">
+              {#each mine as m (m.id)}
+                <li class="own">
+                  <span class="di"><Icon name={m.d.icon || "i:layers"} size={17} /></span>
+                  <button type="button" class="nl edit" onclick={() => editDeck(m.id)} title="Edit deck">{m.d.name}</button>
+                  <span class="nums"><span class="n-due">{m.k.due}</span><span class="n-new">{m.k.newToday}</span><span class="muted">{m.k.total}</span></span>
+                  <a class="btn quiet sm" href="#/study/cards/review/deck:{enc(m.id)}" class:off={!m.k.due && !m.k.newToday}>Review</a>
+                  <a class="cram" href="#/study/cards/cram/deck:{enc(m.id)}" title="Practice without changing the schedule">Cram</a>
+                </li>
+              {/each}
+            </ul>
+            <h3 class="label sub">By course</h3>
+          {/if}
           <ul class="decks">
             {#each byCourse as d (d.id)}
               <li style="--c: {d.c.color}">
@@ -343,6 +367,32 @@
     font-size: 12.5px;
     color: var(--text-muted);
     padding: 0 6px;
+  }
+  .dh {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+  }
+  .decks li.own {
+    background: var(--chip);
+  }
+  .di {
+    display: grid;
+    place-items: center;
+    width: 22px;
+  }
+  .edit {
+    border: 0;
+    background: none;
+    padding: 0;
+    color: inherit;
+    font-family: inherit;
+    text-align: left;
+    cursor: pointer;
+  }
+  .edit:hover {
+    text-decoration: underline;
   }
   .decks li > .btn:last-child {
     grid-column: span 2;

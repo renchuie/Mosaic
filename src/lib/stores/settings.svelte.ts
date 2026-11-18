@@ -16,6 +16,8 @@ export type Settings = {
   pdfDepth: number;
   /** flashcards: new cards introduced per day, and FSRS target retention (0.7–0.97) */
   newPerDay: number;
+  /** reviews a day across all cards (0 / unset = no limit); decks can set their own */
+  reviewsPerDay?: number;
   retention: number;
   /** keep cards in an exam's course from being scheduled past the evening before it */
   examAware: boolean;

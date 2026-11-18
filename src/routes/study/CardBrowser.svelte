@@ -6,6 +6,7 @@
   import { cardHtml } from "../../lib/cards";
   import { courses } from "../../lib/stores/courses.svelte";
   import { notes } from "../../lib/stores/notes.svelte";
+  import { deckMatcher, decks, getDeck } from "../../lib/stores/decks.svelte";
   import {
     allCards, cardLine, ensureIds, fmtInterval, forget, reschedule, saveCardLine, setSuspended, statusOf,
     type CardRef, type Status,
@@ -15,7 +16,9 @@
   let q = $state("");
   let status = $state<F>("all");
   let course = $state("");
-  let source = $state<"all" | "notes" | "library">("all");
+  // "all" | "notes" | "library" | "deck:<id>"
+  let source = $state<string>("all");
+  const inDeck = $derived(source.startsWith("deck:") ? deckMatcher(getDeck(source.slice(5))) : null);
   let sort = $state<"due" | "added" | "lapses" | "interval" | "note">("due");
   let shown = $state(150);
   let sel = $state<string | null>(null);
@@ -53,6 +56,7 @@
       if (course && r.course !== course) return false;
       if (source === "notes" && !r.note) return false;
       if (source === "library" && !r.item) return false;
+      if (inDeck && !inDeck(r)) return false;
       const s = st(r);
       if (status === "due" ? !isDue(r) : status !== "all" && s !== status) return false;
       if (!words.length) return true;
@@ -168,6 +172,7 @@
       <option value="all">Notes + library</option>
       <option value="notes">Notes</option>
       <option value="library">Library</option>
+      {#each decks() as [id, d] (id)}<option value="deck:{id}">{d.name}</option>{/each}
     </select>
     <select class="input sm" bind:value={sort} aria-label="Sort">
       <option value="due">Due first</option>

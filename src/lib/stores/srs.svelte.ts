@@ -11,6 +11,7 @@ import { markStudyDay } from "./labs.svelte";
 import { imageUrl, noteHref, notes, saveNote, type NoteEntry } from "./notes.svelte";
 import { settings } from "./settings.svelte";
 import { del, entries, get, put } from "./synced.svelte";
+import { deckMatcher, getDeck } from "./decks.svelte";
 
 /** FSRS card state as stored (dates as ms). */
 export type SrsRec = {
@@ -24,6 +25,8 @@ export type SrsRec = {
   state: number;
   last_review?: number;
   suspended?: boolean;
+  /** when it was first reviewed (Nov 19 on; older cards have none): new-card counts per deck */
+  born?: number;
 };
 export type DayRev = { reviews: number; new: number; again: number; ms: number };
 /** A reviewable card from a note or from the card library. */
@@ -40,7 +43,7 @@ export type CardRef = {
   img: (src: string) => string;
 };
 /** note scope with `section`: only cards under that heading path (a section's Review button) */
-export type Scope = { kind: "all" } | { kind: "course"; name: string } | { kind: "note"; rel: string; section?: string[] } | { kind: "library" };
+export type Scope = { kind: "all" } | { kind: "deck"; id: string } | { kind: "course"; name: string } | { kind: "note"; rel: string; section?: string[] } | { kind: "library" };
 
 const scheduler = () => fsrs(generatorParameters({ request_retention: settings.retention || 0.9, enable_fuzz: true, maximum_interval: 3650 }));
 
@@ -56,6 +59,7 @@ const fromF = (c: FCard, keep?: SrsRec): SrsRec => ({
   state: c.state,
   last_review: c.last_review ? c.last_review.getTime() : undefined,
   ...(keep?.suspended ? { suspended: true } : {}),
+  ...(keep?.born ? { born: keep.born } : {}),
 });
 
 // ---- cards in notes -------------------------------------------------------------------
@@ -104,7 +108,8 @@ const underSection = (ctx: string[], path: string[]) => {
   const p = path.map(plainHead);
   return p.length <= c.length && p.every((x, k) => c[k] === x);
 };
-export const inScope = (s: Scope) => (r: CardRef) =>
+export const inScope = (s: Scope): ((r: CardRef) => boolean) =>
+  s.kind === "deck" ? deckMatcher(getDeck(s.id)) : (r: CardRef) =>
   s.kind === "all"
     ? true
     : s.kind === "course"
@@ -151,6 +156,33 @@ export function statusOf(rec: SrsRec | undefined, now = Date.now()): Status {
 export const dayRev = (d = todayKey()) => get<DayRev>("reviewDays", d) ?? { reviews: 0, new: 0, again: 0, ms: 0 };
 export const newLeftToday = () => Math.max(0, (settings.newPerDay ?? 20) - dayRev().new);
 
+const isToday = (ms?: number) => !!ms && toKey(new Date(ms)) === todayKey();
+/** cards introduced / reviewed today among these (a card counts once, however many times it came back) */
+function doneToday(list: CardRef[]) {
+  let n = 0, rev = 0;
+  for (const r of list) {
+    if (!r.rec || !isToday(r.rec.last_review)) continue;
+    if (isToday(r.rec.born)) n++;
+    else rev++;
+  }
+  return { new: n, reviews: rev };
+}
+/** How many new cards and reviews a session in this scope may still show today: the global
+ *  allowance, and for a deck its own limits on top. Learning cards are never held back. */
+export function limitsLeft(s: Scope, list?: CardRef[]): { new: number; reviews: number } {
+  let newLeft = newLeftToday();
+  let revLeft = Infinity;
+  // the whole card list is only read when a limit needs it (counts() runs once per deck row)
+  if (settings.reviewsPerDay) revLeft = Math.max(0, settings.reviewsPerDay - doneToday(allCards()).reviews);
+  const d = s.kind === "deck" ? getDeck(s.id) : undefined;
+  if (d && (d.newPerDay != null || d.reviewsPerDay != null)) {
+    const done = doneToday(list ?? allCards().filter(inScope(s)));
+    if (d?.newPerDay != null) newLeft = Math.min(newLeft, Math.max(0, d.newPerDay - done.new));
+    if (d?.reviewsPerDay != null) revLeft = Math.min(revLeft, Math.max(0, d.reviewsPerDay - done.reviews));
+  }
+  return { new: newLeft, reviews: revLeft };
+}
+
 export function counts(s: Scope = { kind: "all" }) {
   const list = allCards().filter((r) => r.card.lineId).filter(inScope(s));
   const now = Date.now();
@@ -164,8 +196,11 @@ export function counts(s: Scope = { kind: "all" }) {
     else later++;
     if (r.rec && r.rec.scheduled_days >= 21) mature++;
   }
-  const newToday = Math.min(n, newLeftToday());
-  return { total: list.length, new: n, newToday, learning, review, later, suspended, mature, due: learning + review };
+  const left = limitsLeft(s, list);
+  const newToday = Math.min(n, left.new);
+  // reviews held back by a daily limit still show in `review`; `due` is what a session will ask
+  const shown = Math.min(review, left.reviews);
+  return { total: list.length, new: n, newToday, learning, review, later, suspended, mature, due: learning + shown, held: review - shown };
 }
 
 /** Cards for a review session: learning, then reviews, with today's new cards mixed in. */
@@ -173,9 +208,13 @@ export function queue(s: Scope): CardRef[] {
   const now = Date.now();
   const list = allCards().filter((r) => r.card.lineId).filter(inScope(s));
   const learning = list.filter((r) => statusOf(r.rec, now) === "learning").sort((a, b) => a.rec!.due - b.rec!.due);
-  const review = list.filter((r) => statusOf(r.rec, now) === "review").sort((a, b) => a.rec!.due - b.rec!.due);
+  const left = limitsLeft(s, list);
+  const review = list
+    .filter((r) => statusOf(r.rec, now) === "review")
+    .sort((a, b) => a.rec!.due - b.rec!.due)
+    .slice(0, left.reviews);
   // a section reviewed right after class gets all of its new cards, not just today's allowance
-  const fresh = list.filter((r) => !r.rec).slice(0, s.kind === "note" && s.section?.length ? Infinity : newLeftToday());
+  const fresh = list.filter((r) => !r.rec).slice(0, s.kind === "note" && s.section?.length ? Infinity : left.new);
   const out = [...learning];
   let i = 0;
   for (const r of review) {
@@ -237,7 +276,7 @@ export function grade(key: string, g: Grade, ms: number, course?: string) {
   const day = todayKey();
   const d = dayRev(day);
   last = { key, rec, day, dayRec: get<DayRev>("reviewDays", day) };
-  put("srs", key, fromF(next, rec));
+  put("srs", key, { ...fromF(next, rec), born: rec ? rec.born : now.getTime() });
   put("reviewDays", day, { reviews: d.reviews + 1, new: d.new + (rec ? 0 : 1), again: d.again + (g === Rating.Again ? 1 : 0), ms: d.ms + Math.min(ms, 120000) });
   if (d.reviews === 0) markStudyDay("reviews");
 }
