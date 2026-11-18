@@ -745,13 +745,13 @@ Recall Labs. Decisions she approved:
   recalling out loud lags): "✎ Scratchpad" in the review top bar or Settings → Flashcard review
   (`settings.cardScratch`). On: a textarea under the question (focused), Show answer stays
   disabled until she writes something (Ctrl+Enter compares; "I don't know, show me" skips), then a
-  "You wrote" box (box and textarea tinted with the card type's colour `--t`) sits above the answer with "rate the idea, not the wording". Not saved.
+  "You wrote" box (box and textarea tinted with the card type's colour `--t`) sits above the answer with just "Rate your response" ("Skipped" when she chose "I don't know"). Not saved.
 - List cards in review (Nov 18, her design on artifact "List Card Retry"): one numbered "?" per item
   and an "N items" pill; after Show answer each item is a button (or Shift + its number) to mark it
   missed. Any miss disables Good / Easy and suggests Hard (Again when over half were missed). The
   rating is graded as usual, then the card comes back RETRY_GAP (5) cards later (sooner when
-  nothing else is left) as "↻ Retry · N missed": only the missed items hidden, the rest faded with
-  "✓ you had this", and a Continue button (practice, no schedule change). Still-missed items come
+  nothing else is left) as "↻ Retry · N missed": only the missed items hidden, the rest faded with a
+  sage ✓ in place of their number (no label, her Nov 18 "less words"), and a Continue button (practice, no schedule change). Still-missed items come
   back again; once they're all got, "↻ Whole list again" asks everything and is a real rating, where
   Good needs a clean run. Session state only (`retries`, `retryNow`, `seen` in ReviewSession); a
   card waiting for a retry is kept out of the normal queue; Undo drops its retries. Works in cram.

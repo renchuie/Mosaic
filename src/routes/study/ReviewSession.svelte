@@ -325,7 +325,7 @@
         <ol class="litems" class:many={items.length >= 6} style="--rows: {Math.ceil(items.length / 2)}">
           {#each items as it, i}
             {#if !asked.includes(i)}
-              <li class="known"><span class="num">{i + 1}</span><span class="tx">{@html cardHtml(it, img)}</span><span class="had">✓ you had this</span></li>
+              <li class="known" title="You had this one"><span class="num">✓</span><span class="tx">{@html cardHtml(it, img)}</span></li>
             {:else if !shown}
               <li><span class="num">{i + 1}</span><span class="hole" aria-label="Item {i + 1}, hidden">?</span></li>
             {:else}
@@ -354,8 +354,8 @@
       {:else if scratchOn && shown}
         <div class="mine">
           <span class="mlbl">You wrote</span>
-          {#if scratch.trim()}<p>{scratch.trim()}</p>{:else}<p class="none">Nothing: you chose "I don't know".</p>{/if}
-          <span class="mtip">Rate the idea, not the wording: got the concept → Good, part of it → Hard.</span>
+          {#if scratch.trim()}<p>{scratch.trim()}</p>{:else}<p class="none">Skipped</p>{/if}
+          <span class="mtip">Rate your response</span>
         </div>
       {/if}
       {#if shown && !inPlace && !isList && !current.card.grid && current.card.back.trim()}
@@ -1073,12 +1073,7 @@
     color: var(--text-muted);
   }
   .litems li.known .num {
-    background: var(--chip);
-  }
-  .had {
-    flex: none;
-    font-size: 13px;
-    font-weight: 600;
+    background: var(--sage-soft);
     color: var(--go-ink);
   }
   .litems li.mark {
