@@ -739,9 +739,10 @@ const Arrow = Node.create({
   atom: true,
   selectable: true,
   // two: both ways (:::); back: reverse, the card asks for the left side (<::)
-  // desc: a descriptor ("Property ;; value"), shown as a soft lavender pill
-  addAttributes: () => ({ two: { default: false }, back: { default: false }, desc: { default: false } }),
-  parseHTML: () => [{ tag: "span.b-arrow", getAttrs: (el) => ({ two: (el as HTMLElement).dataset.two === "true", back: (el as HTMLElement).dataset.back === "true", desc: (el as HTMLElement).dataset.desc === "true" }) }],
+  // concept: "Term ;; meaning" (Nov 18: concepts moved to ;;), a ◆ pill, the term gets a green chip
+  // desc: a descriptor ("Property ;;; value"), shown as a soft lavender pill
+  addAttributes: () => ({ two: { default: false }, back: { default: false }, desc: { default: false }, concept: { default: false } }),
+  parseHTML: () => [{ tag: "span.b-arrow", getAttrs: (el) => ({ two: (el as HTMLElement).dataset.two === "true", back: (el as HTMLElement).dataset.back === "true", desc: (el as HTMLElement).dataset.desc === "true", concept: (el as HTMLElement).dataset.concept === "true" }) }],
   renderHTML: ({ node }) => [
     "span",
     {
@@ -749,7 +750,8 @@ const Arrow = Node.create({
       "data-two": String(node.attrs.two),
       "data-back": String(!!node.attrs.back),
       "data-desc": String(!!node.attrs.desc),
-      title: node.attrs.desc ? "Descriptor: a fact about the concept above (asks “Concept › this”)" : node.attrs.back ? "Reverse flashcard: asks for the left side (click: → one way)" : node.attrs.two ? "Flashcard both ways (click: ← reverse)" : "Flashcard (click: ⇄ both ways)",
+      "data-concept": String(!!node.attrs.concept),
+      title: node.attrs.concept ? "Concept: quizzed both ways; lines indented under it with ;;; are its facts" : node.attrs.desc ? "Descriptor: a fact about the concept above (asks “Concept › this”)" : node.attrs.back ? "Reverse flashcard: asks for the left side (click: → one way)" : node.attrs.two ? "Flashcard both ways (click: ← reverse)" : "Flashcard (click: ⇄ both ways)",
     },
     [
       "http://www.w3.org/2000/svg svg",
@@ -763,7 +765,7 @@ const Arrow = Node.create({
       ["http://www.w3.org/2000/svg path", { d: "M3.5 6h9a3.5 3.5 0 0 1 3.5 3.5v10M11.5 15l4.5 4.5 4.5-4.5" }],
     ],
   ],
-  renderText: ({ node }) => (node.attrs.desc ? " ;; " : node.attrs.back ? " <:: " : node.attrs.two ? " ::: " : " :: "),
+  renderText: ({ node }) => (node.attrs.concept ? " ;; " : node.attrs.desc ? " ;;; " : node.attrs.back ? " <:: " : node.attrs.two ? " ::: " : " :: "),
 });
 
 const InlineImage = Node.create<{ imageUrl: (s: string) => string }>({
@@ -1078,7 +1080,7 @@ const Shortcuts = Extension.create({
       }),
       new InputRule({
         // " :: " card, " ::: " both ways, " <:: " or " <- " reverse
-        find: /(?<=\S)[ \t]?(<::|<-|:{2,3}|;;)[ \t]$/,
+        find: /(?<=\S)[ \t]?(<::|<-|:{2,3}|;{2,3})[ \t]$/,
         handler: ({ state, range, match }) => {
           const $s = state.doc.resolve(range.from);
           let has = false;
@@ -1087,7 +1089,7 @@ const Shortcuts = Extension.create({
           // not inside a table cell: tables make cards through ▾ Flashcards, a row can't hold a card id
           for (let d = $s.depth; d > 0; d--) if (/^table(Cell|Header)$/.test($s.node(d).type.name)) return null;
           const back = match[1] === "<::" || match[1] === "<-";
-          state.tr.replaceWith(range.from, range.to, n.arrow.create({ two: match[1] === ":::", back, desc: match[1] === ";;" }));
+          state.tr.replaceWith(range.from, range.to, n.arrow.create({ two: match[1] === ":::", back, desc: match[1] === ";;;", concept: match[1] === ";;" }));
         },
       }),
     ];
@@ -1236,9 +1238,10 @@ function decorations(doc: PMNode, status?: EditorOpts["cardStatus"]): Decoration
             if (c.text!.trim() && !c.marks.some((m) => m.type.name === "bold")) allBold = false;
           } else allBold = false;
         });
-        if (arrowNode && (arrowNode as PMNode).attrs.two && any && allBold) {
+        const isConcept = arrowNode && any && ((arrowNode as PMNode).attrs.concept || ((arrowNode as PMNode).attrs.two && allBold));
+        if (isConcept) {
           out.push(Decoration.inline(pos + 1, pos + 1 + arrowAt, { class: "b-concept" }));
-          out.push(Decoration.node(pos + 1 + arrowAt, pos + 2 + arrowAt, { class: "concept", title: "Concept: quizzed both ways; lines indented under it with ;; are its facts" }));
+          out.push(Decoration.node(pos + 1 + arrowAt, pos + 2 + arrowAt, { class: "concept", title: "Concept: quizzed both ways; lines indented under it with ;;; are its facts" }));
         }
       }
       // card status (Nov 18): a small dot at the end of a card line, hover for when it's next due
@@ -1511,7 +1514,7 @@ function behaviour(opts: EditorOpts) {
                   const pos = view.posAtDOM(arrow, 0);
                   const node = view.state.doc.nodeAt(pos);
                   // a click cycles the card's direction: → one way, ⇄ both ways, ← reverse
-                  if (node?.type.name === "arrow" && !node.attrs.desc) {
+                  if (node?.type.name === "arrow" && !node.attrs.desc && !node.attrs.concept) {
                     const next = node.attrs.back ? { two: false, back: false } : node.attrs.two ? { two: false, back: true } : { two: true, back: false };
                     view.dispatch(view.state.tr.setNodeMarkup(pos, undefined, next));
                   }

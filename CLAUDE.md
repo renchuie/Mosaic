@@ -697,12 +697,13 @@ Recall Labs. Decisions she approved:
 - Syntax (`src/lib/cards.ts`, pure, node-tested): `Q :: A` basic, `Q ::: A` two cards (forward and
   reverse), `A <:: Q` reverse card (Nov 18: shows the right side, asks for the left; key `id:r`, so
   switching ⇄ ↔ ← keeps its history; typed as ` <- ` or ` <:: `, arrow attr `back`, click on the
-  pill cycles → ⇄ ←), concept `**Term** ::: meaning` (Nov 18, her pick "A": a both-ways line whose whole
-  left side is bold; same two keys as ⇄, kinds `concept` / `concept` + `rev`; the editor marks the
-  term with a green chip `.b-concept` and a ◆ pill via the decoration plugin), descriptor
-  `Property ;; value` (kind `descriptor`, front "Concept › Property" with `concept` / `prop`
+  pill cycles → ⇄ ←), concept `Term ;; meaning` (Nov 18, her ask: `;;` is the concept, arrow attr
+  `concept`; the older `**Term** ::: meaning`, a both-ways line whose whole left side is bold, still
+  reads as a concept; same two keys as ⇄, kinds `concept` / `concept` + `rev`; the editor marks the
+  term with a green chip `.b-concept` and a ◆ pill via the decoration plugin; `/Concept` in the menu),
+  descriptor `Property ;;; value` (her ask Nov 18, was `;;`; kind `descriptor`, front "Concept › Property" with `concept` / `prop`
   fields; the concept is the nearest line it is indented under (a bold line counts), else the
-  heading; `Property ;;` with indented bullets = list answer; arrow attr `desc`, a lavender › pill,
+  heading; `Property ;;;` with indented bullets = list answer; arrow attr `desc`, a lavender › pill, `/Descriptor`,
   the line isn't tinted like a card), `{{cloze}}` (each gap its own card; `{{c1::…}}` gaps hide together; `{{answer::hint}}`),
   `Question ::` with indented bullets below = list card. `Field ::` with nothing after it (the drug
   template) is not a card. Code blocks are skipped. Context = heading path + up to two parent bullets.

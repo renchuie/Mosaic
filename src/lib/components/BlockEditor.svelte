@@ -88,6 +88,8 @@
     { id: "listcard", label: "List flashcard", icon: "→•", group: "Study", hint: "the bullets under it are the answer", keys: "::", run: () => listCard() },
     { id: "card2", label: "Two-way flashcard", icon: "⇄", group: "Study", hint: "both directions", keys: ":::", run: () => editor?.chain().focus().insertContent({ type: "arrow", attrs: { two: true } }).run() },
     { id: "card3", label: "Reverse flashcard", icon: "←", group: "Study", hint: "shows the right side, asks for the left", keys: "<-", run: () => editor?.chain().focus().insertContent({ type: "arrow", attrs: { back: true } }).run() },
+    { id: "concept", label: "Concept", icon: "◆", group: "Study", hint: "a term and its meaning, asked both ways", keys: ";;", run: () => editor?.chain().focus().insertContent({ type: "arrow", attrs: { concept: true } }).run() },
+    { id: "descriptor", label: "Descriptor (a fact about a concept)", icon: "›", group: "Study", hint: "indent it under a concept: asks “Concept › this”", keys: ";;;", run: () => editor?.chain().focus().insertContent({ type: "arrow", attrs: { desc: true } }).run() },
     { id: "cloze", label: "Cloze (hidden part)", icon: "{ }", group: "Study", hint: "select text, then Cloze", keys: "{{ }}", run: () => insertCloze() },
     { id: "tcards", label: "Table of flashcards", icon: "▦→", group: "Study", hint: "one card per cell", run: () => tableCards() },
   ];

@@ -323,7 +323,9 @@ button.dot[data-color] {
   --cpl: 0px;
 }
 .mosaic-doc .b-p:has(> .b-arrow[data-two="true"]),
-.mosaic-doc .b-li:has(> .b-arrow[data-two="true"]) {
+.mosaic-doc .b-li:has(> .b-arrow[data-two="true"]),
+.mosaic-doc .b-p:has(> .b-arrow[data-concept="true"]),
+.mosaic-doc .b-li:has(> .b-arrow[data-concept="true"]) {
   background: var(--card-bg2, var(--card-bg));
 }
 :root[data-cardbg="off"] .mosaic-doc .b-p,

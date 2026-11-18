@@ -80,16 +80,17 @@ function lines(body: string): Line[] {
   return out;
 }
 
-/** "Front :: Back" / "Front ::: Back" / "Left <:: Right" / "Property ;; Value" split, or null.
- *  Front must not be empty. */
-function splitCard(text: string): { front: string; back: string; two: boolean; rev: boolean; desc: boolean } | null {
+/** "Front :: Back" / "Front ::: Back" / "Left <:: Right" / "Term ;; Meaning" (concept) /
+ *  "Property ;;; Value" (descriptor) split, or null. Front must not be empty. Since Nov 18 (her ask)
+ *  `;;` is the concept and `;;;` the descriptor; `**Term** ::: meaning` still reads as a concept. */
+function splitCard(text: string): { front: string; back: string; two: boolean; rev: boolean; desc: boolean; concept: boolean } | null {
   // card syntax inside `code` is just text (Nov 18 bug: her pasted test instructions became cards)
   const masked = maskCode(text);
-  const m = /^(.*?\S)\s+(<::|:{2,3}|;;)(?:\s+(.*))?$/d.exec(masked);
+  const m = /^(.*?\S)\s+(<::|:{2,3}|;{2,3})(?:\s+(.*))?$/d.exec(masked);
   if (!m || /\{\{[^}]*$/.test(m[1])) return null; // a "::" inside an unfinished {{c1::…}} isn't a card separator
   const [fs, fe] = m.indices![1] as [number, number];
   const back = m.indices![3] ? text.slice(m.indices![3][0], m.indices![3][1]) : "";
-  return { front: text.slice(fs, fe).trim(), back: back.trim(), two: m[2] === ":::", rev: m[2] === "<::", desc: m[2] === ";;" };
+  return { front: text.slice(fs, fe).trim(), back: back.trim(), two: m[2] === ":::", rev: m[2] === "<::", desc: m[2] === ";;;", concept: m[2] === ";;" };
 }
 /** The line with every `code span` blanked out (same length, so positions still match). */
 const maskCode = (t: string) => t.replace(/`[^`\n]*`/g, (c) => "\u0001".repeat(c.length));
@@ -99,7 +100,7 @@ const conceptTerm = (front: string): string | null => {
   return m ? m[1].trim() : null;
 };
 
-const plain = (s: string) => s.replace(CLOZE_RE, (_a, _n, t) => t).replace(/\s+(?:<::|:{2,3}|;;)(?:\s+.*)?$/, "").replace(/\*\*|__/g, "").trim();
+const plain = (s: string) => s.replace(CLOZE_RE, (_a, _n, t) => t).replace(/\s+(?:<::|:{2,3}|;{2,3})(?:\s+.*)?$/, "").replace(/\*\*|__/g, "").trim();
 
 /** Children of line k: following lines indented deeper, until one that isn't. */
 function children(ls: Line[], k: number): Line[] {
@@ -238,9 +239,10 @@ export function extractCards(body: string): NoteCard[] {
         const kids = children(ls, k);
         const back = c.back || kids.map((x) => `${"  ".repeat(Math.max(0, (x.indent - kids[0].indent) / 2))}- ${x.text}`).join("\n");
         out.push({ key: key(), lineId: l.id, kind: "descriptor", front: owner ? `${owner} › ${prop}` : prop, back, context, line: l.i, concept: owner || undefined, prop });
-      } else if (c.two && conceptTerm(c.front)) {
-        // concept: the same two cards (same keys) as a both-ways line
-        const term = conceptTerm(c.front)!;
+      } else if (c.concept || (c.two && conceptTerm(c.front))) {
+        // concept (`Term ;; meaning`, or the older `**Term** ::: meaning`): the same two cards (same
+        // keys) as a both-ways line, so switching between them keeps the history
+        const term = conceptTerm(c.front) ?? c.front.replace(/\*\*|__/g, "").trim();
         out.push({ key: key(), lineId: l.id, kind: "concept", front: term, back: c.back, context, line: l.i, two: true, concept: term });
         out.push({ key: key(":r"), lineId: l.id, kind: "concept", front: c.back, back: term, context, line: l.i, two: true, rev: true, concept: term });
         return void (parents.push({ indent: l.indent, text: l.text }));
