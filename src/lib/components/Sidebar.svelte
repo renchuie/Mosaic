@@ -46,8 +46,7 @@
   function goSettings(section?: string) {
     meOpen = false;
     (document.activeElement as HTMLElement | null)?.blur?.();
-    location.hash = "#/settings";
-    if (section) setTimeout(() => document.getElementById(section)?.scrollIntoView({ behavior: "smooth", block: "start" }), 350);
+    location.hash = section ? `#/settings/${section}` : "#/settings";
   }
 </script>
 
@@ -105,7 +104,7 @@
     <div class="menu memenu" role="menu" aria-label="You">
       <div class="who"><span class="avatar big" aria-hidden="true">{initial}</span><span><b>{settings.name || "You"}</b><small>Mosaic</small></span></div>
       <button type="button" role="menuitem" class:on={route.page === "settings"} onclick={() => goSettings()}><Icon name="settings" size={17} /> Settings</button>
-      <button type="button" role="menuitem" onclick={() => goSettings("look-h")}><Icon name="star" size={17} /> Appearance</button>
+      <button type="button" role="menuitem" onclick={() => goSettings("appearance")}><Icon name="star" size={17} /> Appearance</button>
     </div>
   </div>
   {#if meOpen}

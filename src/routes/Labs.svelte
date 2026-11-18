@@ -87,7 +87,7 @@
   <section class="card empty">
     <h1 class="display">Can’t reach your Materials folder</h1>
     <p class="muted">{labs.error}</p>
-    <a class="btn quiet" href="#/settings">Check the folder in Settings</a>
+    <a class="btn quiet" href="#/settings/files">Check the folder in Settings</a>
   </section>
 {:else}
   <section class="card empty">

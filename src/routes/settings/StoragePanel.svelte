@@ -9,6 +9,7 @@
   import { refreshPdfs } from "../../lib/stores/pdfs.svelte";
   import { rescan } from "../../lib/stores/labs.svelte";
   import { syncNow } from "../../lib/stores/synced.svelte";
+  import Icon from "../../lib/components/Icon.svelte";
 
   let { onchanged }: { onchanged: () => void } = $props();
 
@@ -144,7 +145,7 @@
   <p class="muted lead">Your notes, materials and PDFs. Flashcard progress, calendar, tasks and courses are app data; they follow the sync setting.</p>
   <div class="opts">
     <div class="opt" class:on={!local}>
-      <span class="ic" aria-hidden="true">☁️</span>
+      <span class="ic" aria-hidden="true"><Icon name="cloud" size={20} /></span>
       <div class="txt">
         <b>Google Drive</b>
         <span>Your Google Drive folders. Everything syncs between your computers.</span>
@@ -152,7 +153,7 @@
       {#if !local}<span class="pill">In use</span>{:else}<button type="button" class="btn quiet sm" onclick={() => start("drive")}>Switch</button>{/if}
     </div>
     <div class="opt" class:on={local}>
-      <span class="ic" aria-hidden="true">💻</span>
+      <span class="ic" aria-hidden="true"><Icon name="laptop" size={20} /></span>
       <div class="txt">
         <b>This computer only</b>
         <span>A vault folder on this computer with Notes, Materials and PDFs inside. Works without Drive.</span>
@@ -231,6 +232,7 @@
 <style>
   .lead {
     margin: 0 0 4px;
+    font-size: 13.5px;
   }
   .opts {
     display: grid;
@@ -249,7 +251,18 @@
     box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--accent) 50%, transparent);
   }
   .ic {
-    font-size: 24px;
+    display: grid;
+    place-items: center;
+    width: 40px;
+    height: 40px;
+    flex: none;
+    border-radius: 13px;
+    background: var(--chip);
+    color: var(--text-muted);
+  }
+  .opt.on .ic {
+    background: var(--surface);
+    color: var(--text);
   }
   .txt {
     flex: 1;

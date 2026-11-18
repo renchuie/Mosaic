@@ -875,6 +875,19 @@ Recall Labs. Decisions she approved:
 - Also: Study tab "PDFs" (`PdfsHome.svelte`: keep reading, course chips, search, folder groups),
   Study Home "Keep reading", course page "PDFs".
 
+## Settings page (Nov 18, her pick "A · Side list" on canvas "A cleaner Settings page", with line icons: "I don't love the multicoloured emojis")
+
+- `src/routes/Settings.svelte`: a 250px list of groups (Icon line icons in a `--chip` tile, never
+  emoji) and one group at a time on the right; route `#/settings/<group>` (default appearance):
+  You, Appearance, Notes, Flashcards | Files & storage, Sync, Calendar | Labs & advanced. Live
+  notes beside some groups (theme name, Drive / This computer, sync "N min ago"). Each setting is a
+  row (`.srow`: label + hint left, control right; `.col` stacks) inside `.scard` cards with a small
+  uppercase heading; most controls are the `seg` snippet. The theme picker shows one family at a
+  time (Glass / Neutral / Dark tabs). Flashcards holds new cards a day, retention and exam-aware
+  too (the Cards tab still has them). Search (`INDEX`: id, group, label, words) jumps to a row
+  (`id="set-<id>"`) and tints it briefly. Below 860px the groups become chips on top. The avatar
+  menu's Appearance goes to `#/settings/appearance`. New icons: user, palette, cloud, laptop.
+
 ## Local vault (Nov 18, her ask: "an option to have a local vault if someone doesn't want to sync")
 
 - Settings → "Where your files live" (`src/routes/settings/StoragePanel.svelte`): Google Drive

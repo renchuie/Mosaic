@@ -157,7 +157,7 @@
           <h2 class="display">{labs.error ? "Can’t reach your labs folder" : labs.scanning ? "Looking for your labs…" : "No labs found yet"}</h2>
           <p>{labs.error ?? "Labs are .html files with a recall-lab-version meta tag, anywhere in your labs folder."}</p>
         </div>
-        <a class="btn primary" href="#/settings">Check Settings</a>
+        <a class="btn primary" href="#/settings/files">Check Settings</a>
       </section>
     {/if}
 

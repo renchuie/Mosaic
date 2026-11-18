@@ -305,3 +305,5 @@ Add things here as they come up (date, page, what happened). Each one is either 
       choice). **Done Nov 18.** For friends: offer the choice on first run (Sharing track).
   16. Note preferences in Settings (her ask): default header, page width, open as page / Markdown,
       toolbar always or while typing; a note can keep its own header and width. **Done Nov 18.**
+  17. Settings reorganised (her pick A on canvas "A cleaner Settings page", line icons, no emoji):
+      side list of groups, one group at a time, rows, search. **Done Nov 18.**
