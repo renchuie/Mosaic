@@ -1,469 +1,553 @@
 <script lang="ts">
-  // Flashcard stats (F1, #/study/cards/stats): reviews and time per day, retention, card states,
-  // intervals, the next 30 days, recall by course, and the most-forgotten cards.
-  // Day counts come from "reviewDays" (all cards together); everything about cards comes from
-  // their FSRS records, so it can be split by course.
+  // Stats (canvas board "Study modes and stats" → Stats tab): by deck and by week / month / term /
+  // year. Studied, remembered against the goal, streak, cards known well; every day studied as a
+  // heatmap; where the cards are (donut); remembered by week (with the goal line); the next 30
+  // days with the exam marked; intervals; the hardest cards, one click from a review.
+  // Day counts (reviewDays) exist only for all cards together, so the day-based parts show every
+  // deck; the card-based parts follow the deck chosen.
   import BarChart from "../../lib/components/BarChart.svelte";
-  import Icon from "../../lib/components/Icon.svelte";
-  import { cardHtml } from "../../lib/cards";
-  import { addDays, fromKey, todayKey } from "../../lib/calendar";
-  import { courseByName } from "../../lib/stores/courses.svelte";
+  import { addDays, fromKey, todayKey, toKey } from "../../lib/calendar";
+  import { exams } from "../../lib/stores/calendar.svelte";
+  import { deckGroups, shortExam, typeLabel } from "../../lib/stores/deckTree.svelte";
   import { notes } from "../../lib/stores/notes.svelte";
-  import { allCards, dayRev, ensureIds, forecast, recallOf, type CardRef } from "../../lib/stores/srs.svelte";
+  import { settings } from "../../lib/stores/settings.svelte";
+  import { allCards, ensureIds, inScope, scopeKey, statusOf, type DayRev, type Scope } from "../../lib/stores/srs.svelte";
+  import { entries } from "../../lib/stores/synced.svelte";
+  import { plainOf } from "../../lib/play";
 
   $effect(() => {
     if (notes.loaded) void ensureIds();
   });
+  const enc = (s: string) => encodeURIComponent(s);
 
-  let range = $state<30 | 90 | 365>(30);
-  const C = { review: "var(--sage-deep)", fresh: "var(--periwinkle)", again: "var(--rose-deep)", time: "color-mix(in srgb, var(--peach) 60%, var(--rose-deep))", ahead: "var(--lavender)" };
-
-  const fmtDay = (k: string) => fromKey(k).toLocaleDateString("en-US", { month: "short", day: "numeric" });
-  const fmtMin = (ms: number) => {
-    const m = Math.round(ms / 60000);
-    return m < 60 ? `${m} min` : `${Math.floor(m / 60)} h ${m % 60} min`;
-  };
-
-  // ---- days -----------------------------------------------------------------------------
-  const days = $derived(Array.from({ length: range }, (_, i) => addDays(todayKey(), i - range + 1)).map((k) => ({ k, r: dayRev(k) })));
-  const sum = $derived.by(() => {
-    let reviews = 0, again = 0, fresh = 0, ms = 0, studied = 0;
-    for (const { r } of days) {
-      reviews += r.reviews;
-      again += r.again;
-      fresh += r.new;
-      ms += r.ms;
-      if (r.reviews) studied++;
-    }
-    return { reviews, again, fresh, ms, studied, retention: reviews ? (reviews - again) / reviews : null };
+  // ---- deck and range ----
+  const chips = $derived(
+    deckGroups()
+      .filter((g) => g.title !== "Filtered")
+      .flatMap((g) => g.rows)
+      .slice(0, 6),
+  );
+  let scope = $state<Scope>({ kind: "all" });
+  const skey = $derived(scopeKey(scope));
+  type Range = "week" | "month" | "term" | "year";
+  let range = $state<Range>("month");
+  const fromDay = $derived.by(() => {
+    const t = todayKey();
+    if (range === "week") return addDays(t, -6);
+    if (range === "month") return addDays(t, -29);
+    if (range === "year") return addDays(t, -364);
+    // term: from mid-August (fall) or mid-January (spring)
+    const d = new Date();
+    const start = d.getMonth() >= 7 ? new Date(d.getFullYear(), 7, 15) : d.getMonth() >= 0 && d.getMonth() < 5 ? new Date(d.getFullYear(), 0, 10) : new Date(d.getFullYear(), 4, 15);
+    return toKey(start);
   });
-  const streak = $derived.by(() => {
-    let n = 0;
+  const RANGE_NAME: Record<Range, string> = { week: "this week", month: "this month", term: "this term", year: "this year" };
+
+  // ---- days (all decks) ----
+  const days = $derived(entries<DayRev>("reviewDays"));
+  const inRange = $derived(days.filter(([d]) => d >= fromDay && d <= todayKey()));
+  const studied = $derived(inRange.reduce((n, [, r]) => n + r.reviews, 0));
+  const minutes = $derived(Math.round(inRange.reduce((n, [, r]) => n + r.ms, 0) / 60000));
+  const again = $derived(inRange.reduce((n, [, r]) => n + r.again, 0));
+  const remembered = $derived(studied ? (studied - again) / studied : null);
+  const goal = $derived(settings.retention || 0.9);
+  const fmtTime = (m: number) => (m < 60 ? `${m} min` : `${Math.floor(m / 60)} h ${m % 60} min`);
+
+  const streaks = $derived.by(() => {
+    const on = new Set(days.filter(([, r]) => r.reviews > 0).map(([d]) => d));
+    let cur = 0;
     let k = todayKey();
-    if (!dayRev(k).reviews) k = addDays(k, -1); // today not done yet doesn't break it
-    while (dayRev(k).reviews) {
-      n++;
+    if (!on.has(k)) k = addDays(k, -1);
+    while (on.has(k)) {
+      cur++;
       k = addDays(k, -1);
     }
-    return n;
-  });
-  // a year is shown by week (52 bars), shorter ranges by day
-  const buckets = $derived.by(() => {
-    const size = range === 365 ? 7 : 1;
-    const out: { k: string; reviews: number; again: number; fresh: number; ms: number }[] = [];
-    for (let i = days.length % size; i < days.length; i += size) {
-      const part = days.slice(i, i + size);
-      out.push({
-        k: part[0].k,
-        reviews: part.reduce((n, d) => n + d.r.reviews, 0),
-        again: part.reduce((n, d) => n + d.r.again, 0),
-        fresh: part.reduce((n, d) => n + d.r.new, 0),
-        ms: part.reduce((n, d) => n + d.r.ms, 0),
-      });
+    let best = 0;
+    for (const d of [...on].sort()) {
+      if (on.has(addDays(d, -1))) continue;
+      let n = 0;
+      for (let x = d; on.has(x); x = addDays(x, 1)) n++;
+      best = Math.max(best, n);
     }
-    return { size, out };
+    return { cur, best };
   });
-  const when = (k: string) => (buckets.size === 7 ? `Week of ${fmtDay(k)}` : fromKey(k).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" }));
-  const reviewBars = $derived(
-    buckets.out.map((b) => {
-      const ok = Math.max(0, b.reviews - b.again - b.fresh);
-      return {
-        x: fmtDay(b.k),
-        parts: [
-          { v: b.again, colour: C.again },
-          { v: Math.min(b.fresh, b.reviews - b.again), colour: C.fresh },
-          { v: ok, colour: C.review },
-        ],
-        tip: `${when(b.k)}\n${b.reviews} reviews · ${b.fresh} new · ${b.again} again`,
-      };
-    }),
-  );
-  const timeBars = $derived(buckets.out.map((b) => ({ x: fmtDay(b.k), parts: [{ v: Math.round(b.ms / 60000), colour: C.time }], tip: `${when(b.k)}\n${fmtMin(b.ms)}` })));
-  const ahead = $derived(forecast(30));
-  const aheadBars = $derived(ahead.map((d, i) => ({ x: i === 0 ? "Today" : fmtDay(d.date), parts: [{ v: d.n, colour: C.ahead }], tip: `${i === 0 ? "Today (and overdue)" : when(d.date)}\n${d.n} due` })));
 
-  // ---- cards ----------------------------------------------------------------------------
-  const refs = $derived(allCards().filter((r) => r.card.lineId));
-  const now = Date.now();
-  const kind = (r: CardRef) =>
-    !r.rec ? "new" : r.rec.suspended ? "suspended" : r.rec.state === 1 || r.rec.state === 3 ? "learning" : r.rec.scheduled_days >= 21 ? "mature" : "young";
-  const STATES = [
-    { id: "new", name: "New", colour: "var(--periwinkle)" },
-    { id: "learning", name: "Learning", colour: "var(--peach)" },
-    { id: "young", name: "Young", colour: "var(--sage)" },
-    { id: "mature", name: "Mature", colour: "var(--sage-deep)" },
-    { id: "suspended", name: "Suspended", colour: "var(--hairline)" },
+  // heatmap: 26 weeks, Monday on top
+  const heat = $derived.by(() => {
+    const t = fromKey(todayKey());
+    const end = addDays(todayKey(), (7 - ((t.getDay() + 6) % 7) - 1)); // the Sunday ending this week
+    const start = addDays(end, -26 * 7 + 1);
+    const byDay = new Map(days.map(([d, r]) => [d, r]));
+    const out: { d: string; n: number; ms: number; future: boolean }[] = [];
+    for (let i = 0; i < 26 * 7; i++) {
+      const d = addDays(start, i);
+      const r = byDay.get(d);
+      out.push({ d, n: r?.reviews ?? 0, ms: r?.ms ?? 0, future: d > todayKey() });
+    }
+    const max = Math.max(1, ...out.map((x) => x.n));
+    return out.map((x) => ({ ...x, lv: x.n ? Math.min(4, Math.ceil((x.n / max) * 4)) : 0 }));
+  });
+  const fmtDay = (d: string) => fromKey(d).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
+
+  // remembered by week: the last 10 weeks
+  const weeks = $derived.by(() => {
+    const out: { from: string; v: number | null; n: number }[] = [];
+    for (let w = 9; w >= 0; w--) {
+      const to = addDays(todayKey(), -w * 7);
+      const from = addDays(to, -6);
+      const rs = days.filter(([d]) => d >= from && d <= to);
+      const n = rs.reduce((x, [, r]) => x + r.reviews, 0);
+      const a = rs.reduce((x, [, r]) => x + r.again, 0);
+      out.push({ from, v: n ? (n - a) / n : null, n });
+    }
+    return out;
+  });
+  const LW = 300, LH = 110;
+  // the scale follows her numbers (and the goal), so a steady 85–92% isn't a flat line at the top
+  const lo = $derived(Math.max(0, Math.floor((Math.min(goal, ...weeks.filter((w) => w.v !== null).map((w) => w.v!)) - 0.05) * 20) / 20));
+  const ly = (v: number) => LH - 10 - ((Math.max(lo, v) - lo) / Math.max(0.05, 1 - lo)) * (LH - 20);
+  const lx = (i: number) => 6 + (i / 9) * (LW - 12);
+  const linePts = $derived(weeks.map((w, i) => (w.v === null ? null : { x: lx(i), y: ly(w.v), w })).filter((p): p is NonNullable<typeof p> => !!p));
+
+  // ---- cards (follow the deck chosen) ----
+  const cards = $derived(allCards().filter((r) => r.card.lineId).filter(inScope(scope)));
+  const kind = (r: (typeof cards)[number]) =>
+    !r.rec || r.rec.state === 0 ? "new" : r.rec.suspended ? "paused" : r.rec.state === 1 || r.rec.state === 3 ? "learning" : r.rec.scheduled_days >= 21 ? "known" : "young";
+  const PARTS = [
+    { id: "new", name: "New", colour: "var(--link-ink)" },
+    { id: "learning", name: "Learning", colour: "var(--alert-ink)" },
+    { id: "young", name: "Young", colour: "var(--butter)" },
+    { id: "known", name: "Known well", colour: "var(--go-ink)" },
+    { id: "paused", name: "Paused", colour: "color-mix(in srgb, var(--text) 22%, transparent)" },
   ] as const;
-  const states = $derived.by(() => {
-    const n: Record<string, number> = { new: 0, learning: 0, young: 0, mature: 0, suspended: 0 };
-    for (const r of refs) n[kind(r)]++;
+  const parts = $derived.by(() => {
+    const n: Record<string, number> = { new: 0, learning: 0, young: 0, known: 0, paused: 0 };
+    for (const r of cards) n[kind(r)]++;
     return n;
   });
-  const recall = $derived.by(() => {
-    const seen = refs.filter((r) => r.rec && !r.rec.suspended && r.rec.state !== 0);
-    return seen.length ? seen.reduce((n, r) => n + recallOf(r.rec!, now), 0) / seen.length : null;
+  const donut = $derived.by(() => {
+    const total = cards.length || 1;
+    let at = 0;
+    return PARTS.map((p) => {
+      const from = at;
+      at += (parts[p.id] / total) * 100;
+      return `${p.colour} ${from}% ${at}%`;
+    }).join(", ");
   });
 
+  // next 30 days, the deck's exam (or the next one) marked
+  const nextExam = $derived(exams().find((e) => e.days >= 0 && e.days < 30 && (scope.kind === "all" || cards.some((r) => r.course === e.course))));
+  const ahead = $derived.by(() => {
+    const t = todayKey();
+    const list = Array.from({ length: 30 }, (_, i) => ({ date: addDays(t, i), n: 0 }));
+    for (const r of cards) {
+      if (!r.rec || r.rec.suspended || r.rec.state === 0) continue;
+      const d = toKey(new Date(r.rec.due));
+      const i = d <= t ? 0 : list.findIndex((x) => x.date === d);
+      if (i >= 0) list[i].n++;
+    }
+    return list.map((d, i) => ({
+      x: i === 0 ? "" : fromKey(d.date).toLocaleDateString("en-US", { month: "short", day: "numeric" }),
+      parts: [{ v: d.n, colour: nextExam?.date === d.date ? "var(--rose-deep)" : "color-mix(in srgb, var(--lavender) 70%, var(--periwinkle))" }],
+      mark: nextExam?.date === d.date,
+      tip: `${fmtDay(d.date)}\n${d.n} due${nextExam?.date === d.date ? ` · ${shortExam(nextExam)}` : ""}`,
+    }));
+  });
+
+  // intervals
   const IV = [
     { name: "1 d", max: 1 },
     { name: "2–3 d", max: 3 },
     { name: "4–7 d", max: 7 },
     { name: "1–2 wk", max: 14 },
     { name: "2–3 wk", max: 21 },
-    { name: "3 wk–1 mo", max: 31 },
+    { name: "1 mo", max: 31 },
     { name: "1–3 mo", max: 92 },
-    { name: "3–6 mo", max: 183 },
-    { name: "6 mo+", max: Infinity },
+    { name: "3 mo+", max: Infinity },
   ];
   const intervals = $derived.by(() => {
     const n = IV.map(() => 0);
-    for (const r of refs) {
-      if (!r.rec || r.rec.suspended || r.rec.state !== 2) continue;
-      n[IV.findIndex((b) => r.rec!.scheduled_days <= b.max)]++;
-    }
-    return IV.map((b, i) => ({ x: b.name, parts: [{ v: n[i], colour: C.review }], tip: `${b.name}\n${n[i]} cards` }));
+    for (const r of cards) if (r.rec && !r.rec.suspended && r.rec.state === 2) n[IV.findIndex((b) => r.rec!.scheduled_days <= b.max)]++;
+    return IV.map((b, i) => ({ x: b.name, parts: [{ v: n[i], colour: "var(--sage-deep)" }], tip: `${b.name}\n${n[i]} cards` }));
   });
 
-  const byCourse = $derived.by(() => {
-    const g = new Map<string, CardRef[]>();
-    for (const r of refs) {
-      const k = r.course ?? "";
-      g.set(k, [...(g.get(k) ?? []), r]);
-    }
-    return [...g]
-      .map(([name, list]) => {
-        const seen = list.filter((r) => r.rec && !r.rec.suspended && r.rec.state !== 0);
-        const c = name ? courseByName(name) : undefined;
-        return {
-          name: name ? (c?.[1].code || name) : "No course",
-          colour: c?.[1].color ?? "var(--hairline)",
-          total: list.length,
-          mature: list.filter((r) => kind(r) === "mature").length,
-          fresh: list.filter((r) => !r.rec).length,
-          recall: seen.length ? seen.reduce((n, r) => n + recallOf(r.rec!, now), 0) / seen.length : null,
-        };
-      })
-      .sort((a, b) => b.total - a.total);
-  });
-
-  const plain = (md: string) => cardHtml(md).replace(/<[^>]+>/g, " ").replace(/&nbsp;/g, " ").replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/\s+/g, " ").trim();
+  // hardest: most missed, still slipping
   const hardest = $derived(
-    refs
-      .filter((r) => r.rec && r.rec.lapses > 0)
-      .sort((a, b) => b.rec!.lapses - a.rec!.lapses || a.rec!.stability - b.rec!.stability)
+    cards
+      .filter((r) => r.rec && r.rec.lapses >= 1 && !r.rec.suspended)
+      .sort((a, b) => b.rec!.lapses / Math.max(1, b.rec!.reps) - a.rec!.lapses / Math.max(1, a.rec!.reps) || b.rec!.lapses - a.rec!.lapses)
       .slice(0, 8),
   );
-  const pct = (x: number | null) => (x === null ? "–" : `${Math.round(x * 100)}%`);
+  const hardCount = $derived(cards.filter((r) => r.rec && !r.rec.suspended && r.rec.lapses >= 2).length);
+  const STATE = { new: ["New", "n"], learning: ["Learning", "l"], review: ["Review", "r"], later: ["Review", "r"], suspended: ["Paused", "s"] } as const;
+  const pct = (v: number | null) => (v === null ? "–" : `${Math.round(v * 100)}%`);
 </script>
 
 <div class="stats">
-  <header class="top">
-    <a class="back" href="#/study/cards" aria-label="Back to Cards"><Icon name="back" size={18} /></a>
-    <h1 class="h1">Stats</h1>
-    <div class="seg" role="radiogroup" aria-label="Range">
-      {#each [[30, "Month"], [90, "3 months"], [365, "Year"]] as [v, n]}
-        <button type="button" role="radio" aria-checked={range === v} class:on={range === v} onclick={() => (range = v as 30 | 90 | 365)}>{n}</button>
+  <div class="bar">
+    <div class="seg" role="radiogroup" aria-label="Deck">
+      <button type="button" role="radio" aria-checked={skey === "all"} class:on={skey === "all"} onclick={() => (scope = { kind: "all" })}>All decks</button>
+      {#each chips as c (c.key)}
+        <button type="button" role="radio" aria-checked={skey === c.key} class:on={skey === c.key} onclick={() => (scope = c.scope)}>{c.name}</button>
       {/each}
     </div>
-  </header>
-
-  <div class="tiles">
-    <div class="tile"><span class="label">Reviews</span><b>{sum.reviews.toLocaleString()}</b><span class="sub">{sum.fresh} new cards</span></div>
-    <div class="tile"><span class="label">Time</span><b>{fmtMin(sum.ms)}</b><span class="sub">{sum.studied ? `${fmtMin(sum.ms / sum.studied)} a study day` : "–"}</span></div>
-    <div class="tile"><span class="label">Days studied</span><b>{sum.studied}<small>&nbsp;/ {range}</small></b><span class="sub">Streak {streak} {streak === 1 ? "day" : "days"}</span></div>
-    <div class="tile"><span class="label">Retention</span><b>{pct(sum.retention)}</b><span class="sub">Hard, Good or Easy</span></div>
-    <div class="tile"><span class="label">Recall now</span><b>{pct(recall)}</b><span class="sub">Average of seen cards</span></div>
+    <span class="grow"></span>
+    <div class="seg" role="radiogroup" aria-label="Range">
+      {#each [["week", "Week"], ["month", "Month"], ["term", "Term"], ["year", "Year"]] as [v, n]}
+        <button type="button" role="radio" aria-checked={range === v} class:on={range === v} onclick={() => (range = v as Range)}>{n}</button>
+      {/each}
+    </div>
   </div>
 
-  <div class="grid2">
-    <section class="card wide">
-      <div class="ch"><h2 class="h2">Reviews</h2>
-        <span class="legend"><i style="background: {C.review}"></i>Remembered <i style="background: {C.fresh}"></i>New <i style="background: {C.again}"></i>Again</span>
+  <div class="kpis">
+    <div class="kpi"><span class="small muted">Studied {RANGE_NAME[range]}</span><b>{studied.toLocaleString()} {studied === 1 ? "card" : "cards"}</b><span class="small muted">{fmtTime(minutes)}</span></div>
+    <div class="kpi"><span class="small muted">Remembered (reviews)</span><b class:good={remembered !== null && remembered >= goal}>{pct(remembered)}</b><span class="small muted">goal {Math.round(goal * 100)}%</span></div>
+    <div class="kpi"><span class="small muted">Streak</span><b>{streaks.cur} {streaks.cur === 1 ? "day" : "days"}</b><span class="small muted">best {streaks.best}</span></div>
+    <div class="kpi"><span class="small muted">Cards you know well</span><b>{parts.known.toLocaleString()}</b><span class="small muted">interval ≥ 21 days</span></div>
+  </div>
+
+  <div class="two">
+    <section class="card">
+      <h3>Every day you studied</h3>
+      <div class="heat" role="img" aria-label="Cards studied per day, last 26 weeks">
+        {#each heat as h (h.d)}<i class="h{h.lv}" class:fut={h.future} title={h.future ? "" : `${fmtDay(h.d)}: ${h.n} ${h.n === 1 ? "card" : "cards"} · ${Math.round(h.ms / 60000)} min`}></i>{/each}
       </div>
-      <BarChart data={reviewBars} label="Reviews per {buckets.size === 7 ? 'week' : 'day'}" />
+      <span class="small muted">Darker = more cards</span>
     </section>
-
     <section class="card">
-      <h2 class="h2">Time</h2>
-      <BarChart data={timeBars} height={120} label="Minutes of review per {buckets.size === 7 ? 'week' : 'day'}" />
-    </section>
-
-    <section class="card">
-      <h2 class="h2">Next 30 days</h2>
-      <BarChart data={aheadBars} height={120} label="Cards due per day for the next 30 days" />
-    </section>
-
-    <section class="card">
-      <h2 class="h2">Cards</h2>
-      <div class="sbar" role="img" aria-label="Cards by state">
-        {#each STATES as s (s.id)}{#if states[s.id]}<span style="flex: {states[s.id]} 1 0; background: {s.colour}" title="{s.name}: {states[s.id]}"></span>{/if}{/each}
+      <h3>Where your cards are</h3>
+      <div class="where">
+        <span class="donut" style="background: conic-gradient({donut})"><b>{cards.length.toLocaleString()}<small>cards</small></b></span>
+        <div class="leg">
+          {#each PARTS as p (p.id)}<span><i class="dot" style="background: {p.colour}"></i>{p.name}<b>{parts[p.id]}</b></span>{/each}
+        </div>
       </div>
-      <ul class="slist">
-        {#each STATES as s (s.id)}
-          <li><i style="background: {s.colour}"></i>{s.name}<b>{states[s.id]}</b></li>
-        {/each}
-      </ul>
     </section>
+  </div>
 
+  <div class="three">
     <section class="card">
-      <h2 class="h2">Intervals</h2>
-      <BarChart data={intervals} height={120} xEvery={2} label="Review cards by interval" />
+      <h3>Remembered, by week</h3>
+      <svg viewBox="0 0 {LW} {LH}" class="line" role="img" aria-label="Share of reviews remembered each week, last 10 weeks">
+        <line x1="0" y1={ly(1)} x2={LW} y2={ly(1)} class="grid" />
+        <line x1="0" y1={ly(lo)} x2={LW} y2={ly(lo)} class="grid" />
+        <text x={LW} y={ly(1) - 4} class="ax">100%</text>
+        <text x={LW} y={ly(lo) - 4} class="ax">{Math.round(lo * 100)}%</text>
+        <line x1="0" y1={ly(goal)} x2={LW} y2={ly(goal)} class="goal" />
+        {#if linePts.length > 1}<polyline points={linePts.map((p) => `${p.x},${p.y}`).join(" ")} class="ln" />{/if}
+        {#each linePts as p}<circle cx={p.x} cy={p.y} r="9" class="hit"><title>Week of {fmtDay(p.w.from)}: {pct(p.w.v)} of {p.w.n}</title></circle><circle cx={p.x} cy={p.y} r="4" class="pt" />{/each}
+      </svg>
+      <span class="small muted">{linePts.length ? `Dashed line: your ${Math.round(goal * 100)}% goal` : "No reviews yet"}</span>
     </section>
-
     <section class="card">
-      <h2 class="h2">By course</h2>
-      {#if byCourse.length}
-        <table class="tbl">
-          <thead><tr><th>Course</th><th class="n">Cards</th><th class="n">Mature</th><th>Recall now</th></tr></thead>
-          <tbody>
-            {#each byCourse as c (c.name)}
-              <tr>
-                <td><span class="dot" style="background: {c.colour}"></span>{c.name}</td>
-                <td class="n">{c.total}</td>
-                <td class="n">{c.mature}</td>
-                <td>
-                  {#if c.recall === null}<span class="muted">Not started</span>
-                  {:else}<span class="meter"><span style="width: {c.recall * 100}%"></span></span><span class="pc">{pct(c.recall)}</span>{/if}
-                </td>
-              </tr>
-            {/each}
-          </tbody>
-        </table>
-      {:else}<p class="muted">No cards yet.</p>{/if}
+      <h3>Next 30 days</h3>
+      <BarChart data={ahead} height={100} xEvery={7} label="Cards due per day for the next 30 days" />
+      {#if nextExam}<span class="small muted"><i class="dot ex"></i>{shortExam(nextExam)} ({fromKey(nextExam.date).toLocaleDateString("en-US", { month: "short", day: "numeric" })})</span>{/if}
     </section>
-
     <section class="card">
-      <h2 class="h2">Most forgotten</h2>
-      {#if hardest.length}
-        <ol class="hard">
+      <h3>How far apart</h3>
+      <BarChart data={intervals} height={100} xEvery={2} label="Review cards by interval" />
+      <span class="small muted">Days until each card comes back</span>
+    </section>
+  </div>
+
+  <section class="card">
+    <div class="hh">
+      <h3>Hardest cards</h3><span class="small muted">most missed, still slipping</span><span class="grow"></span>
+      {#if hardCount}<a class="btn sm dark" href="#/study/cards/cram/{enc(scope.kind === 'all' ? 'filter:hard' : `filter:hard|${skey}`)}">Review these {hardCount} now</a>{/if}
+    </div>
+    {#if hardest.length}
+      <table class="hard">
+        <tbody>
           {#each hardest as r (r.card.key)}
-            <li><a href={r.href}>{plain(r.card.front) || r.title}</a><span class="lap">{r.rec!.lapses}×</span></li>
+            {@const st = STATE[statusOf(r.rec)]}
+            <tr>
+              <td class="f"><a href={r.href}>{plainOf(r.card.front) || r.title}</a></td>
+              <td class="muted">{r.title}</td>
+              <td class="muted">{typeLabel(r)}</td>
+              <td>missed {r.rec!.lapses} of {r.rec!.reps}</td>
+              <td><span class="st {st[1]}">{st[0]}</span></td>
+            </tr>
           {/each}
-        </ol>
-      {:else}<p class="muted">Nothing forgotten yet.</p>{/if}
-    </section>
-  </div>
+        </tbody>
+      </table>
+    {:else}<p class="muted none">Nothing missed yet.</p>{/if}
+  </section>
 </div>
 
 <style>
   .stats {
     display: grid;
-    gap: var(--gap);
+    gap: 18px;
     container-type: inline-size;
   }
-  .top {
+  .bar {
     display: flex;
-    align-items: center;
-    gap: 12px;
     flex-wrap: wrap;
+    align-items: center;
+    gap: 10px;
   }
-  .back {
-    display: grid;
-    place-items: center;
-    width: 36px;
-    height: 36px;
-    border-radius: 50%;
-    background: var(--chip);
-    color: var(--text);
-  }
-  .h1 {
-    margin: 0;
-    font-size: 26px;
-    font-weight: 600;
+  .grow {
+    flex: 1;
   }
   .seg {
-    margin-left: auto;
     display: flex;
-    gap: 2px;
-    padding: 3px;
-    border-radius: 999px;
-    background: var(--chip);
+    flex-wrap: wrap;
+    gap: 6px;
   }
   .seg button {
-    padding: 7px 14px;
+    min-height: 36px;
+    padding: 0 13px;
     border: 0;
     border-radius: 999px;
-    background: none;
+    background: color-mix(in srgb, var(--surface) 85%, transparent);
     color: var(--text-muted);
     font: inherit;
-    font-size: 13px;
-    font-weight: 600;
+    font-size: 14px;
     cursor: pointer;
+    transition: transform 0.15s var(--spring, ease);
+  }
+  .seg button:hover {
+    transform: translateY(-1px);
   }
   .seg button.on {
-    background: var(--surface, var(--white));
-    color: var(--text);
+    background: var(--primary, var(--charcoal));
+    color: var(--on-primary, var(--white));
+    font-weight: 600;
   }
-  .tiles {
+  .kpis {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-    gap: var(--gap);
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 12px;
   }
-  .tile {
+  .kpi {
     display: grid;
     gap: 2px;
-    padding: 16px 20px;
-    border-radius: var(--radius);
+    padding: 12px 14px;
+    border-radius: 18px;
     background: var(--surface);
     box-shadow: var(--shadow);
   }
-  .tile b {
-    font-size: 30px;
+  .kpi b {
+    font-size: 26px;
     font-weight: 600;
     font-variant-numeric: tabular-nums;
   }
-  .tile small {
-    font-size: 15px;
-    font-weight: 500;
-    color: var(--text-muted);
+  .kpi b.good {
+    color: var(--go-ink);
   }
-  .sub {
-    font-size: 12.5px;
-    color: var(--text-muted);
-  }
-  .grid2 {
+  .two {
     display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: var(--gap);
+    grid-template-columns: 1.4fr 1fr;
+    gap: 18px;
+    align-items: start;
   }
-  @container (max-width: 820px) {
-    .grid2 {
-      grid-template-columns: 1fr;
+  .three {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 16px;
+    align-items: start;
+  }
+  @container (max-width: 980px) {
+    .kpis {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    .two,
+    .three {
+      grid-template-columns: minmax(0, 1fr);
     }
   }
   .card {
     display: grid;
+    gap: 10px;
     align-content: start;
-    gap: 16px;
     min-width: 0;
   }
-  .wide {
-    grid-column: 1 / -1;
-  }
-  .h2 {
+  h3 {
     margin: 0;
+    font-size: 17px;
+    font-weight: 600;
   }
-  .ch {
+  .heat {
+    display: grid;
+    grid-template-columns: repeat(26, 1fr);
+    grid-template-rows: repeat(7, 12px);
+    grid-auto-flow: column;
+    gap: 3px;
+  }
+  .heat i {
+    border-radius: 3px;
+    background: color-mix(in srgb, var(--text) 6%, transparent);
+  }
+  .heat i.h1 {
+    background: color-mix(in srgb, var(--sage) 45%, var(--white));
+  }
+  .heat i.h2 {
+    background: color-mix(in srgb, var(--sage) 80%, var(--white));
+  }
+  .heat i.h3 {
+    background: var(--sage-deep);
+  }
+  .heat i.h4 {
+    background: color-mix(in srgb, var(--sage-deep) 70%, var(--text));
+  }
+  .heat i.fut {
+    background: none;
+  }
+  .where {
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    gap: 12px;
+    gap: 18px;
     flex-wrap: wrap;
   }
-  .legend {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    font-size: 12.5px;
+  .donut {
+    flex: none;
+    display: grid;
+    place-items: center;
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+  }
+  .donut b {
+    display: grid;
+    place-items: center;
+    align-content: center;
+    width: 78px;
+    height: 78px;
+    border-radius: 50%;
+    background: var(--surface-float, var(--surface));
+    font-size: 16px;
+    line-height: 1.1;
+    text-align: center;
+  }
+  .donut small {
+    font-size: 11.5px;
+    font-weight: 500;
     color: var(--text-muted);
   }
-  .legend i,
-  .slist i {
-    display: inline-block;
-    width: 10px;
-    height: 10px;
-    border-radius: 3px;
-    margin-left: 6px;
-  }
-  .sbar {
-    display: flex;
-    gap: 2px;
-    height: 18px;
-    border-radius: 6px;
-    overflow: hidden;
-  }
-  .slist {
-    margin: 0;
-    padding: 0;
-    list-style: none;
+  .leg {
     display: grid;
     gap: 6px;
-    font-size: 14px;
+    flex: 1;
+    min-width: 150px;
+    font-size: 13.5px;
   }
-  .slist li {
+  .leg span {
     display: flex;
     align-items: center;
     gap: 8px;
   }
-  .slist i {
-    margin: 0;
-  }
-  .slist b {
+  .leg b {
     margin-left: auto;
-    font-variant-numeric: tabular-nums;
-  }
-  .tbl {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 14px;
-  }
-  .tbl th {
-    text-align: left;
-    font-size: 11.5px;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-    color: var(--text-muted);
-    padding: 0 8px 8px 0;
-  }
-  .tbl td {
-    padding: 8px 8px 8px 0;
-    border-top: 1px solid var(--hairline);
-    white-space: nowrap;
-  }
-  .tbl .n {
-    text-align: right;
     font-variant-numeric: tabular-nums;
   }
   .dot {
     display: inline-block;
-    width: 9px;
-    height: 9px;
+    flex: none;
+    width: 10px;
+    height: 10px;
     border-radius: 50%;
-    margin-right: 8px;
-  }
-  .meter {
-    display: inline-block;
-    width: 90px;
-    height: 8px;
-    border-radius: 4px;
-    background: var(--track, var(--chip));
     vertical-align: middle;
-    overflow: hidden;
   }
-  .meter span {
-    display: block;
-    height: 100%;
-    border-radius: 4px;
-    background: var(--sage-deep);
+  .dot.ex {
+    margin-right: 6px;
+    border-radius: 3px;
+    background: var(--rose-deep);
   }
-  .pc {
-    margin-left: 8px;
-    font-variant-numeric: tabular-nums;
+  .line {
+    width: 100%;
+    height: 110px;
+    overflow: visible;
+  }
+  .grid {
+    stroke: var(--hairline);
+    stroke-width: 1;
+  }
+  .ax {
+    fill: var(--text-muted);
+    font-size: 10px;
+    text-anchor: end;
+  }
+  .goal {
+    stroke: var(--sage-deep);
+    stroke-width: 1.5;
+    stroke-dasharray: 4 4;
+  }
+  .ln {
+    fill: none;
+    stroke: color-mix(in srgb, var(--lavender) 40%, var(--text));
+    stroke-width: 2.5;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+  .pt {
+    fill: color-mix(in srgb, var(--lavender) 40%, var(--text));
+    stroke: var(--surface);
+    stroke-width: 2;
+    pointer-events: none;
+  }
+  .hit {
+    fill: transparent;
+  }
+  .hh {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  .btn.sm {
+    min-height: 34px;
+    padding: 0 14px;
+    font-size: 13px;
+  }
+  .btn.dark {
+    background: var(--primary, var(--charcoal));
+    color: var(--on-primary, var(--white));
   }
   .hard {
-    margin: 0;
-    padding: 0 0 0 20px;
-    display: grid;
-    gap: 8px;
+    width: 100%;
+    border-collapse: collapse;
     font-size: 14px;
   }
-  .hard li {
-    display: flex;
-    gap: 10px;
+  .hard td {
+    padding: 9px 8px;
+    border-top: 1px solid var(--hairline);
   }
-  .hard a {
-    flex: 1;
-    min-width: 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+  .hard .f a {
     color: var(--text);
+    text-decoration: none;
   }
-  .lap {
+  .hard .f a:hover {
+    text-decoration: underline;
+  }
+  .st {
+    padding: 2px 8px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 700;
+    white-space: nowrap;
+  }
+  .st.n {
+    background: color-mix(in srgb, var(--periwinkle) 25%, var(--white));
+    color: var(--link-ink);
+  }
+  .st.l {
+    background: color-mix(in srgb, var(--rose) 30%, var(--white));
     color: var(--alert-ink);
-    font-weight: 600;
-    font-variant-numeric: tabular-nums;
+  }
+  .st.r {
+    background: color-mix(in srgb, var(--sage) 35%, var(--white));
+    color: var(--go-ink);
+  }
+  .st.s {
+    background: var(--chip);
+    color: var(--text-muted);
+  }
+  .none {
+    margin: 0;
+  }
+  .small {
+    font-size: 13px;
   }
   .muted {
     color: var(--text-muted);

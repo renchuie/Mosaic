@@ -9,7 +9,8 @@
     label,
     xEvery = 0,
   }: {
-    data: { x: string; parts: Part[]; tip: string }[];
+    /** `mark`: a day to point out (an exam), drawn as a soft rose column */
+    data: { x: string; parts: Part[]; tip: string; mark?: boolean }[];
     height?: number;
     /** what the chart shows, for screen readers */
     label: string;
@@ -34,7 +35,7 @@
   <div class="grid"><span>{top % 1 ? top.toFixed(1) : top}</span></div>
   <div class="cols" style="grid-template-columns: repeat({data.length}, minmax(0, 1fr))" onmouseleave={() => (hover = null)} role="presentation">
     {#each data as d, i (i)}
-      <div class="col" class:on={hover === i} onmouseenter={() => (hover = i)} role="presentation">
+      <div class="col" class:on={hover === i} class:mark={d.mark} onmouseenter={() => (hover = i)} role="presentation">
         <div class="stack" style="height: {(total(d.parts) / top) * 100}%">
           {#each d.parts.filter((p) => p.v > 0) as p, k (k)}
             <span style="flex: {p.v} 1 0; background: {p.colour}"></span>
@@ -85,6 +86,9 @@
     justify-content: center;
     height: 100%;
     border-radius: 6px 6px 0 0;
+  }
+  .col.mark {
+    background: color-mix(in srgb, var(--rose) 28%, transparent);
   }
   .col.on {
     background: color-mix(in srgb, var(--text) 6%, transparent);

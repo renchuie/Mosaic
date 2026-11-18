@@ -48,7 +48,7 @@ export type CardRef = {
 /** note scope with `section`: only cards under that heading path (a section's Review button) */
 /** filter: the Filtered decks (missed this week, keeps slipping, due in the next 2 days), on all
  *  cards or inside another scope; notes: the note cards of one course ("" = notes with no course) */
-export type FilterId = "missed" | "leech" | "ahead";
+export type FilterId = "missed" | "leech" | "ahead" | "hard";
 export type Scope =
   | { kind: "all" }
   | { kind: "deck"; id: string }
@@ -82,7 +82,7 @@ export function parseScope(k: string): Scope {
   return k === "library" ? { kind: "library" } : { kind: "all" };
 }
 /** what a scope is called */
-export const FILTER_NAMES: Record<FilterId, string> = { missed: "Missed this week", leech: "Keeps slipping", ahead: "Due in the next 2 days" };
+export const FILTER_NAMES: Record<FilterId, string> = { missed: "Missed this week", leech: "Keeps slipping", ahead: "Due in the next 2 days", hard: "Hardest cards" };
 export function scopeName(s: Scope): string {
   if (s.kind === "filter") return FILTER_NAMES[s.id] + (s.in ? ` · ${scopeName(s.in)}` : "");
   if (s.kind === "notes") return s.course ? `${courseByName(s.course)?.[1].code || s.course} notes` : "Other notes";
@@ -162,6 +162,7 @@ const WEEK = 7 * 86_400_000;
 function filterMatch(id: FilterId): (r: CardRef) => boolean {
   const now = Date.now();
   if (id === "leech") return (r) => !!r.rec?.leech;
+  if (id === "hard") return (r) => !!r.rec && !r.rec.suspended && r.rec.lapses >= 2;
   // forgotten at least once and seen in the last week (the review log isn't kept per card)
   if (id === "missed") return (r) => !!r.rec && r.rec.lapses > 0 && !!r.rec.last_review && now - r.rec.last_review < WEEK;
   return (r) => !!r.rec && !r.rec.suspended && r.rec.state !== State.New && r.rec.due <= now + 2 * 86_400_000;

@@ -900,15 +900,29 @@ Recall Labs. Decisions she approved:
 
 ## Flashcards F1 (started Nov 19, her order: browser, decks + limits, stats, smarter reviews, .apkg)
 
-- Card browser (`src/routes/study/CardBrowser.svelte`, route `#/study/cards/browse`, "Browse" in
-  the Cards hero): every card (notes + library) in one table: search, status (All / Due / New /
-  Learning / Review / Suspended), course, source, sort; checkboxes with bulk Suspend / Unsuspend /
-  Due now / Reschedule (tomorrow, 3 days, a week, a date) / Forget (back to new); a side panel with
-  the card, its numbers, and Edit (note cards: the line is rewritten in the note, id kept;
-  `cardLine` / `saveCardLine` in the srs store) or Open note. 150 rows, then "Show more". It runs
-  `ensureIds()` itself (cards without an id can't be tracked, and it can be opened directly).
-  srs helpers: `forget(key)`, `reschedule(key, ms)` (review / learning cards only). Cards page's
-  old "All cards" list is gone.
+- Browse (`src/routes/study/CardBrowser.svelte`, `#/study/cards/browse[?leech | ?scope=<scope>]`,
+  rebuilt Nov 19 to the canvas board "Flashcards tab" → Browse): search box with plain words and
+  filters (`deck:"Name"` `tag:x` `is:new|learning|due|paused|leech|flagged` `flag:rose` `course:x`;
+  a deck page's scope shows as a chip in the box); left sidebar picks one per group (Decks from
+  `deckGroups()`, State with coloured dots incl. "Keeps slipping", Flags, top tags); dark bulk bar
+  (Move to deck… / Add tag: library cards only; Flag; Pause / Unpause; Reschedule… incl. Due now;
+  Forget (make new) and Delete ask once); table Front · Deck · Type · Due · Interval · Missed,
+  click a header to sort, Shift-click a checkbox to pick a range; the card on the right: title,
+  flag, Pause, the library card's fields editable (Save appears when changed) or a note card's
+  Front / Back with "Edit line" (`cardLine` / `saveCardLine`), Deck / Added / Reviews (remembered
+  %) / Memory (stability) / Next, Due now / Forget / Not slipping, "Edit in <note> ↗". Flags:
+  `FLAGS` (rose / butter / sage) in srs, synced collection `cardFlags` keyed by card key
+  (`flagOf` / `setFlag`). srs helpers: `forget(key)`, `reschedule(key, ms)`.
+- Add card (`src/routes/study/AddCard.svelte`, `#/study/cards/add[?deck=<id>]`, board "Add card";
+  the rail's + → Flashcard, home's Add card / A, a deck row's ＋ and a deck page's Add card all
+  open it): type chips (library types; Image occlusion opens OcclusionEditor; "My types" opens
+  TypeDialog), Deck and Course pickers (a deck with one course fills the course), one box per
+  field with a format bar on the focused one (B, I, ==, { } cloze with the next cN, x²; Ctrl+B /
+  Ctrl+I / Ctrl+Shift+C), a keep pin per field and for tags (pinned ones stay filled after Add),
+  tag chips, Add (Ctrl+Enter) / Done / Esc; a live preview drawn like review, a duplicate check
+  (the first field equals an existing card's front), "Added just now". Last type / deck / course /
+  pins per machine in localStorage "mosaic.addCard". A library item added to a deck carries
+  `FlashItem.deck`; that deck and its parents include it whatever their rules (`ownMatcher`).
 - Decks (store `src/lib/stores/decks.svelte.ts`, synced collection `decks`; editor
   `src/routes/study/DeckEditor.svelte`; Cards page "Decks" → New deck, click a name to edit): a
   deck is a saved filter, so decks overlap (like Anki's filtered decks) and the course / note /
@@ -922,15 +936,19 @@ Recall Labs. Decisions she approved:
   `due` after limits and `held` for reviews over the limit. Per-deck "today" counts come from the
   cards themselves: `born` (stamped on a card's first rating since Nov 19) today = new today,
   `last_review` today otherwise = reviewed today (cards, not ratings).
-- Stats (`src/routes/study/CardStats.svelte`, `#/study/cards/stats`, "Stats" in the Cards hero;
-  bars from `src/lib/components/BarChart.svelte`: stacked columns, hover tooltip per column, one
-  dashed gridline with a round max): range Month / 3 months / Year (a year is drawn by week);
-  tiles reviews, time, days studied + streak, retention (not Again, from `reviewDays`), recall now
-  (average FSRS retrievability of seen cards, `recallOf` in srs); charts reviews per day
-  (remembered / new / again), time, next 30 days, card states, intervals; By course (cards,
-  mature, recall now) and Most forgotten (lapses). Day counts exist only for all cards together
-  (`reviewDays` has no per-card log), so they can't be split by course or deck; card-based parts
-  can. Preview-only test hook `window.__synced` {put, get, keys} seeds records (nothing is saved there).
+- Stats (`src/routes/study/CardStats.svelte`, `#/study/cards/stats`, rebuilt Nov 19 to the board
+  "Study modes and stats" → Stats tab): deck chips (All decks + the first 6 of My decks / From
+  your notes) and Week / Month / Term (from mid-Aug or mid-Jan) / Year; tiles Studied (cards,
+  time), Remembered vs the goal (retention setting), Streak + best, Cards you know well (≥ 21 d);
+  "Every day you studied" heatmap (26 weeks × 7, sage levels, hover = cards · minutes); "Where
+  your cards are" donut (New, Learning, Young, Known well, Paused); "Remembered, by week" (10
+  weeks, SVG line, dashed goal line, its scale follows her numbers); Next 30 days (BarChart, the
+  exam day a soft rose column via `mark`); "How far apart" (intervals; the board's "When you
+  remember best" needs review times, which aren't logged); Hardest cards (missed N of reps) with
+  "Review these N now" = cram of `filter:hard` (lapses ≥ 2). Day counts (`reviewDays`) exist only
+  for all cards together, so heatmap / studied / remembered show every deck; the card-based parts
+  follow the deck chip. BarChart: stacked columns, hover tooltip, one dashed gridline. Preview
+  hook `window.__synced` {put, get, keys} seeds records (nothing is saved there).
 - Smarter reviews: **siblings** (`siblingGroup`: same note line, or same library item; table
   cells never) are buried like Anki: one card per group a day (a group reviewed today or with a
   card in learning holds back its other new / review cards). `plan()` in srs does limits + burying
