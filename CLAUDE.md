@@ -264,7 +264,8 @@ Markdown" view, the `<>` chip on the note header).
   once the title has scrolled away); `fullHead` in "mosaic.notePanels". The formatting toolbar only floats at the bottom (while typing,
   or always when ✎ is on). A panel icon slides its panel over the note as a sheet (click away /
   Esc); 📌 pins it beside the note as a column (pins need room: left > 1000px, right > 960px or
-  1240px with both). **Writing mode** (button or Ctrl+\; `ui.writing` in
+  1240px with both). **Writing mode** (button, Ctrl+Shift+F, or Ctrl+\ also matched by `e.code`, in a capture-phase
+  listener; Nov 18: on her PC Ctrl+\ opened the system emoji picker instead; `ui.writing` in
   `src/lib/stores/ui.svelte.ts`, not remembered): the rail slides off to a glowing left edge and
   the top bar hides; touching the left edge brings the rail back, the window's top edge brings
   the top bar back (App's `.redge` / `.tedge`, NotesView reads `.shell:has(.tedge:hover)`); pills

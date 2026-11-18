@@ -461,8 +461,15 @@
       // Esc the editor didn't use (a menu, cloze retyping) leaves writing mode
       ui.writing = false;
     }
-    if ((e.ctrlKey || e.metaKey) && e.key === "\\" && rel && note) {
+  }}
+  onkeydowncapture={(e) => {
+    // writing mode: Ctrl+\ (matched by the physical key too, for other keyboard layouts) or
+    // Ctrl+Shift+F (Nov 18: on her PC Ctrl+\ never reached the app; the system emoji picker opened)
+    const mod = e.ctrlKey || e.metaKey;
+    const hit = mod && !e.altKey && (e.key === "\\" || e.code === "Backslash" || (e.shiftKey && e.code === "KeyF"));
+    if (hit && rel && note) {
       e.preventDefault();
+      e.stopPropagation();
       toggleWriting();
     }
   }}
@@ -512,7 +519,7 @@
             {#if p.id === "backlinks" && back.length}<i class="badge soft">{back.length}</i>{/if}
           </button>
         {/each}
-        <button type="button" class="ico" class:on={ui.writing} title={ui.writing ? "Leave writing mode (Ctrl+\\)" : "Writing mode: hide everything but the note (Ctrl+\\)"} aria-label="Writing mode" aria-pressed={ui.writing} onclick={toggleWriting}><Icon name="focus" size={18} /></button>
+        <button type="button" class="ico" class:on={ui.writing} title={ui.writing ? "Leave writing mode (Ctrl+Shift+F)" : "Writing mode: hide everything but the note (Ctrl+Shift+F)"} aria-label="Writing mode" aria-pressed={ui.writing} onclick={toggleWriting}><Icon name="focus" size={18} /></button>
       </div>
 
       {#if ui.writing}
