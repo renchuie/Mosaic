@@ -94,7 +94,14 @@
   };
 </script>
 
-<svelte:window onkeydown={(e) => e.key === "Escape" && pick && (pick = null)} />
+<!-- the course list and the ⋯ menu close on a click anywhere outside them (Nov 18 bug: they stayed
+     open); the icon and cover pickers have their own scrim -->
+<svelte:window
+  onkeydown={(e) => e.key === "Escape" && pick && (pick = null)}
+  onpointerdown={(e) => {
+    if ((pick === "course" || pick === "menu") && !(e.target as HTMLElement | null)?.closest?.(".mwrap")) pick = null;
+  }}
+/>
 
 {#snippet chipRow()}
     <div class="chips">
