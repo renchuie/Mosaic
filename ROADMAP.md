@@ -336,3 +336,6 @@ Add things here as they come up (date, page, what happened). Each one is either 
   25. Nov 19 · Week 2 "Trust" started early: daily backups to this computer and Drive (app data +
       note text, 14 kept), back up now, restore with a preview (or from a file), safety copy first.
       **Done.** Still in week 2: friendlier "Drive isn't mounted" states and a scan-speed check.
+  26. Nov 19 · Per-note version history (Obsidian-style File recovery): a version every 10 minutes
+      of editing, 14 days, on each computer; ⋯ → Version history with changes view and restore.
+      **Done.**

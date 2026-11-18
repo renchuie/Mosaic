@@ -76,6 +76,7 @@
     { id: "synconoff", g: "sync", label: "Sync between computers", words: "sync drive laptop pc folder" },
     { id: "syncstatus", g: "sync", label: "Sync status", words: "sync now last synced status" },
     { id: "backupplaces", g: "backups", label: "Backups", words: "backup backups copy daily restore save export safe" },
+    { id: "backupplaces", g: "backups", label: "Note history", words: "history version versions undo earlier recover note" },
     { id: "restore", g: "backups", label: "Restore a backup", words: "restore backup undo lost recover import file" },
     { id: "examwords", g: "calendar", label: "Words that mark an exam", words: "exam keywords quiz final calendar" },
     { id: "labstorage", g: "advanced", label: "Lab storage", words: "lab storage rescan check scan" },
@@ -143,6 +144,7 @@
   let bLocal = $state(settings.backupLocal ?? "");
   let bDrive = $state(settings.backupDrive ?? "");
   let bKeep = $state(settings.backupKeep ?? 14);
+  let hDays = $state(settings.historyDays ?? 14);
   let pick = $state<{ b: Backup; label: string; pv: Preview } | null>(null);
   let what = $state({ data: true, notes: true, settings: false });
   let bmsg = $state("");
@@ -153,7 +155,7 @@
   });
   async function saveBackups(e: SubmitEvent) {
     e.preventDefault();
-    await saveSettings({ autoBackup: bOn, backupLocal: bLocal.trim(), backupDrive: bDrive.trim(), backupKeep: Math.max(1, Math.round(Number(bKeep)) || 14) });
+    await saveSettings({ autoBackup: bOn, backupLocal: bLocal.trim(), backupDrive: bDrive.trim(), backupKeep: Math.max(1, Math.round(Number(bKeep)) || 14), historyDays: Math.max(1, Math.round(Number(hDays)) || 14) });
     void listBackups();
     done("backups");
   }
@@ -474,6 +476,7 @@
         <label class="srow col"><span class="rl"><b>On this computer</b>{#if backups.error.local}<span class="bad">{backups.error.local}</span>{/if}</span><input class="input" bind:value={bLocal} spellcheck="false" placeholder="Off" /></label>
         <label class="srow col"><span class="rl"><b>On Google Drive</b>{#if backups.error.drive}<span class="bad">{backups.error.drive}</span>{/if}</span><input class="input" bind:value={bDrive} spellcheck="false" placeholder="Off" /></label>
         <label class="srow"><span class="rl"><b>Keep</b><span>Days per computer.</span></span><input class="input num" type="number" min="1" max="365" bind:value={bKeep} /></label>
+        <label class="srow"><span class="rl"><b>Note history</b><span>Earlier versions of each note, on this computer. Note ⋯ → Version history. Days kept.</span></span><input class="input num" type="number" min="1" max="365" bind:value={hDays} /></label>
         <div class="srow end">
           <button class="btn primary" type="submit">Save</button>
           <button class="btn quiet" type="button" onclick={backupNow} disabled={!inTauri || backups.running}>{backups.running ? "Backing up…" : "Back up now"}</button>

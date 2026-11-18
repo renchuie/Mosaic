@@ -53,6 +53,8 @@ export type Settings = {
   backupLocal?: string;
   backupDrive?: string;
   backupKeep?: number;
+  /** per-note history on this computer: versions kept this many days */
+  historyDays?: number;
   /** the Drive folders and sync setting in use before switching to the vault, put back on return */
   driveRoots?: { notesRoot: string; labsRoot: string; pdfRoot: string; syncEnabled: boolean };
 };
@@ -104,6 +106,7 @@ export const DEFAULT_SETTINGS: Settings = {
   backupLocal: "~/Mosaic Backups",
   backupDrive: "~/GoogleDrive/Pharmacy School/Study Lab/Mosaic Backups",
   backupKeep: 14,
+  historyDays: 14,
 };
 
 export const settings = $state<Settings>({ ...DEFAULT_SETTINGS });

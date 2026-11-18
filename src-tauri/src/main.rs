@@ -2,6 +2,7 @@
 // sync (per-machine files in a Google Drive folder), notes, pdfs.
 
 mod backup;
+mod history;
 mod labs;
 mod materials;
 mod notes;
@@ -67,6 +68,10 @@ fn main() {
             backup::backup_list,
             backup::backup_read,
             backup::backup_prune,
+            history::history_add,
+            history::history_list,
+            history::history_get,
+            history::history_move,
             sync::sync_write,
             sync::sync_read,
             vault::vault_dirs,

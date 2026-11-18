@@ -139,7 +139,33 @@ export function searchNotes(q: string) {
 // ---- writing ------------------------------------------------------------------------
 
 /** Save a note. Throws "conflict" if it changed on disk since `expected` (another computer). */
+// ---- per-note history (Nov 19, her ask): before a save replaces a note's text, the old text is
+// kept on this computer (Rust history.rs) — at most one version per 10 minutes of editing, so a
+// typing session gives a version every 10 minutes, not one per autosave; `force` always keeps one
+// (restoring an older version). Kept `settings.historyDays` days, up to 300 per note.
+const SNAP_MS = 10 * 60_000;
+const lastSnap = new Map<string, number>();
+export function snapshot(rel: string, text: string, force = false) {
+  if (!inTauri || !text) return;
+  const now = Date.now();
+  if (!force && now - (lastSnap.get(rel) ?? 0) < SNAP_MS) return;
+  lastSnap.set(rel, now);
+  void invoke("history_add", { rel, text, keepDays: settings.historyDays ?? 14, max: 300 }).catch((e) => console.error("history", e));
+}
+function historyMoved(from: string, to: string, folder = false) {
+  if (!inTauri) return;
+  for (const [k, t] of [...lastSnap]) {
+    if (k === from || (folder && k.startsWith(from + "/"))) {
+      lastSnap.delete(k);
+      lastSnap.set(to + k.slice(from.length), t);
+    }
+  }
+  void invoke("history_move", { from, to, folder }).catch((e) => console.error("history move", e));
+}
+
 export async function saveNote(rel: string, text: string, expected?: number): Promise<void> {
+  const before = notes.files[rel]?.text;
+  if (before !== undefined && before !== text) snapshot(rel, before);
   if (!inTauri) {
     notes.files[rel] = entry(rel, Date.now(), text.length, text);
     return;
@@ -190,6 +216,7 @@ export async function renameNote(rel: string, title: string): Promise<string> {
   if (notes.files[to]) throw new Error(`A note called “${title}” is already in this folder.`);
   const oldName = linkName(e);
   if (inTauri) await invoke("notes_move", { from: rel, to });
+  historyMoved(rel, to);
   delete notes.files[rel];
   notes.files[to] = entry(to, e.mtime, e.size, e.text);
   // keep the note's own heading in step when it was just the old name
@@ -213,6 +240,7 @@ export async function moveNote(rel: string, folder: string): Promise<string> {
   if (to === rel) return rel;
   if (notes.files[to]) throw new Error("A note with that name is already in that folder.");
   if (inTauri) await invoke("notes_move", { from: rel, to });
+  historyMoved(rel, to);
   const e = notes.files[rel];
   delete notes.files[rel];
   notes.files[to] = entry(to, e.mtime, e.size, e.text);
@@ -241,6 +269,7 @@ export async function moveFolder(from: string, to: string): Promise<string> {
   if (notes.dirs.includes(to) || Object.keys(notes.files).some((r) => r.startsWith(to + "/")))
     throw new Error(`There's already a folder called “${to.split("/").pop()}” there.`);
   if (inTauri) await invoke("notes_move", { from, to });
+  historyMoved(from, to, true);
   const next: Record<string, NoteEntry> = {};
   const moved: [string, string][] = [];
   for (const [r, e] of Object.entries(notes.files)) {

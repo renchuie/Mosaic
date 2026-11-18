@@ -1043,6 +1043,22 @@ Recall Labs. Decisions she approved:
   delete a note, change another → restore brings back the note, the changed one's current text
   in `.trash`, and app data (a task added to the backup).
 
+## Note history (Nov 19, her ask after comparing with Obsidian's File recovery)
+
+- Note ⋯ → "Version history…" (`src/routes/study/NoteHistory.svelte`): versions on the left,
+  "Changes" (line diff since that version, `src/lib/lineDiff.ts`, pure; unchanged runs fold, card
+  ids hidden) or "Whole version", "Restore this version". Kept on THIS computer only:
+  `<app data>/history/<fnv64(path)>/` with `path.txt` and `<ms>.md` (Rust `history.rs`, async,
+  `cargo test history`). Settings → Backups → "Note history" days (`settings.historyDays`, 14).
+- When: `saveNote` in the notes store keeps the text it is about to replace, at most once per 10
+  minutes per note (`snapshot`, in-memory `lastSnap`), so the first save after opening always keeps
+  the original; same text as the newest version isn't kept twice; 300 per note max. Renames and
+  folder moves carry the history (`history_move`). Restoring: flush, keep the current text
+  (forced), write the old text, reload the editor; NotesView's `replacing` flag stops the closing
+  editor's leave-save from writing the old text back over it.
+- Tested in the real app: edit → version kept → history shows +2 −1 → restore → the file equals
+  the original and the edited text is now a version too.
+
 ## Performance (Nov 19, her "scrolling isn't smooth, deleting has a brief moment")
 
 - Tauri runs a command that is a plain `pub fn` on the MAIN thread, so the whole window freezes

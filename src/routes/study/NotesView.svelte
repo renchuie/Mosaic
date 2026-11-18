@@ -5,6 +5,7 @@
   // note as a column. Writing mode (Ctrl+\) hides the rail and the top bar until the mouse touches
   // the left or top edge. Pins and the toolbar pin are remembered per machine; page width per note.
   import Icon from "../../lib/components/Icon.svelte";
+  import NoteHistory from "./NoteHistory.svelte";
   import BlockEditor from "../../lib/components/BlockEditor.svelte";
   import NoteEditor from "../../lib/components/NoteEditor.svelte";
   import { joinNote, linkKey, plainText, splitNote, type Meta } from "../../lib/notes";
@@ -13,7 +14,7 @@
   import { get } from "../../lib/stores/synced.svelte";
   import {
     allNotes, allTags, backlinks, createNote, dirOf, getNote, imageUrl, linkName, moveNote, noteHref, notes,
-    reloadNote, renameNote, resolveLink, saveNote, savePastedImage, noteDirs } from "../../lib/stores/notes.svelte";
+    reloadNote, renameNote, resolveLink, saveNote, savePastedImage, noteDirs, snapshot } from "../../lib/stores/notes.svelte";
   import { pdfHref, resolvePdfLink } from "../../lib/stores/pdfs.svelte";
   import NewNoteDialog from "./NewNoteDialog.svelte";
   import NoteMenu from "./NoteMenu.svelte";
@@ -116,8 +117,12 @@
   }
 
   /** Save a note's text that the editor handed over as it closed (left within the autosave delay). */
+  /** a note whose text was just replaced on purpose (an older version put back): its editor's
+   *  leave-save must not write the old text over it */
+  let replacing: string | null = null;
   function leaveFor(r: string) {
     return (md: string) => {
+      if (replacing === r) return;
       const e = getNote(r);
       if (!e) return;
       const s = splitNote(e.text);
@@ -234,6 +239,29 @@
     loadedRel = null; // load it again: moving can rewrite its image paths
     location.hash = noteHref(to);
   }
+  // ---- version history (Nov 19): the note is saved first so "now" is up to date ----
+  let histOpen = $state(false);
+  let histCur = $state("");
+  async function openHistory() {
+    if (!loadedRel) return;
+    await flush();
+    histCur = getNote(loadedRel)?.text ?? "";
+    histOpen = true;
+  }
+  async function restoreVersion(text: string) {
+    if (!loadedRel) return;
+    const r = loadedRel;
+    window.clearTimeout(timer);
+    await flush();
+    const now = getNote(r)?.text;
+    if (now) snapshot(r, now, true); // the current text stays in the history
+    replacing = r;
+    histOpen = false;
+    await saveNote(r, text);
+    loadedRel = null; // the editor reloads from the restored text
+    setTimeout(() => (replacing = null), 500);
+  }
+
   async function doDelete() {
     if (!rel) return;
     window.clearTimeout(timer);
@@ -637,7 +665,7 @@
               coverUrl={(s) => imageUrl(rel!, s)}
               onmeta={setMeta} onrename={doRename} onmove={doMove} ondelete={doDelete} ontoggleSource={toggleSource}
               full={fullHead} onheadstyle={setHead} onrun={(c, a) => blocks?.run(c, a)}
-              oncoverfile={coverFile} ontheirs={takeTheirs} onmine={() => flush(true)} onprint={printNote} />
+              oncoverfile={coverFile} ontheirs={takeTheirs} onmine={() => flush(true)} onprint={printNote} onhistory={openHistory} />
             <div class="edwrap" class:src={source}>
               {#key `${loadedRel}#${version}`}
                 {#if source}
@@ -738,6 +766,7 @@
   {/if}
 </div>
 
+{#if loadedRel}<NoteHistory bind:open={histOpen} rel={loadedRel} current={histCur} onrestore={restoreVersion} />{/if}
 <NewNoteDialog bind:open={newOpen} folder={newFolder} mode={newMode} />
 <NoteMenu onnew={(f) => { newMode = "note"; newFolder = f; newOpen = true; sheetL = false; }} onnewfolder={(f) => { newMode = "folder"; newFolder = f; newOpen = true; sheetL = false; }} />
 

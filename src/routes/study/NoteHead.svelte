@@ -33,6 +33,7 @@
     onrename,
     onmove,
     ondelete,
+    onhistory,
     ontoggleSource,
     full = false,
     onheadstyle,
@@ -55,6 +56,7 @@
     onrename: () => void;
     onmove: (folder: string) => void;
     ondelete: () => void;
+    onhistory?: () => void;
     ontoggleSource: () => void;
     /** full header: breadcrumb, big icon, chips and the toolbar on their own row */
     full?: boolean;
@@ -150,6 +152,7 @@
             {:else}
               <button type="button" class="mi" onclick={() => { onmeta({ cover: "lilac" }); pick = null; }}>Add a cover</button>
             {/if}
+            {#if onhistory}<button type="button" class="mi" onclick={() => { pick = null; onhistory(); }}>Version history…</button>{/if}
             {#if onprint}<button type="button" class="mi" onclick={() => { pick = null; onprint(); }}>Print or save as PDF…</button>{/if}
             {#if confirmDel}
               <button type="button" class="mi del" onclick={ondelete}>Move to trash (.trash in the Notes folder)</button>
