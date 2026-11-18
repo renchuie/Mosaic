@@ -348,4 +348,4 @@ Add things here as they come up (date, page, what happened). Each one is either 
       tasks; the rule is in CLAUDE.md "Writing UI text". **Done.**
   29. Nov 19 · F1 flashcards pulled forward (her "FLASHCARD SYSTEM TIME"), in her order: card
       browser (**Done**), decks + limits (**Done**), stats page (**Done**), smarter reviews (leeches, sibling burying,
-      edit from review), Anki .apkg import with review history.
+      edit from review; **Done**), Anki .apkg import with review history.

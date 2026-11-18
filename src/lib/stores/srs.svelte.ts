@@ -25,6 +25,8 @@ export type SrsRec = {
   state: number;
   last_review?: number;
   suspended?: boolean;
+  /** forgotten LEECH_AT times or more (and flagged again every half of that after) */
+  leech?: boolean;
   /** when it was first reviewed (Nov 19 on; older cards have none): new-card counts per deck */
   born?: number;
 };
@@ -60,6 +62,7 @@ const fromF = (c: FCard, keep?: SrsRec): SrsRec => ({
   last_review: c.last_review ? c.last_review.getTime() : undefined,
   ...(keep?.suspended ? { suspended: true } : {}),
   ...(keep?.born ? { born: keep.born } : {}),
+  ...(keep?.leech ? { leech: true } : {}),
 });
 
 // ---- cards in notes -------------------------------------------------------------------
@@ -183,38 +186,78 @@ export function limitsLeft(s: Scope, list?: CardRef[]): { new: number; reviews: 
   return { new: newLeft, reviews: revLeft };
 }
 
+/** Siblings: cards from the same note line (both sides of ⇄, a line's clozes, a concept's two
+ *  cards) or the same library item. Table cells don't count: a table is many separate facts. */
+export function siblingGroup(r: CardRef): string | null {
+  if (r.item) return `item:${r.item.id}`;
+  if (r.card.kind === "table" || !r.card.lineId) return null;
+  return `line:${r.card.lineId}`;
+}
+
+/** What a session in this scope asks today: learning cards, then reviews and new cards within
+ *  the daily limits; with burying on, one card per sibling group a day (a group already seen
+ *  today, or with a card in learning, holds its other new / review cards back until tomorrow). */
+function plan(s: Scope, list: CardRef[]) {
+  const now = Date.now();
+  const left = limitsLeft(s, list);
+  const bury = settings.burySiblings !== false;
+  const taken = new Set<string>();
+  if (bury) for (const r of list) if (r.rec && isToday(r.rec.last_review)) { const g = siblingGroup(r); if (g) taken.add(g); }
+  const take = (r: CardRef) => {
+    if (!bury) return true;
+    const g = siblingGroup(r);
+    if (!g) return true;
+    if (taken.has(g)) return false;
+    taken.add(g);
+    return true;
+  };
+  const learning = list.filter((r) => statusOf(r.rec, now) === "learning").sort((a, b) => a.rec!.due - b.rec!.due);
+  for (const r of learning) { const g = siblingGroup(r); if (g && bury) taken.add(g); }
+  const allReview = list.filter((r) => statusOf(r.rec, now) === "review").sort((a, b) => a.rec!.due - b.rec!.due);
+  const review: CardRef[] = [];
+  let buried = 0;
+  for (const r of allReview) {
+    if (review.length >= left.reviews) break;
+    if (take(r)) review.push(r);
+    else buried++;
+  }
+  // a section reviewed right after class gets all of its new cards, not just today's allowance
+  const max = s.kind === "note" && s.section?.length ? Infinity : left.new;
+  const fresh: CardRef[] = [];
+  for (const r of list) {
+    if (r.rec) continue;
+    if (fresh.length >= max) break;
+    if (take(r)) fresh.push(r);
+    else buried++;
+  }
+  return { learning, review, fresh, held: allReview.length - review.length - buried, buried };
+}
+
 export function counts(s: Scope = { kind: "all" }) {
   const list = allCards().filter((r) => r.card.lineId).filter(inScope(s));
   const now = Date.now();
-  let n = 0, learning = 0, review = 0, later = 0, suspended = 0, mature = 0;
+  let n = 0, review = 0, later = 0, suspended = 0, mature = 0, leeches = 0;
   for (const r of list) {
     const st = statusOf(r.rec, now);
     if (st === "new") n++;
-    else if (st === "learning") learning++;
     else if (st === "review") review++;
     else if (st === "suspended") suspended++;
-    else later++;
+    else if (st === "later") later++;
     if (r.rec && r.rec.scheduled_days >= 21) mature++;
+    if (r.rec?.leech) leeches++;
   }
-  const left = limitsLeft(s, list);
-  const newToday = Math.min(n, left.new);
-  // reviews held back by a daily limit still show in `review`; `due` is what a session will ask
-  const shown = Math.min(review, left.reviews);
-  return { total: list.length, new: n, newToday, learning, review, later, suspended, mature, due: learning + shown, held: review - shown };
+  const p = plan(s, list);
+  return {
+    total: list.length, new: n, newToday: p.fresh.length, learning: p.learning.length, review, later, suspended, mature, leeches,
+    // `due` is what a session will ask; reviews over a limit (`held`) or behind a sibling (`buried`) wait
+    due: p.learning.length + p.review.length, held: p.held, buried: p.buried,
+  };
 }
 
 /** Cards for a review session: learning, then reviews, with today's new cards mixed in. */
 export function queue(s: Scope): CardRef[] {
-  const now = Date.now();
   const list = allCards().filter((r) => r.card.lineId).filter(inScope(s));
-  const learning = list.filter((r) => statusOf(r.rec, now) === "learning").sort((a, b) => a.rec!.due - b.rec!.due);
-  const left = limitsLeft(s, list);
-  const review = list
-    .filter((r) => statusOf(r.rec, now) === "review")
-    .sort((a, b) => a.rec!.due - b.rec!.due)
-    .slice(0, left.reviews);
-  // a section reviewed right after class gets all of its new cards, not just today's allowance
-  const fresh = list.filter((r) => !r.rec).slice(0, s.kind === "note" && s.section?.length ? Infinity : left.new);
+  const { learning, review, fresh } = plan(s, list);
   const out = [...learning];
   let i = 0;
   for (const r of review) {
@@ -263,7 +306,9 @@ export function nextExam(course?: string) {
 /** The evening before an exam: the latest a card should come due. */
 const beforeExam = (date: string) => fromKey(date).getTime() - 6 * 3600000;
 
-export function grade(key: string, g: Grade, ms: number, course?: string) {
+export const LEECH_AT = 8;
+/** Rate a card. Returns true when this rating made it a leech. */
+export function grade(key: string, g: Grade, ms: number, course?: string): boolean {
   const rec = get<SrsRec>("srs", key);
   const now = new Date();
   const next = scheduler().next(rec ? toF(rec) : createEmptyCard(now), now, g).card;
@@ -276,9 +321,18 @@ export function grade(key: string, g: Grade, ms: number, course?: string) {
   const day = todayKey();
   const d = dayRev(day);
   last = { key, rec, day, dayRec: get<DayRev>("reviewDays", day) };
-  put("srs", key, { ...fromF(next, rec), born: rec ? rec.born : now.getTime() });
+  const after: SrsRec = { ...fromF(next, rec), born: rec ? rec.born : now.getTime() };
+  // a leech: forgotten LEECH_AT times, then again every half of that (8, 12, 16… like Anki)
+  const at = settings.leechAt ?? LEECH_AT;
+  const leech = !!at && after.lapses > (rec?.lapses ?? 0) && after.lapses >= at && (after.lapses - at) % Math.max(1, Math.ceil(at / 2)) === 0;
+  if (leech) {
+    after.leech = true;
+    if (settings.leechAction === "suspend") after.suspended = true;
+  }
+  put("srs", key, after);
   put("reviewDays", day, { reviews: d.reviews + 1, new: d.new + (rec ? 0 : 1), again: d.again + (g === Rating.Again ? 1 : 0), ms: d.ms + Math.min(ms, 120000) });
   if (d.reviews === 0) markStudyDay("reviews");
+  return leech;
 }
 
 /** Undo the last rating. Returns the card key, or null if there's nothing to undo. */
@@ -345,12 +399,14 @@ export function reschedule(key: string, when: number) {
   const rec = get<SrsRec>("srs", key);
   if (rec && rec.state !== State.New) put("srs", key, { ...rec, due: when });
 }
-/** The note line a card comes from, without its hidden id; null when it can't be edited there. */
+/** a line's indentation and list marker ("  - ", "1. ", "- [ ] "): kept as it is when a card's line is edited */
+const LINE_LEAD = /^\s*(?:(?:[-*+]|\d+[.)])\s+(?:\[[ xX]\]\s+)?)?/;
+/** The note line a card comes from (without its hidden id, indent and list marker); null when it can't be edited there. */
 export function cardLine(r: CardRef): string | null {
   if (!r.note || !r.card.lineId) return null;
   const tag = `<!--sd:${r.card.lineId}-->`;
   const line = r.note.text.split("\n").find((l) => l.includes(tag));
-  return line === undefined ? null : line.replace(/\s*<!--sd:[a-z0-9]+-->/g, "");
+  return line === undefined ? null : line.replace(/\s*<!--sd:[a-z0-9]+-->/g, "").replace(LINE_LEAD, "").trim();
 }
 /** Rewrite a card's line in its note (the id stays, so the card keeps its history). */
 export async function saveCardLine(r: CardRef, text: string): Promise<void> {
@@ -361,9 +417,17 @@ export async function saveCardLine(r: CardRef, text: string): Promise<void> {
   const lines = e.text.split("\n");
   const i = lines.findIndex((l) => l.includes(tag));
   if (i < 0) throw new Error("The card's line changed. Open the note to edit it.");
-  const clean = text.replace(/\r?\n/g, " ").replace(/\s*<!--sd:[a-z0-9]+-->/g, "").replace(/\s+$/, "");
-  lines[i] = `${clean} ${tag}`;
+  const clean = text.replace(/\r?\n/g, " ").replace(/\s*<!--sd:[a-z0-9]+-->/g, "").trim();
+  // the line keeps its indentation and list marker (they place the card in its list)
+  const lead = lines[i].match(LINE_LEAD)![0];
+  lines[i] = `${lead}${clean.replace(LINE_LEAD, "")} ${tag}`;
   await saveNote(e.rel, lines.join("\n"), e.mtime);
+}
+
+/** Clear a card's leech flag (it stays in its schedule). */
+export function clearLeech(key: string) {
+  const rec = get<SrsRec>("srs", key);
+  if (rec?.leech) put("srs", key, { ...rec, leech: undefined });
 }
 
 export function setSuspended(key: string, on: boolean) {

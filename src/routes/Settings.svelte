@@ -70,6 +70,9 @@
     { id: "scratch", g: "flashcards", label: "Scratchpad", words: "scratchpad write answer type" },
     { id: "newday", g: "flashcards", label: "New cards a day", words: "new cards per day limit" },
     { id: "revday", g: "flashcards", label: "Reviews a day", words: "review limit per day maximum" },
+    { id: "bury", g: "flashcards", label: "Siblings", words: "bury siblings reverse cloze same line" },
+    { id: "leech", g: "flashcards", label: "Leeches", words: "leech lapses forgotten hard cards" },
+    { id: "leechdo", g: "flashcards", label: "When a card becomes a leech", words: "leech suspend flag" },
     { id: "retention", g: "flashcards", label: "Target retention", words: "retention fsrs remember" },
     { id: "examaware", g: "flashcards", label: "Exam-aware scheduling", words: "exam aware before cram schedule" },
     { id: "storage", g: "files", label: "Where your files live", words: "vault local drive google storage computer" },
@@ -411,6 +414,18 @@
         <div class="srow" id="set-revday" class:flash={flash === "revday"}>
           <div class="rl"><b id="revday-l">Reviews a day</b><span>Blank = no limit.</span></div>
           <input class="input num" type="number" min="0" max="9999" aria-labelledby="revday-l" placeholder="–" value={settings.reviewsPerDay || ""} onchange={(e) => saveSettings({ reviewsPerDay: Math.max(0, Number(e.currentTarget.value) || 0) || undefined })} />
+        </div>
+        <div class="srow" id="set-bury" class:flash={flash === "bury"}>
+          <div class="rl"><b id="bury-l">Siblings</b><span>One card from a line a day.</span></div>
+          {@render seg("bury", [{ v: "on", name: "Spread out" }, { v: "off", name: "Together" }], settings.burySiblings === false ? "off" : "on", (v) => saveSettings({ burySiblings: v === "on" }))}
+        </div>
+        <div class="srow" id="set-leech" class:flash={flash === "leech"}>
+          <div class="rl"><b id="leech-l">Leeches</b><span>Forgotten this many times.</span></div>
+          <input class="input num" type="number" min="0" max="99" aria-labelledby="leech-l" value={settings.leechAt ?? 8} onchange={(e) => saveSettings({ leechAt: Math.max(0, Number(e.currentTarget.value) || 0) })} />
+        </div>
+        <div class="srow" id="set-leechdo" class:flash={flash === "leechdo"}>
+          <div class="rl"><b id="leechdo-l">When a card becomes a leech</b></div>
+          {@render seg("leechdo", [{ v: "tag", name: "Flag it" }, { v: "suspend", name: "Suspend it" }], settings.leechAction ?? "tag", (v) => saveSettings({ leechAction: v as "tag" | "suspend" }))}
         </div>
         <div class="srow" id="set-retention" class:flash={flash === "retention"}>
           <div class="rl"><b id="ret-l">Target retention</b><span>Higher means more reviews, better recall.</span></div>

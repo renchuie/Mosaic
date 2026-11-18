@@ -19,6 +19,11 @@ export type Settings = {
   /** reviews a day across all cards (0 / unset = no limit); decks can set their own */
   reviewsPerDay?: number;
   retention: number;
+  /** one card per sibling group a day (both sides of ⇄, a line's clozes); default on */
+  burySiblings?: boolean;
+  /** lapses that make a card a leech (0 = off; default 8) and what happens then (default tag) */
+  leechAt?: number;
+  leechAction?: "tag" | "suspend";
   /** keep cards in an exam's course from being scheduled past the evening before it */
   examAware: boolean;
   /** look: one of the 15 themes in src/lib/themes.ts (Mosaic = the frosted glass, default) */

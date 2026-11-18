@@ -8,13 +8,14 @@
   import { notes } from "../../lib/stores/notes.svelte";
   import { deckMatcher, decks, getDeck } from "../../lib/stores/decks.svelte";
   import {
-    allCards, cardLine, ensureIds, fmtInterval, forget, reschedule, saveCardLine, setSuspended, statusOf,
+    allCards, cardLine, clearLeech, ensureIds, fmtInterval, forget, reschedule, saveCardLine, setSuspended, statusOf,
     type CardRef, type Status,
   } from "../../lib/stores/srs.svelte";
 
-  type F = "all" | Status | "due";
+  type F = "all" | Status | "due" | "leech";
   let q = $state("");
-  let status = $state<F>("all");
+  // #/study/cards/browse?leech opens on the leeches
+  let status = $state<F>(location.hash.endsWith("?leech") ? "leech" : "all");
   let course = $state("");
   // "all" | "notes" | "library" | "deck:<id>"
   let source = $state<string>("all");
@@ -58,7 +59,7 @@
       if (source === "library" && !r.item) return false;
       if (inDeck && !inDeck(r)) return false;
       const s = st(r);
-      if (status === "due" ? !isDue(r) : status !== "all" && s !== status) return false;
+      if (status === "leech" ? !r.rec?.leech : status === "due" ? !isDue(r) : status !== "all" && s !== status) return false;
       if (!words.length) return true;
       const t = txt(r);
       const hay = `${t.f} ${t.b} ${r.title} ${(r.card.context ?? []).join(" ")}`.toLowerCase();
@@ -160,7 +161,7 @@
 
   <div class="filters">
     <div class="seg" role="radiogroup" aria-label="Status">
-      {#each [["all", "All"], ["due", "Due"], ["new", "New"], ["learning", "Learning"], ["review", "Review"], ["suspended", "Suspended"]] as [v, n]}
+      {#each [["all", "All"], ["due", "Due"], ["new", "New"], ["learning", "Learning"], ["review", "Review"], ["suspended", "Suspended"], ["leech", "Leeches"]] as [v, n]}
         <button type="button" role="radio" aria-checked={status === v} class:on={status === v} onclick={() => { status = v as F; shown = 150; }}>{n}</button>
       {/each}
     </div>
@@ -270,7 +271,7 @@
           <dt>Due</dt><dd>{r.rec && r.rec.state !== 0 ? fmtDate(r.rec.due) : "—"}</dd>
           <dt>Interval</dt><dd>{ivl(r)}</dd>
           <dt>Reviews</dt><dd>{r.rec?.reps ?? 0}</dd>
-          <dt>Lapses</dt><dd>{r.rec?.lapses ?? 0}</dd>
+          <dt>Lapses</dt><dd>{r.rec?.lapses ?? 0}{#if r.rec?.leech} · <b class="lch">Leech</b>{/if}</dd>
           <dt>Last review</dt><dd>{fmtDate(r.rec?.last_review)}</dd>
           <dt>Difficulty</dt><dd>{r.rec && r.rec.state !== 0 ? `${Math.round(r.rec.difficulty * 10)}%` : "—"}</dd>
           <dt>Stability</dt><dd>{r.rec && r.rec.state !== 0 ? fmtInterval(r.rec.stability * 86_400_000) : "—"}</dd>
@@ -280,6 +281,7 @@
           <button type="button" class="btn quiet sm" onclick={() => setSuspended(r.card.key, s !== "suspended")}>{s === "suspended" ? "Unsuspend" : "Suspend"}</button>
           {#if r.rec && r.rec.state !== 0}<button type="button" class="btn quiet sm" onclick={() => reschedule(r.card.key, Date.now())}>Due now</button>{/if}
           {#if r.rec}<button type="button" class="btn quiet sm" onclick={() => forget(r.card.key)}>Reset to new</button>{/if}
+          {#if r.rec?.leech}<button type="button" class="btn quiet sm" onclick={() => clearLeech(r.card.key)}>Not a leech</button>{/if}
         </div>
       </aside>
     {/if}
@@ -287,6 +289,9 @@
 </div>
 
 <style>
+  .lch {
+    color: var(--alert-ink);
+  }
   .browser {
     display: grid;
     gap: 12px;

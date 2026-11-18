@@ -930,7 +930,21 @@ Recall Labs. Decisions she approved:
   (remembered / new / again), time, next 30 days, card states, intervals; By course (cards,
   mature, recall now) and Most forgotten (lapses). Day counts exist only for all cards together
   (`reviewDays` has no per-card log), so they can't be split by course or deck; card-based parts
-  can. Preview-only test hook `window.__synced` {put, get} seeds records (nothing is saved there).
+  can. Preview-only test hook `window.__synced` {put, get, keys} seeds records (nothing is saved there).
+- Smarter reviews: **siblings** (`siblingGroup`: same note line, or same library item; table
+  cells never) are buried like Anki: one card per group a day (a group reviewed today or with a
+  card in learning holds back its other new / review cards). `plan()` in srs does limits + burying
+  once and both `counts()` (now also `buried`, `leeches`) and `queue()` use it, so counts match the
+  session. `settings.burySiblings` (default on, Settings → Flashcards "Siblings"). **Leeches**:
+  `grade()` returns true when a rating makes `lapses` reach `settings.leechAt` (default `LEECH_AT`
+  8, 0 = off) or every half of it after (8, 12, 16…); the record gets `leech: true` (kept by
+  `fromF`, cleared by Forget or "Not a leech" / `clearLeech`) and is suspended too when
+  `settings.leechAction` is "suspend". Review shows a rose bar (Suspend / Unsuspend, Open note, ×)
+  and a Leech chip; the Cards hero links "N leeches" to `#/study/cards/browse?leech` (browser
+  status "Leeches"). **In review**: E edits the card's line in place (`cardLine` hides the indent
+  and list marker, `saveCardLine` puts them back; Enter saves, Esc cancels; the card is read again
+  after saving), S suspends. The session waits for the notes to load before building its queue (a
+  review opened straight from a link at start-up used to come up empty).
 
 ## Study S4 (built): card library
 

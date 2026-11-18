@@ -12,7 +12,7 @@
   import { notes } from "../../lib/stores/notes.svelte";
   import OcclusionView from "../../lib/components/OcclusionView.svelte";
   import { getDeck } from "../../lib/stores/decks.svelte";
-  import { allCards, cramQueue, cramReviewed, ensureIds, grade, LEARN_AHEAD, preview, queue, RATINGS, statusOf, undo, type CardRef, type Scope } from "../../lib/stores/srs.svelte";
+  import { allCards, cardLine, clearLeech, cramQueue, cramReviewed, ensureIds, grade, saveCardLine, setSuspended, LEARN_AHEAD, preview, queue, RATINGS, statusOf, undo, type CardRef, type Scope } from "../../lib/stores/srs.svelte";
   import { get } from "../../lib/stores/synced.svelte";
   import { settings, saveSettings } from "../../lib/stores/settings.svelte";
   import type { SrsRec } from "../../lib/stores/srs.svelte";
@@ -78,6 +78,8 @@
   );
 
   onMount(async () => {
+    // opened straight from a link at start-up: wait for the notes before building the queue
+    for (let i = 0; i < 100 && !notes.loaded; i++) await new Promise((r) => setTimeout(r, 50));
     await ensureIds();
     pending = (cram ? cramQueue(scope) : queue(scope)).map((r) => r.card.key);
     started = Date.now();
@@ -136,6 +138,62 @@
     (document.activeElement as HTMLElement | null)?.blur?.();
   }
 
+  // ---- smarter reviews (F1): leech notice, edit the card's line, suspend ----
+  /** the card that just became a leech (shown above the next card until dismissed) */
+  let leechNote = $state<{ ref: CardRef; lapses: number; suspended: boolean } | null>(null);
+  let note = $state(""); // a short message ("Suspended.")
+  let editing = $state<{ ref: CardRef; text: string; err: string; busy: boolean } | null>(null);
+  const editable = (r: CardRef | null) => !!r && cardLine(r) !== null;
+  function startEdit(r: CardRef | null = current) {
+    if (!r) return;
+    const line = cardLine(r);
+    if (line === null) return;
+    editing = { ref: r, text: line, err: "", busy: false };
+  }
+  async function saveEdit() {
+    if (!editing || editing.busy) return;
+    const ed = editing;
+    ed.busy = true;
+    try {
+      await saveCardLine(ed.ref, ed.text);
+      editing = null;
+      note = "Saved.";
+      // the card is read again from the note; if the edit changed what kind of card it is, move on
+      if (current && current.card.key === ed.ref.card.key) {
+        const fresh = refByKey(current.card.key);
+        if (fresh) current = fresh;
+        else {
+          pending = pending.filter((x) => x !== ed.ref.card.key);
+          next();
+        }
+      }
+    } catch (e) {
+      ed.err = e instanceof Error ? e.message : String(e);
+    } finally {
+      ed.busy = false;
+    }
+  }
+  function suspendCard(r: CardRef | null = current) {
+    if (!r) return;
+    const k = r.card.key;
+    setSuspended(k, true);
+    pending = pending.filter((x) => x !== k);
+    retries = retries.filter((x) => x.key !== k);
+    if (leechNote?.ref.card.key === k) leechNote = { ...leechNote, suspended: true };
+    note = "Suspended.";
+    if (current?.card.key === k) next();
+  }
+  function unsuspendLeech() {
+    if (!leechNote) return;
+    setSuspended(leechNote.ref.card.key, false);
+    leechNote = { ...leechNote, suspended: false };
+  }
+  $effect(() => {
+    if (!note) return;
+    const t = setTimeout(() => (note = ""), 2500);
+    return () => clearTimeout(t);
+  });
+
   function rate(g: number) {
     if (!current || !shown) return;
     if (practice) return cont();
@@ -143,7 +201,7 @@
     if (isList && missedAsked.length) {
       if (g >= 3) return; // Good / Easy wait for a clean run through the whole list
       if (cram) cramReviewed(true, Date.now() - shownAt);
-      else grade(k, g as (typeof RATINGS)[number]["grade"], Date.now() - shownAt, current.course);
+      else if (grade(k, g as (typeof RATINGS)[number]["grade"], Date.now() - shownAt, current.course)) flagLeech(current);
       done++;
       if (g === 1) againCount++;
       seen++;
@@ -163,14 +221,28 @@
       next();
       return;
     }
-    grade(k, g as (typeof RATINGS)[number]["grade"], Date.now() - shownAt, current.course);
+    const leech = grade(k, g as (typeof RATINGS)[number]["grade"], Date.now() - shownAt, current.course);
     done++;
     if (g === 1) againCount++;
     const after = get<SrsRec>("srs", k);
+    if (leech) {
+      flagLeech(current);
+      // suspended by the leech setting: it doesn't come back this session
+      if (after?.suspended) {
+        pending = pending.filter((x) => x !== k);
+        next();
+        return;
+      }
+    }
     // learning cards due again today stay in the session
     pending = pending.filter((x) => x !== k);
     if (after && after.due - Date.now() < 60 * 60000) pending = [...pending, k];
     next();
+  }
+
+  function flagLeech(r: CardRef) {
+    const rec = get<SrsRec>("srs", r.card.key);
+    leechNote = { ref: r, lapses: rec?.lapses ?? 0, suspended: !!rec?.suspended };
   }
 
   function doUndo() {
@@ -205,6 +277,10 @@
       e.preventDefault();
       rate(suggested || 3);
     } else if (e.key === "z" && !cram) doUndo();
+    else if (e.key === "e" && editable(current)) {
+      e.preventDefault();
+      startEdit();
+    } else if (e.key === "s" && current && !cram) suspendCard();
   }
 
   const left = $derived.by(() => {
@@ -283,6 +359,17 @@
   {:else if current}
     <!-- the card sits in the middle and grows both ways; the bars above and below never move -->
     <div class="stage">
+    {#if leechNote}
+      <div class="leechbar" role="status">
+        <b>Leech</b>
+        <span class="lt">{leechNote.ref.title} · forgotten {leechNote.lapses} times{leechNote.suspended ? " · suspended" : ""}</span>
+        {#if leechNote.suspended}<button type="button" class="btn quiet sm" onclick={unsuspendLeech}>Unsuspend</button>
+        {:else}<button type="button" class="btn quiet sm" onclick={() => leechNote && suspendCard(leechNote.ref)}>Suspend</button>{/if}
+        {#if editable(leechNote.ref)}<a class="btn quiet sm" href={leechNote.ref.href} onclick={() => leechNote?.ref.note && (notes.jump = { rel: leechNote.ref.note.rel, line: leechNote.ref.card.line })}>Open note</a>{/if}
+        <button type="button" class="lx" aria-label="Dismiss" onclick={() => (leechNote = null)}>×</button>
+      </div>
+    {/if}
+    {#if note}<div class="toast" role="status">{note}</div>{/if}
     {#key current.card.key}
     <article class="card" class:shown style="--t: {look.tone}" data-kind={current.card.kind}>
       <div class="head">
@@ -292,6 +379,7 @@
           {#if course}<span class="cdot" style="background: {course[1].color}"></span><span class="cc">{course[1].code ?? course[1].name}</span>{#if crumbs.length}<span class="sep">›</span>{/if}{/if}
           {#each crumbs as c, i}<span>{c}</span>{#if i < crumbs.length - 1}<span class="sep">›</span>{/if}{/each}
         </span>
+        {#if !cram && get<SrsRec>("srs", current.card.key)?.leech}<span class="leech" title="Forgotten many times">Leech</span>{/if}
         {#if status}<span class="status s-{status}">{status}</span>{/if}
       </div>
 
@@ -369,7 +457,22 @@
         </div>
       {/if}
 
+      {#if editing && editing.ref.card.key === current.card.key}
+        <div class="edit">
+          <!-- svelte-ignore a11y_autofocus -->
+          <textarea bind:value={editing.text} rows="2" autofocus aria-label="Card line"
+            onkeydown={(e) => { if (e.key === "Enter" && (e.ctrlKey || e.metaKey || !e.shiftKey)) { e.preventDefault(); void saveEdit(); } else if (e.key === "Escape") { e.preventDefault(); editing = null; } }}></textarea>
+          <div class="erow">
+            {#if editing.err}<span class="err">{editing.err}</span>{:else}<span class="muted">Enter saves · Esc cancels</span>{/if}
+            <button type="button" class="btn quiet sm" onclick={() => (editing = null)}>Cancel</button>
+            <button type="button" class="btn primary sm" disabled={editing.busy} onclick={saveEdit}>Save</button>
+          </div>
+        </div>
+      {/if}
+
       <div class="foot">
+        {#if editable(current) && !editing}<button type="button" class="fbtn" onclick={() => startEdit()} title="Edit card (E)"><Icon name="pen" size={14} /> Edit</button>{/if}
+        {#if !cram}<button type="button" class="fbtn" onclick={() => suspendCard()} title="Suspend (S)"><Icon name="pause" size={14} /> Suspend</button>{/if}
         <a href={current.href} onclick={() => current?.note && (notes.jump = { rel: current.note.rel, line: current.card.line })}>
           <Icon name="pen" size={14} /> {src && current.title === `${pdfName(src.pdf)}, p. ${src.page}` ? "Edit" : current.title}
         </a>
@@ -807,8 +910,101 @@
     font-weight: 600;
     text-decoration: none;
   }
-  .foot a:hover {
+  .foot a:hover,
+  .fbtn:hover {
     text-decoration: underline;
+  }
+  .fbtn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 0;
+    border: 0;
+    background: none;
+    color: var(--text-muted);
+    font: inherit;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .edit {
+    display: grid;
+    gap: 8px;
+  }
+  .edit textarea {
+    width: 100%;
+    padding: 12px 14px;
+    border: 0;
+    border-radius: 14px;
+    background: var(--field, var(--chip));
+    color: var(--text);
+    font: 15px/1.5 ui-monospace, "JetBrains Mono", monospace;
+    resize: vertical;
+  }
+  .erow {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12.5px;
+  }
+  .erow > span {
+    margin-right: auto;
+  }
+  .err {
+    color: var(--alert-ink);
+  }
+  .leech {
+    padding: 4px 10px;
+    border-radius: 999px;
+    background: var(--rose-soft);
+    color: var(--alert-ink);
+    font-size: 12px;
+    font-weight: 600;
+  }
+  .leechbar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    width: min(100%, 1000px);
+    margin: 0 auto 12px;
+    padding: 8px 8px 8px 16px;
+    border-radius: 16px;
+    background: color-mix(in srgb, var(--rose) 30%, var(--white));
+    font-size: 14px;
+  }
+  .leechbar b {
+    color: var(--alert-ink);
+  }
+  .lt {
+    flex: 1;
+    min-width: 0;
+    color: var(--muted-on-tint);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .lx {
+    width: 32px;
+    height: 32px;
+    border: 0;
+    border-radius: 50%;
+    background: none;
+    color: var(--text-muted);
+    font-size: 18px;
+    cursor: pointer;
+  }
+  .toast {
+    position: fixed;
+    z-index: 20;
+    left: 50%;
+    bottom: 130px;
+    transform: translateX(-50%);
+    padding: 8px 16px;
+    border-radius: 999px;
+    background: var(--surface-float, var(--surface));
+    box-shadow: var(--shadow-lift);
+    font-size: 14px;
   }
   /* one fixed-height row for Show answer and the rate buttons, so nothing moves when it switches */
   .actions {

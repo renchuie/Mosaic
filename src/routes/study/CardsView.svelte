@@ -60,7 +60,7 @@
       {:else if all.total}
         <p class="done">All caught up for now 🎉</p>
       {/if}
-      <p class="muted small">{all.total} cards{backfilled ? ` · ${backfilled} new found in notes` : ""}</p>
+      <p class="muted small">{all.total} cards{backfilled ? ` · ${backfilled} new found in notes` : ""}{#if all.leeches}{" · "}<a class="lk" href="#/study/cards/browse?leech">{all.leeches} {all.leeches === 1 ? "leech" : "leeches"}</a>{/if}</p>
       <span class="links">
         <a class="libbtn" href="#/study/cards/browse"><Icon name="search" size={15} /> Browse</a>
         <a class="libbtn" href="#/study/cards/stats"><Icon name="i:chart-column" size={15} /> Stats</a>
@@ -195,6 +195,9 @@
 </div>
 
 <style>
+  .lk {
+    color: inherit;
+  }
   .cards {
     display: grid;
     gap: var(--gap);
