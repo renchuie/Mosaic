@@ -585,27 +585,56 @@
     const x = Math.max(half + 6, Math.min(bubble.x, max));
     if (Math.abs(x - bubble.x) > 1) bubble = { ...bubble, x };
   });
-  // split: scroll (halves scroll on their own): until the split has reached the top of the note,
-  // the wheel moves the page, so a half's lower part never sits out of reach below the window
+  // split: scroll (halves scroll on their own). Two resting places, each reached in ONE smooth
+  // glide (Nov 19, her recording: stepping the page and then the half felt awkward): scrolling down
+  // over a half while the split isn't at the top yet glides the page until the halves fill the
+  // view; scrolling up over a half that was already at its top glides the page back to the top.
+  // In between, only the half under the pointer moves (overscroll-behavior: contain in editor.css).
   $effect(() => {
     if (!wrap) return;
     const el = wrap;
+    let glideUntil = 0;
+    let lastWheel = 0;
+    let gestureStart = 0; // a gesture = wheel events with no pause over 200 ms (touchpad inertia included)
+    const atTopSince = new WeakMap<HTMLElement, number>();
+    const onScroll = (e: Event) => {
+      const col = e.target as HTMLElement;
+      if (!col.classList?.contains("b-pagecol")) return;
+      if (col.scrollTop > 0) atTopSince.delete(col);
+      else if (!atTopSince.has(col)) atTopSince.set(col, performance.now());
+    };
     const onWheel = (e: WheelEvent) => {
       const col = (e.target as HTMLElement).closest?.(".b-pagecol") as HTMLElement | null;
-      if (!col || e.deltaY <= 0 || getComputedStyle(col).overflowY !== "auto") return;
+      if (!col || !e.deltaY || getComputedStyle(col).overflowY !== "auto") return;
       const sc = el.closest(".scroll") as HTMLElement | null;
       const pages = col.parentElement;
       if (!sc || !pages) return;
+      const now = performance.now();
+      if (now - lastWheel > 200) gestureStart = now;
+      lastWheel = now;
+      if (now < glideUntil) return e.preventDefault();
       const stick = parseFloat(getComputedStyle(pages).top) || 0;
       const gap = pages.getBoundingClientRect().top - sc.getBoundingClientRect().top - stick;
-      const room = sc.scrollHeight - sc.clientHeight - sc.scrollTop;
-      if (gap > 1 && room > 1) {
+      const glide = (top: number) => {
         e.preventDefault();
-        sc.scrollTop += Math.min(e.deltaY, gap);
+        glideUntil = now + 450;
+        sc.scrollTo({ top, behavior: "smooth" });
+      };
+      if (e.deltaY > 0 && gap > 1 && sc.scrollTop < sc.scrollHeight - sc.clientHeight - 1) {
+        glide(sc.scrollTop + gap);
+      } else if (e.deltaY < 0 && col.scrollTop <= 0 && sc.scrollTop > 0) {
+        // only a fresh scroll up: one that reaches the half's top doesn't carry on into the page
+        const since = atTopSince.get(col);
+        if (since !== undefined && since < gestureStart) glide(0);
+        else e.preventDefault();
       }
     };
     el.addEventListener("wheel", onWheel, { passive: false });
-    return () => el.removeEventListener("wheel", onWheel);
+    el.addEventListener("scroll", onScroll, { capture: true, passive: true });
+    return () => {
+      el.removeEventListener("wheel", onWheel);
+      el.removeEventListener("scroll", onScroll, { capture: true });
+    };
   });
   let linkInput = $state<string | null>(null);
   let mouseDown = false;

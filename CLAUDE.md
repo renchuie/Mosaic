@@ -375,9 +375,13 @@ Markdown" view, the `<>` chip on the note header).
   Since Nov 18 (her pick 6) the top-bar button, once there are halves, opens a menu (`.splitmenu`,
   moved to `<body>` because the top bar clips) with three views: Side by side (no front matter),
   "Side by side, each half scrolls" (`split: scroll`: each `.b-pagecol` is at most the visible
-  height and scrolls on its own, the split is sticky; BlockEditor's wheel listener scrolls the page
-  first until the split reaches the top, so a half's bottom is never out of reach) and One above the
-  other (`split: stacked`). Print undoes the scrolling.
+  height and scrolls on its own with `overscroll-behavior: contain`, the split is sticky) and One
+  above the other (`split: stacked`). Print undoes the scrolling. Two resting places, each reached
+  in ONE smooth glide (Nov 19, her recording: stepping the page, then the half, then the page
+  popping back felt awkward; BlockEditor's wheel listener): scrolling down over a half before the
+  split is at the top glides the page until the halves fill the view; scrolling up over a half
+  glides back to the top only when the gesture STARTED with that half already at its top (a
+  gesture = wheel events with no 200 ms pause, so touchpad inertia doesn't carry on into the page).
   The top-bar button makes the halves the first time (`togglePages()`: everything so far in the
   left half, right half empty); after that it only switches the view between side by side and one
   half above the other (front matter `split: stacked`, `data-split` on `.npage`) and never moves

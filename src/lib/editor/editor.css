@@ -1121,6 +1121,7 @@ button.dot[data-color] {
 [data-width="full"][data-split="scroll"] .mosaic-doc .b-pagecol {
   max-height: calc(100vh - var(--bar-h, 56px) - 40px);
   overflow-y: auto;
+  overscroll-behavior: contain;
   scrollbar-width: thin;
   scrollbar-gutter: stable;
   padding-bottom: 80px;
