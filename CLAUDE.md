@@ -337,7 +337,8 @@ Markdown" view, the `<>` chip on the note header).
   The bar stays on screen (Nov 18: never above the visible top of the note's `.scroll`, never past
   the right edge; it sits over the header row when the table is at the top) and steps aside after a
   click off the table (`tbarOff`, back on the next selection change); a click outside the 🎨 / ▾
-  Flashcards popups or Esc closes them; the Flashcards popup scrolls inside if the window is short.
+  Flashcards popups or Esc closes them. The popup sets `white-space: normal` (the bar's nowrap would push its text
+  out sideways); it never scrolls, and opens upward (`fpopUp`) when there isn't room below.
 - Columns (Nov 17, Notion-style column blocks): nodes `columns` (attr `w` = widths in percent,
   null = equal; only at the top level: doc content is `(block | columns)+`) and `column`
   (`block+`, isolating). In the file: `<!--mosaic-cols {"w":[60,40]}-->`, `<!--mosaic-col-->`

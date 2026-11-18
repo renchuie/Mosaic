@@ -785,6 +785,8 @@
   let cellPick = $state(false);
   let cardMenu = $state(false);
   let tbarW = $state(560);
+  /** the Flashcards popup opens upward when there isn't room for it below the toolbar */
+  let fpopUp = $state(false);
   let tbarH = $state(40);
   /** the table bar steps aside after a click off the table (it comes back on the next click or key in a table) */
   let tbarOff = $state(false);
@@ -1387,9 +1389,9 @@
       <span class="sep"></span>
       <!-- ▾ Flashcards: on / off, and how the table becomes cards (canvas "New flashcard types") -->
       <span class="cwrap">
-        <button type="button" class="study" class:on={tableBar.cards} aria-expanded={cardMenu} onclick={() => { cardMenu = !cardMenu; cellPick = false; }}>{tableBar.cards ? `▾ Flashcards · ${tableBar.count}` : "▾ Flashcards"}</button>
+        <button type="button" class="study" class:on={tableBar.cards} aria-expanded={cardMenu} onclick={(e) => { const r = e.currentTarget.getBoundingClientRect(); fpopUp = r.bottom + 380 > window.innerHeight - 70 && r.top > 400; cardMenu = !cardMenu; cellPick = false; }}>{tableBar.cards ? `▾ Flashcards · ${tableBar.count}` : "▾ Flashcards"}</button>
         {#if cardMenu}
-          <span class="fpop" role="menu">
+          <span class="fpop" class:up={fpopUp} role="menu">
             <label class="fon"><input type="checkbox" checked={tableBar.cards} onchange={() => editor?.chain().updateAttributes("table", { cards: !tableBar?.cards }).run()} /> Make flashcards from this table</label>
             {#if tableBar.cards}
               <span class="flbl">Cards</span>
@@ -1564,8 +1566,9 @@
     gap: 8px;
     width: 340px;
     max-width: calc(100vw - 32px);
-    max-height: min(520px, calc(100vh - 160px));
-    overflow-y: auto;
+    /* the toolbar never wraps; its popup's text does */
+    transform-origin: top right;
+    white-space: normal;
     padding: 12px 14px;
     border-radius: 16px;
     background: var(--surface-float, var(--surface));
@@ -1576,6 +1579,10 @@
     border: var(--edge, 0);
     font-size: 13px;
     animation: pop 0.16s var(--spring, ease) backwards;
+  }
+  .fpop.up {
+    top: auto;
+    bottom: calc(100% + 6px);
   }
   .fon {
     display: flex;
