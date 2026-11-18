@@ -83,10 +83,16 @@ function lines(body: string): Line[] {
 /** "Front :: Back" / "Front ::: Back" / "Left <:: Right" / "Property ;; Value" split, or null.
  *  Front must not be empty. */
 function splitCard(text: string): { front: string; back: string; two: boolean; rev: boolean; desc: boolean } | null {
-  const m = /^(.*?\S)\s+(<::|:{2,3}|;;)(?:\s+(.*))?$/.exec(text);
+  // card syntax inside `code` is just text (Nov 18 bug: her pasted test instructions became cards)
+  const masked = maskCode(text);
+  const m = /^(.*?\S)\s+(<::|:{2,3}|;;)(?:\s+(.*))?$/d.exec(masked);
   if (!m || /\{\{[^}]*$/.test(m[1])) return null; // a "::" inside an unfinished {{c1::…}} isn't a card separator
-  return { front: m[1].trim(), back: (m[3] ?? "").trim(), two: m[2] === ":::", rev: m[2] === "<::", desc: m[2] === ";;" };
+  const [fs, fe] = m.indices![1] as [number, number];
+  const back = m.indices![3] ? text.slice(m.indices![3][0], m.indices![3][1]) : "";
+  return { front: text.slice(fs, fe).trim(), back: back.trim(), two: m[2] === ":::", rev: m[2] === "<::", desc: m[2] === ";;" };
 }
+/** The line with every `code span` blanked out (same length, so positions still match). */
+const maskCode = (t: string) => t.replace(/`[^`\n]*`/g, (c) => "\u0001".repeat(c.length));
 /** "**Term**" (the whole left side bold): the term, else null */
 const conceptTerm = (front: string): string | null => {
   const m = /^\*\*([^*]+?)\*\*$/.exec(front.trim());
@@ -149,7 +155,7 @@ function kindOf(ls: Line[], k: number): "card" | "cloze" | "list" | "table" | "d
     return children(ls, k).length ? "list" : null; // "**Brand** ::" with nothing yet: not a card
   }
   // a non-global test: the shared global CLOZE_RE would carry lastIndex into later matchAll calls
-  return /\{\{[^{}]+\}\}/.test(l.text) ? "cloze" : null;
+  return /\{\{[^{}]+\}\}/.test(maskCode(l.text)) ? "cloze" : null;
 }
 
 /** The cards a table makes, by its options (see TableCardOpts). Keys: a cell ":t<hash(row|col)>"

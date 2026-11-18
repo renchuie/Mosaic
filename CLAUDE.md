@@ -706,6 +706,11 @@ Recall Labs. Decisions she approved:
   the line isn't tinted like a card), `{{cloze}}` (each gap its own card; `{{c1::…}}` gaps hide together; `{{answer::hint}}`),
   `Question ::` with indented bullets below = list card. `Field ::` with nothing after it (the drug
   template) is not a card. Code blocks are skipped. Context = heading path + up to two parent bullets.
+- Card syntax inside an inline `code` span is just text (`maskCode` in cards.ts; Nov 18: pasted
+  instructions with `**X** ::: y` in backticks became cards). One card id, one line: the
+  `cardIdRule` plugin in blocks.ts clears `sid` on empty lines and on a later line that repeats an
+  id (Nov 18 bug: Tiptap's default split on a plain line copied the id onto new empty lines, which
+  then showed the card's dot); dots only show on lines with text. Node test `tstest/test19.ts`.
 - Every card line gets a hidden stable id `<!--sd:xxxxxx-->` appended (review keys: `id`, `id:r`,
   `id:cN`). The editor adds ids to the open note while typing (`appendToLines`, cursor kept) and
   hides them as atomic ranges; `ensureIds()` adds them to other notes (skips `notes.editing`) with

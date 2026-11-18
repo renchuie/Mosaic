@@ -1242,7 +1242,7 @@ function decorations(doc: PMNode, status?: EditorOpts["cardStatus"]): Decoration
         }
       }
       // card status (Nov 18): a small dot at the end of a card line, hover for when it's next due
-      if (status && node.isTextblock && node.attrs.sid) {
+      if (status && node.isTextblock && node.attrs.sid && node.textContent.trim()) {
         const st = status(String(node.attrs.sid));
         if (st) {
           out.push(
@@ -1449,11 +1449,32 @@ function folding(opts: EditorOpts) {
   });
 }
 
+/** One card id, one line (Nov 18 bug: Enter at the end of a card line copied its hidden id onto the
+ *  new empty lines, so each showed the card's dot and kept it after the card was deleted). After any
+ *  change: an empty line has no id, and an id already used above is cleared on the later line. */
+const cardIdRule = new Plugin({
+  appendTransaction(trs, _old, state) {
+    if (!trs.some((t) => t.docChanged)) return null;
+    const seen = new Set<string>();
+    let tr: Transaction | null = null;
+    state.doc.descendants((n, pos) => {
+      if (!n.isTextblock) return true;
+      const sid = n.attrs.sid;
+      if (!sid) return false;
+      if (!n.textContent.trim() || seen.has(sid)) (tr ??= state.tr).setNodeMarkup(pos, undefined, { ...n.attrs, sid: null });
+      else seen.add(sid);
+      return false;
+    });
+    return tr;
+  },
+});
+
 function behaviour(opts: EditorOpts) {
   return Extension.create({
     name: "mosaicBehaviour",
     addProseMirrorPlugins() {
       return [
+        cardIdRule,
         new Plugin({
           key: numKey,
           state: {
