@@ -60,8 +60,14 @@ export function refreshNotes(): Promise<void> {
   return running;
 }
 
+/** bumped by every move / rename / delete, so a refresh that read the folder before one of them
+ *  is thrown away (it would bring back the old path) and runs again */
+let changes = 0;
+const changed = () => changes++;
+
 async function doRefresh() {
   notes.loading = true;
+  const gen = changes;
   try {
     const l = await invoke<Listing>("notes_list", { root: settings.notesRoot });
     const next: Record<string, NoteEntry> = {};
@@ -69,6 +75,11 @@ async function doRefresh() {
       const old = notes.files[f.rel];
       if (old && old.mtime === f.mtime && old.size === f.size) next[f.rel] = old;
       else next[f.rel] = entry(f.rel, f.mtime, f.size, await invoke<string>("notes_read", { rel: f.rel }));
+      if (gen !== changes) break;
+    }
+    if (gen !== changes) {
+      setTimeout(() => void refreshNotes(), 300);
+      return;
     }
     notes.root = l.root;
     notes.dirs = l.dirs;
@@ -164,6 +175,7 @@ export async function createNote(folder: string, title: string, template = "blan
 
 /** Rename a note's file, and update [[links]] to it in every other note. */
 export async function renameNote(rel: string, title: string): Promise<string> {
+  changed();
   const e = notes.files[rel];
   const to = `${dirOf(rel) ? dirOf(rel) + "/" : ""}${fileNameFor(title)}`;
   if (!e || to === rel) return rel;
@@ -188,6 +200,7 @@ export async function renameNote(rel: string, title: string): Promise<string> {
 }
 
 export async function moveNote(rel: string, folder: string): Promise<string> {
+  changed();
   const to = `${folder ? folder + "/" : ""}${fileOf(rel)}`;
   if (to === rel) return rel;
   if (notes.files[to]) throw new Error("A note with that name is already in that folder.");
@@ -213,6 +226,7 @@ const under = (r: string, dir: string) => r === dir || r.startsWith(dir + "/");
 
 /** Rename or move a folder (with everything in it). `to` is the folder's new path. */
 export async function moveFolder(from: string, to: string): Promise<string> {
+  changed();
   to = to.split("/").map((p) => p.replace(/[\\/:*?"<>|]+/g, " ").trim()).filter(Boolean).join("/");
   if (!to || to === from) return from;
   if (to.startsWith(from + "/")) throw new Error("A folder can't go inside itself.");
@@ -238,6 +252,7 @@ export async function moveFolder(from: string, to: string): Promise<string> {
 
 /** Move a folder and everything in it to the notes folder's `.trash/`. */
 export async function trashFolder(dir: string) {
+  changed();
   if (inTauri) await invoke("notes_trash", { rel: dir });
   notes.files = Object.fromEntries(Object.entries(notes.files).filter(([r]) => !r.startsWith(dir + "/")));
   notes.dirs = notes.dirs.filter((d) => !under(d, dir));
@@ -245,12 +260,14 @@ export async function trashFolder(dir: string) {
 }
 
 export async function trashNote(rel: string) {
+  changed();
   if (inTauri) await invoke("notes_trash", { rel });
   delete notes.files[rel];
   saveCache();
 }
 
 export async function makeFolder(rel: string) {
+  changed();
   if (inTauri) await invoke("notes_mkdir", { rel });
   if (!notes.dirs.includes(rel)) notes.dirs = [...notes.dirs, rel].sort();
 }

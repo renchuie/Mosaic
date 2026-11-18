@@ -412,6 +412,11 @@ Markdown" view, the `<>` chip on the note header).
   `moveNote` / `moveFolder` rewrite a note's `attachments/` paths when its depth changes
   (`rebaseAttachments` in notes.ts; node test scratchpad `tstest/test22.ts`), else pasted images
   broke after a move. Links `<a>` there need `draggable="false"` (WebKit's own link drag).
+  Duplicates (her Nov 18 bug: a note dragged into a folder and straight back out sometimes came
+  out twice): the image-path save of the first move landed after the second move and recreated
+  the file. Now `notes_write` with `expected` refuses a file that no longer exists ("missing"),
+  noteOps runs changes one at a time (`queued`), and a refresh that overlaps a move / rename /
+  delete (`changes` counter in the notes store) is dropped and runs again.
 - Picking up where she left off (Nov 18, her ask): the open note is `ui.lastNote` (`setLastNote` in
   `src/lib/stores/ui.svelte.ts`, localStorage "mosaic.lastNote", per machine). StudyNav's Notes tab
   links to that note from any other page; clicked while already on Notes it goes to the Notes home

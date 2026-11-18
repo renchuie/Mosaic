@@ -54,7 +54,17 @@ function followMove(from: string, to: string | null) {
   if (ui.lastNote && (ui.lastNote === from || ui.lastNote.startsWith(from + "/"))) setLastNote(map(ui.lastNote));
 }
 
-export async function doRenameNote(rel: string, title: string) {
+/** One change at a time: a second move waits for the first (and its image-path save) to finish. */
+let chain: Promise<unknown> = Promise.resolve();
+function queued<A extends unknown[], R>(f: (...a: A) => Promise<R>) {
+  return (...a: A): Promise<R> => {
+    const run = chain.then(() => f(...a));
+    chain = run.catch(() => {});
+    return run;
+  };
+}
+
+export const doRenameNote = queued(async function doRenameNote(rel: string, title: string) {
   try {
     await beforeChange(rel);
     const to = await renameNote(rel, title.trim());
@@ -64,8 +74,8 @@ export async function doRenameNote(rel: string, title: string) {
     say(errText(e));
     return false;
   }
-}
-export async function doMoveNote(rel: string, folder: string) {
+});
+export const doMoveNote = queued(async function doMoveNote(rel: string, folder: string) {
   if (dirOf(rel) === folder) return;
   try {
     await beforeChange(rel);
@@ -74,8 +84,8 @@ export async function doMoveNote(rel: string, folder: string) {
   } catch (e) {
     say(errText(e));
   }
-}
-export async function doTrashNote(rel: string) {
+});
+export const doTrashNote = queued(async function doTrashNote(rel: string) {
   try {
     await beforeChange(rel);
     await trashNote(rel);
@@ -83,10 +93,10 @@ export async function doTrashNote(rel: string) {
   } catch (e) {
     say(errText(e));
   }
-}
+});
 
 /** Move or rename a folder; its look (and its subfolders' looks) go with it. */
-export async function doMoveFolder(from: string, to: string) {
+export const doMoveFolder = queued(async function doMoveFolder(from: string, to: string) {
   try {
     await beforeChange(from);
     const done = await moveFolder(from, to);
@@ -103,9 +113,9 @@ export async function doMoveFolder(from: string, to: string) {
     say(errText(e));
     return false;
   }
-}
+});
 export const doRenameFolder = (dir: string, name: string) => doMoveFolder(dir, `${dirOf(dir) ? dirOf(dir) + "/" : ""}${name.trim()}`);
-export async function doTrashFolder(dir: string) {
+export const doTrashFolder = queued(async function doTrashFolder(dir: string) {
   try {
     await beforeChange(dir);
     await trashFolder(dir);
@@ -114,7 +124,7 @@ export async function doTrashFolder(dir: string) {
   } catch (e) {
     say(errText(e));
   }
-}
+});
 
 // ---- dragging ------------------------------------------------------------------------------
 

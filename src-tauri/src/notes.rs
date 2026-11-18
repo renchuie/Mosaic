@@ -138,7 +138,12 @@ pub async fn notes_write(state: State<'_, NotesState>, rel: String, content: Str
     let p = path_in(&state, &rel)?;
     tauri::async_runtime::spawn_blocking(move || {
         if let Some(exp) = expected {
-            if p.exists() && mtime_ms(&p) != exp {
+            // a save of a note that was there when it was read: never bring back a file that
+            // has since been moved, renamed or trashed (that duplicated notes moved twice fast)
+            if !p.exists() {
+                return Err("missing".to_string());
+            }
+            if mtime_ms(&p) != exp {
                 return Err("conflict".to_string());
             }
         }
