@@ -712,7 +712,11 @@ Recall Labs. Decisions she approved:
   fields; the concept is the nearest line it is indented under (a bold line counts), else the
   heading; `Property ;;;` with indented bullets = list answer; arrow attr `desc`, a lavender › pill, `/Descriptor`,
   the line isn't tinted like a card), `{{cloze}}` (each gap its own card; `{{c1::…}}` gaps hide together; `{{answer::hint}}`),
-  `Question ::` with indented bullets below = list card. `Field ::` with nothing after it (the drug
+  `Question ::` with indented bullets below = list card. Nested list cards (Nov 18, her ask,
+  RemNote-style; `listBack()`): an item that is a card of its own shows in its parent's answer as
+  clean text (`front`, or `front: back`, no separator), and a nested LIST card's sub-items are left
+  out of the parent (they are its own answer); its breadcrumb includes the parent. Node test
+  `tstest/test21.ts`. `Field ::` with nothing after it (the drug
   template) is not a card. Code blocks are skipped. Context = heading path + up to two parent bullets.
 - Card syntax inside an inline `code` span is just text (`maskCode` in cards.ts; Nov 18: pasted
   instructions with `**X** ::: y` in backticks became cards). One card id, one line: the

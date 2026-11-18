@@ -113,6 +113,29 @@ function children(ls: Line[], k: number): Line[] {
   return out;
 }
 
+/** A list card's answer: the lines under it. Nested cards (Nov 18, her ask, RemNote-style): an item
+ *  that is a card of its own shows as clean text ("Remember the side effects", no " ::"), and when
+ *  it is a list card its own sub-items are left out here: they are that card's answer. */
+function listBack(ls: Line[], k: number): string {
+  const kids = children(ls, k);
+  if (!kids.length) return "";
+  const base = kids[0].indent;
+  const out: string[] = [];
+  let skipBelow = -1;
+  for (const x of kids) {
+    if (skipBelow >= 0 && x.indent > skipBelow) continue;
+    skipBelow = -1;
+    let text = x.text;
+    const c = splitCard(x.text);
+    if (c) {
+      text = c.back ? `${c.front}: ${c.back}` : c.front;
+      if (!c.back && children(ls, ls.indexOf(x)).length) skipBelow = x.indent; // a nested list card
+    }
+    out.push(`${"  ".repeat(Math.max(0, (x.indent - base) / 2))}- ${text}`);
+  }
+  return out.join("\n");
+}
+
 const TABLE_RE = /^::\s*table\b/i;
 const cells = (row: string) => row.trim().replace(/^\||\|$/g, "").split("|").map((c) => c.trim());
 
@@ -236,8 +259,7 @@ export function extractCards(body: string): NoteCard[] {
         // descriptor: about the nearest line above it that it is indented under, else the heading
         const owner = parents.length ? plain(parents[parents.length - 1].text) : heads[heads.length - 1]?.text ?? "";
         const prop = plain(c.front);
-        const kids = children(ls, k);
-        const back = c.back || kids.map((x) => `${"  ".repeat(Math.max(0, (x.indent - kids[0].indent) / 2))}- ${x.text}`).join("\n");
+        const back = c.back || listBack(ls, k);
         out.push({ key: key(), lineId: l.id, kind: "descriptor", front: owner ? `${owner} › ${prop}` : prop, back, context, line: l.i, concept: owner || undefined, prop });
       } else if (c.concept || (c.two && conceptTerm(c.front))) {
         // concept (`Term ;; meaning`, or the older `**Term** ::: meaning`): the same two cards (same
@@ -254,12 +276,7 @@ export function extractCards(body: string): NoteCard[] {
       }
     } else if (kind === "list") {
       const c = splitCard(l.text)!;
-      const kids = children(ls, k);
-      const base = kids[0].indent;
-      out.push({
-        key: key(), lineId: l.id, kind: "list", front: c.front,
-        back: kids.map((x) => `${"  ".repeat(Math.max(0, (x.indent - base) / 2))}- ${x.text}`).join("\n"), context, line: l.i,
-      });
+      out.push({ key: key(), lineId: l.id, kind: "list", front: c.front, back: listBack(ls, k), context, line: l.i });
     } else if (kind === "cloze") {
       // group by cN; un-numbered clozes are each their own group
       const groups: string[] = [];
