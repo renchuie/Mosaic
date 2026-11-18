@@ -295,6 +295,38 @@ export function fitBeforeExam(course: string, date: string): number {
   return late.length;
 }
 
+// ---- card browser actions (Nov 19, F1) ----------------------------------------------------
+
+/** Start a card over as new (its review history is dropped). */
+export function forget(key: string) {
+  if (get<SrsRec>("srs", key)) del("srs", key);
+}
+/** Make a reviewed card due at `when` (a new card is left as it is: it has no schedule yet). */
+export function reschedule(key: string, when: number) {
+  const rec = get<SrsRec>("srs", key);
+  if (rec && rec.state !== State.New) put("srs", key, { ...rec, due: when });
+}
+/** The note line a card comes from, without its hidden id; null when it can't be edited there. */
+export function cardLine(r: CardRef): string | null {
+  if (!r.note || !r.card.lineId) return null;
+  const tag = `<!--sd:${r.card.lineId}-->`;
+  const line = r.note.text.split("\n").find((l) => l.includes(tag));
+  return line === undefined ? null : line.replace(/\s*<!--sd:[a-z0-9]+-->/g, "");
+}
+/** Rewrite a card's line in its note (the id stays, so the card keeps its history). */
+export async function saveCardLine(r: CardRef, text: string): Promise<void> {
+  if (!r.note || !r.card.lineId) throw new Error("This card can't be edited here.");
+  const e = notes.files[r.note.rel];
+  if (!e) throw new Error("The note isn't there any more.");
+  const tag = `<!--sd:${r.card.lineId}-->`;
+  const lines = e.text.split("\n");
+  const i = lines.findIndex((l) => l.includes(tag));
+  if (i < 0) throw new Error("The card's line changed. Open the note to edit it.");
+  const clean = text.replace(/\r?\n/g, " ").replace(/\s*<!--sd:[a-z0-9]+-->/g, "").replace(/\s+$/, "");
+  lines[i] = `${clean} ${tag}`;
+  await saveNote(e.rel, lines.join("\n"), e.mtime);
+}
+
 export function setSuspended(key: string, on: boolean) {
   const rec = get<SrsRec>("srs", key) ?? fromF(createEmptyCard(new Date()));
   put("srs", key, { ...rec, suspended: on || undefined });

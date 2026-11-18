@@ -35,17 +35,6 @@
       .sort((a, b) => b.k.due + b.k.newToday - (a.k.due + a.k.newToday) || b.k.total - a.k.total),
   );
 
-  let q = $state("");
-  let showList = $state(false);
-  const list = $derived(
-    refs
-      .filter((r) => r.card.lineId)
-      .filter((r) => !q.trim() || `${r.card.front} ${r.card.back} ${r.title}`.toLowerCase().includes(q.trim().toLowerCase()))
-      .slice(0, 200),
-  );
-  const st = (r: (typeof refs)[0]) => statusOf(r.rec);
-  const dueText = (r: (typeof refs)[0]) =>
-    !r.rec ? "New" : r.rec.suspended ? "Suspended" : r.rec.due <= Date.now() ? "Due now" : `in ${fmtInterval(r.rec.due - Date.now())}`;
 </script>
 
 <div class="cards">
@@ -62,7 +51,10 @@
         <p class="done">All caught up for now 🎉</p>
       {/if}
       <p class="muted small">{all.total} cards{backfilled ? ` · ${backfilled} new found in notes` : ""}</p>
-      <a class="libbtn" href="#/study/cards/library"><Icon name="book" size={15} /> Card library</a>
+      <span class="links">
+        <a class="libbtn" href="#/study/cards/browse"><Icon name="search" size={15} /> Browse</a>
+        <a class="libbtn" href="#/study/cards/library"><Icon name="book" size={15} /> Card library</a>
+      </span>
     </div>
   </section>
 
@@ -145,29 +137,7 @@
           <p class="legend muted"><span class="n-due">due</span> <span class="n-new">new today</span> total</p>
         </section>
 
-        <section class="card">
-          <div class="lh">
-            <h2 class="h2">All cards</h2>
-            <button type="button" class="btn quiet sm" onclick={() => (showList = !showList)}>{showList ? "Hide" : "Show"}</button>
-          </div>
-          {#if showList}
-            <input class="input" bind:value={q} placeholder="Search cards" aria-label="Search cards" />
-            <ul class="clist">
-              {#each list as r (r.card.key)}
-                <li class:sus={st(r) === "suspended"}>
-                  <div class="cf">{@html cardHtml(r.card.front, r.img)}{#if r.card.masks}<span class="muted"> (image occlusion)</span>{/if}</div>
-                  <div class="cb muted">{@html cardHtml(r.card.back, r.img)}</div>
-                  <div class="cm">
-                    <a href={r.href} onclick={() => r.note && (notes.jump = { rel: r.note.rel, line: r.card.line })}>{r.title}</a>
-                    <span class="tag">{r.card.kind}</span>
-                    <span>{dueText(r)}</span>
-                    <button type="button" class="mini" onclick={() => setSuspended(r.card.key, st(r) !== "suspended")}>{st(r) === "suspended" ? "Unsuspend" : "Suspend"}</button>
-                  </div>
-                </li>
-              {/each}
-            </ul>
-          {/if}
-        </section>
+
       </div>
 
       <aside class="side">
@@ -377,6 +347,11 @@
   .decks li > .btn:last-child {
     grid-column: span 2;
   }
+  .links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
   .libbtn {
     display: inline-flex;
     align-items: center;
@@ -470,65 +445,6 @@
     display: flex;
     gap: 12px;
     justify-content: flex-end;
-  }
-  .lh {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 10px;
-  }
-  .clist {
-    list-style: none;
-    margin: 10px 0 0;
-    padding: 0;
-    display: grid;
-    gap: 6px;
-    max-height: 520px;
-    overflow-y: auto;
-  }
-  .clist li {
-    display: grid;
-    gap: 4px;
-    padding: 10px 12px;
-    border-radius: 14px;
-    background: var(--panel);
-  }
-  .clist li.sus {
-    opacity: 0.55;
-  }
-  .cf {
-    font-weight: 600;
-  }
-  .cb {
-    font-size: 13.5px;
-  }
-  .cm {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 10px;
-    align-items: center;
-    font-size: 12.5px;
-    color: var(--text-muted);
-  }
-  .mini {
-    margin-left: auto;
-    min-height: 28px;
-    padding: 0 10px;
-    border: 0;
-    border-radius: var(--radius-pill);
-    background: var(--surface);
-    font-size: 12px;
-  }
-  .cf :global(.gap),
-  .cb :global(mark) {
-    background: var(--butter);
-    border-radius: 4px;
-    padding: 0 3px;
-  }
-  .cf :global(ul),
-  .cb :global(ul) {
-    margin: 0;
-    padding-left: 18px;
   }
   .fc {
     display: grid;

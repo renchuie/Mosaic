@@ -3,6 +3,7 @@
   import NotesView from "./study/NotesView.svelte";
   import StudyHome from "./study/StudyHome.svelte";
   import StudyNav from "./study/StudyNav.svelte";
+  import CardBrowser from "./study/CardBrowser.svelte";
   import CardsView from "./study/CardsView.svelte";
   import ReviewSession from "./study/ReviewSession.svelte";
   import type { Scope } from "../lib/stores/srs.svelte";
@@ -37,6 +38,8 @@
   {#if !scope && !notesPages}<StudyNav />{/if}
   {#if scope}
     {#key route.rest}<ReviewSession {scope} {cram} />{/key}
+  {:else if route.rest.startsWith("cards/browse")}
+    <CardBrowser />
   {:else if route.rest.startsWith("cards/library")}
     <Library open={libItem} />
   {:else if route.rest.startsWith("cards")}

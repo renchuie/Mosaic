@@ -898,6 +898,18 @@ Recall Labs. Decisions she approved:
   study plan suggestion "Review N flashcards" (block `href`), heatmap (+½ per review), streak
   (`markStudyDay("reviews")`).
 
+## Flashcards F1 (started Nov 19, her order: browser, decks + limits, stats, smarter reviews, .apkg)
+
+- Card browser (`src/routes/study/CardBrowser.svelte`, route `#/study/cards/browse`, "Browse" in
+  the Cards hero): every card (notes + library) in one table: search, status (All / Due / New /
+  Learning / Review / Suspended), course, source, sort; checkboxes with bulk Suspend / Unsuspend /
+  Due now / Reschedule (tomorrow, 3 days, a week, a date) / Forget (back to new); a side panel with
+  the card, its numbers, and Edit (note cards: the line is rewritten in the note, id kept;
+  `cardLine` / `saveCardLine` in the srs store) or Open note. 150 rows, then "Show more". It runs
+  `ensureIds()` itself (cards without an id can't be tracked, and it can be opened directly).
+  srs helpers: `forget(key)`, `reschedule(key, ms)` (review / learning cards only). Cards page's
+  old "All cards" list is gone.
+
 ## Study S4 (built): card library
 
 - Library cards live in the synced store, not in notes: collection `cardItems` (one item = note type
