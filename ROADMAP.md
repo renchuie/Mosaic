@@ -194,7 +194,7 @@ Calendar) complete before anyone else uses it. In this order:
    dates and Drive layout become her own data, not defaults). Features shaped around her habits
    (Recall Labs) are optional.
    - **O1 done Nov 19** (pulled forward at her ask): nothing of hers is a default or a seed;
-     drug tools are a Settings toggle (off for new installs). O2 onboarding screens and O3 extras
+     drug tools are a Settings toggle (off for new installs). **O2 onboarding screens done Nov 19.** O3 extras
      (.ics import, existing folders, templates by field, hints, Getting started) are next.
 2. **Windows builds.** GitHub Actions builds a Windows installer (Tauri bundler, `.msi` / `.exe`)
    on a Windows runner and runs the automated checks there. Replace Linux-only bits: `xdg-open`

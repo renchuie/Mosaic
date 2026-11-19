@@ -9,6 +9,10 @@ export type Settings = {
   drugTools?: boolean;
   /** what they study (onboarding), for suggestions only; and the current term ("" = guessed) */
   field?: string;
+  /** what Mosaic is for (onboarding): the school side, the personal side, or both */
+  use?: "school" | "personal" | "both";
+  /** how long they want to study a day (onboarding), in minutes */
+  dailyMinutes?: number;
   term?: string;
   name: string;
   labsRoot: string;

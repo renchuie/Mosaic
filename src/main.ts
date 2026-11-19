@@ -7,18 +7,15 @@ import "./styles/base.css";
 import "./styles/print.css";
 import { mount } from "svelte";
 import App from "./App.svelte";
-import { loadSettings } from "./lib/stores/settings.svelte";
+import { loadSettings, settings } from "./lib/stores/settings.svelte";
 import { initLabs, migrateLabDocs } from "./lib/stores/labs.svelte";
 import { initSynced } from "./lib/stores/synced.svelte";
 import { initCalendar } from "./lib/stores/calendar.svelte";
 import { initBlockStyles } from "./lib/stores/blockStyles.svelte";
 import { initPlan } from "./lib/stores/plan.svelte";
 import { initCourses } from "./lib/stores/courses.svelte";
-import { initNotes } from "./lib/stores/notes.svelte";
-import { initBackups } from "./lib/stores/backup.svelte";
-import { initConnection } from "./lib/stores/connection.svelte";
+import { startFiles } from "./lib/stores/startup";
 import { initLibrary } from "./lib/stores/library.svelte";
-import { initPdfs } from "./lib/stores/pdfs.svelte";
 import { inTauri, invoke } from "./lib/tauri";
 import { materialsTest, pdfTest, selfTest, timerTest } from "./lib/selftest";
 
@@ -31,10 +28,8 @@ initCourses();
 initLibrary();
 await initPlan().catch((e) => console.error("plan", e));
 await initLabs().catch((e) => console.error("labs", e));
-await initNotes().catch((e) => console.error("notes", e));
-void initPdfs().catch((e) => console.error("pdfs", e));
-initBackups();
-initConnection();
+// a fresh install starts these once onboarding has chosen where the files live
+if (settings.onboarded || !inTauri) await startFiles();
 
 // STUDYDESK_ROUTE=labs/... opens a page at start; STUDYDESK_ROUTE=selftest prints checks (used for testing).
 if (inTauri) {

@@ -136,5 +136,23 @@ First step towards onboarding for friends. Nothing personal is a default or a se
   for O2/O3.
 - No courses or exam events are seeded; greetings drop the comma when the name is blank; "e.g."
   placeholders with her examples are gone.
-- Next: O2 onboarding screens (canvas boards "Onboarding" and "Onboarding2"), O3 .ics import,
+- **Onboarding (O2, built Nov 19)** from boards "Onboarding" + "Onboarding2" (ideas A, C, F, G):
+  `src/routes/onboarding/Onboarding.svelte` (one file, steps welcome → you → courses → exams →
+  files → look → day → done; "I already use Mosaic" = welcome → files ("Already using Mosaic",
+  needs a folder with `Notes/`) → done; "Restore from a backup file" marks onboarded and opens
+  Settings → Backups). Pure helpers `src/lib/onboarding.ts` (`FIELDS`, `shortName` with known
+  short forms, `iconFor` = lucide icon guessed from the course name, `newCardsFor(minutes)` = about
+  ⅔ of the minutes, `daysUntil`; node test scratchpad `tstest/t80.ts`). Saves: the Files step's
+  Continue runs `vault_create` and sets storage / vault / roots / sync (synced folder: `Sync`,
+  `Backups` inside); Finish saves courses (`saveCourse`), exams as all-day `exam` events titled
+  "<short name> <exam>", and settings name / field / use / term (only when not the guessed one) /
+  dailyMinutes / newPerDay / onboarded. The look step is live (`saveSettings` theme / frame).
+  App shows it instead of the shell while `!settings.onboarded` (browser preview: only with
+  `?onboarding` in the address). `src/lib/stores/startup.ts` `startFiles()` (notes, PDFs,
+  backups, connection check) runs at start only when onboarded, else after Finish, so a fresh
+  install never makes an empty `~/Mosaic` before the choice. Checked in the real app: fresh HOME
+  shows Welcome and creates no folders; an old settings file skips it and gets onboarded + drugTools.
+- Next: O3 extras: .ics import, existing notes folder / Obsidian vault, templates by field,
+  "Bring things in" (Anki, notes, PDFs, CSV), try-a-card, first-time hints, Getting started card.
+- Earlier plan for O2 (kept for reference): onboarding screens (canvas boards "Onboarding" and "Onboarding2"), O3 .ics import,
   existing-folder detection, templates by field, first-time hints, Getting started card.

@@ -88,7 +88,9 @@ likes or dislikes in each inspiration).
 - **Labs** are served on the app's own origin (`/__labs/`), never a separate origin (WebKitGTK gave
   that session-only storage and progress vanished).
 - **Settings:** `saveSettings` saves the whole snapshot, so changing a default never changes her
-  install. New installs: `onboarded` false, `drugTools` off (see `docs/dev/data.md`).
+  install. New installs: `onboarded` false (shows `src/routes/onboarding/`), `drugTools` off.
+  Anything that reads or creates her folders at start goes in `startFiles()` (`stores/startup.ts`),
+  which waits for onboarding (see `docs/dev/data.md`).
 
 ## Where things are documented
 

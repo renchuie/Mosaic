@@ -18,6 +18,15 @@
   import { checkFolders, connection } from "./lib/stores/connection.svelte";
   import { settings } from "./lib/stores/settings.svelte";
   import Icon from "./lib/components/Icon.svelte";
+  import Onboarding from "./routes/onboarding/Onboarding.svelte";
+  import { inTauri } from "./lib/tauri";
+  import { startFiles } from "./lib/stores/startup";
+  // first launch; the browser preview shows it only with ?onboarding in the address
+  const setup = $derived(!settings.onboarded && (inTauri || location.search.includes("onboarding")));
+  function setupDone(goTo?: string) {
+    location.hash = goTo ?? "#/";
+    void startFiles(true);
+  }
   let hideConn = $state(false);
   let checking = $state(false);
   async function recheck() {
@@ -46,6 +55,9 @@
   const fit = $derived(route.page === "study" && /^cards\/(review|cram|play)/.test(route.rest));
 </script>
 
+{#if setup}
+  <Onboarding ondone={setupDone} />
+{:else}
 <div class="shell" class:writing>
   {#if writing}<div class="redge" aria-hidden="true"></div><div class="tedge" aria-hidden="true"></div>{/if}
   <Sidebar />
@@ -71,6 +83,7 @@
     {/key}
   </main>
 </div>
+{/if}
 {#if (connection.notesMissing || connection.syncMissing) && !hideConn}
   <div class="conn" role="status">
     <Icon name="cloud" size={18} />
