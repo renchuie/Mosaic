@@ -1,6 +1,10 @@
 <script lang="ts">
   import { TEMPLATES } from "../../lib/notes";
   import { courseNames } from "../../lib/stores/courses.svelte";
+  import { settings } from "../../lib/stores/settings.svelte";
+  /** drug / disease / case templates only with drug tools on */
+  const HEALTH = new Set(["drug", "disease", "case"]);
+  const templates = $derived(Object.entries(TEMPLATES).filter(([k]) => settings.drugTools || !HEALTH.has(k)));
   import { createNote, makeFolder, noteHref, notes, noteDirs } from "../../lib/stores/notes.svelte";
 
   let { open = $bindable(false), folder = "", mode = "note" }: { open: boolean; folder?: string; mode?: "note" | "folder" } = $props();
@@ -47,14 +51,14 @@
     <h2 id="nn-title" class="h2">{mode === "folder" ? "New folder" : "New note"}</h2>
     <label class="field"><span class="label">{mode === "folder" ? "Folder name" : "Title"}</span>
       <!-- svelte-ignore a11y_autofocus -->
-      <input class="input" bind:value={title} autofocus placeholder={mode === "folder" ? "e.g. Exam 5" : "e.g. Heart failure"} /></label>
+      <input class="input" bind:value={title} autofocus placeholder={mode === "folder" ? "Folder name" : "Title"} /></label>
     <label class="field"><span class="label">Inside</span>
       <select class="input" bind:value={dir}>{#each dirs as d}<option value={d}>{d || "Notes (top level)"}</option>{/each}</select></label>
     {#if mode === "note"}
       <div class="field">
         <span class="label">Template</span>
         <div class="tpl" role="radiogroup" aria-label="Template">
-          {#each Object.entries(TEMPLATES) as [k, v]}
+          {#each templates as [k, v]}
             <button type="button" role="radio" aria-checked={template === k} class:on={template === k} onclick={() => (template = k)}>{v.label}</button>
           {/each}
         </div>

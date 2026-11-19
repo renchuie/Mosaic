@@ -141,7 +141,7 @@
                   <select class="input" bind:value={r.course}><option value="">No course</option>{#each courseNames() as c}<option value={c}>{c}</option>{/each}</select>
                 </label>
                 <label class="field"><span class="label">Exam or topic folder</span>
-                  <input class="input" bind:value={r.exam} placeholder="e.g. Exam 5 (optional)" list="exams-{i}" />
+                  <input class="input" bind:value={r.exam} placeholder="Optional" list="exams-{i}" />
                   <datalist id="exams-{i}">{#each examChoices(r.course) as e}<option value={e}></option>{/each}</datalist>
                 </label>
               </div>

@@ -119,7 +119,7 @@
         {/if}
       </div>
       <div class="two">
-        <label class="field"><span class="label">Title (shown on every card)</span><input class="input" bind:value={header} placeholder="e.g. RAAS pathway" /></label>
+        <label class="field"><span class="label">Title (shown on every card)</span><input class="input" bind:value={header} /></label>
         <label class="field"><span class="label">Course</span><select class="input" bind:value={course}><option value="">None</option>{#each courseNames() as c}<option value={c}>{c}</option>{/each}</select></label>
       </div>
       <label class="field"><span class="label">Extra (shown on the back)</span><input class="input" bind:value={extra} placeholder="Optional" /></label>

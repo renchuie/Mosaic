@@ -2,6 +2,14 @@ import { loadDoc, saveDoc } from "../tauri";
 import { THEMES, themeById, type ThemeId } from "../themes";
 
 export type Settings = {
+  /** a fresh install shows onboarding until this is true; an install that already had settings
+   *  (set up before onboarding existed) is marked onboarded when they load */
+  onboarded?: boolean;
+  /** subject-specific tools: Drug cards, the drug quiz tracker, Drug of the day (off on a new install) */
+  drugTools?: boolean;
+  /** what they study (onboarding), for suggestions only; and the current term ("" = guessed) */
+  field?: string;
+  term?: string;
   name: string;
   labsRoot: string;
   scanDepth: number;
@@ -95,15 +103,19 @@ export const CLOZE_COLOURS: Record<string, [string, string]> = {
 };
 
 export const DEFAULT_SETTINGS: Settings = {
-  name: "Jazmine",
-  /** Materials folder (Study → Materials); was the Recall Labs folder before Nov 16 */
-  labsRoot: "~/GoogleDrive/Pharmacy School/Study Lab/Materials",
+  // a new install starts on this computer only, in one Mosaic folder; onboarding can move it
+  // (an install from before onboarding has its own values saved, so these never touch it)
+  name: "",
+  storage: "local",
+  vault: "~/Mosaic",
+  /** Materials folder (Study → Materials) */
+  labsRoot: "~/Mosaic/Materials",
   scanDepth: 4,
   examKeywords: "Exam",
-  syncEnabled: true,
-  syncDir: "~/GoogleDrive/Pharmacy School/Study Lab/Study Desk Sync",
-  notesRoot: "~/GoogleDrive/Pharmacy School/Study Lab/Notes",
-  pdfRoot: "~/GoogleDrive/Pharmacy School",
+  syncEnabled: false,
+  syncDir: "~/Mosaic/Sync",
+  notesRoot: "~/Mosaic/Notes",
+  pdfRoot: "~/Mosaic/PDFs",
   pdfDepth: 6,
   newPerDay: 20,
   retention: 0.9,
@@ -115,7 +127,7 @@ export const DEFAULT_SETTINGS: Settings = {
   clozeColor: "theme",
   autoBackup: true,
   backupLocal: "~/Mosaic Backups",
-  backupDrive: "~/GoogleDrive/Pharmacy School/Study Lab/Mosaic Backups",
+  backupDrive: "",
   backupKeep: 14,
   historyDays: 14,
   trashDays: 30,
@@ -126,6 +138,12 @@ export const settings = $state<Settings>({ ...DEFAULT_SETTINGS });
 export async function loadSettings() {
   const saved = await loadDoc<Partial<Settings> & { theme?: string }>("settings");
   Object.assign(settings, DEFAULT_SETTINGS, saved ?? {});
+  // an install set up before onboarding existed: it is already set up, and it used the drug tools
+  if (saved && saved.onboarded === undefined) {
+    settings.onboarded = true;
+    if (settings.drugTools === undefined) settings.drugTools = true;
+    void saveDoc("settings", $state.snapshot(settings));
+  }
   // Nov 17: "glass" became Mosaic, the solid "pastel" look was retired; the old default arrow and
   // cloze colours (mosaic / butter) now mean "follow the theme"
   if (!THEMES.some((t) => t.id === settings.theme)) settings.theme = "mosaic";
@@ -166,4 +184,12 @@ export async function saveSettings(patch: Partial<Settings>) {
   Object.assign(settings, patch);
   applyLook();
   await saveDoc("settings", $state.snapshot(settings));
+}
+
+/** The term courses are added to: the one set in Settings / onboarding, else a guess from today
+ *  ("Spring 2027" from January to April, "Summer" May to July, "Fall" from August). */
+export function currentTerm(now = new Date()): string {
+  if (settings.term?.trim()) return settings.term.trim();
+  const m = now.getMonth();
+  return `${m < 4 ? "Spring" : m < 7 ? "Summer" : "Fall"} ${now.getFullYear()}`;
 }

@@ -3,6 +3,7 @@
 import { BUILTIN_TYPES, fromHtml, generate, type CardType, type FlashItem, type GenCard } from "../cardTypes";
 import { inTauri, invoke } from "../tauri";
 import { del, entries, get, newId, put, seed } from "./synced.svelte";
+import { settings } from "./settings.svelte";
 import type { Plan } from "../anki";
 import { decks, saveDeck } from "./decks.svelte";
 
@@ -10,8 +11,10 @@ export function initLibrary() {
   for (const [id, t] of Object.entries(BUILTIN_TYPES)) seed("cardTypes", id, t);
 }
 
+/** The card types to offer. The built-in Drug type only with the drug tools on (cards already
+ *  made with it keep working either way). */
 export const cardTypes = () =>
-  entries<CardType>("cardTypes").sort((a, b) => Number(!!b[1].builtin) - Number(!!a[1].builtin) || a[1].name.localeCompare(b[1].name));
+  entries<CardType>("cardTypes").filter(([id]) => id !== "drug" || settings.drugTools).sort((a, b) => Number(!!b[1].builtin) - Number(!!a[1].builtin) || a[1].name.localeCompare(b[1].name));
 export const getType = (id: string) => get<CardType>("cardTypes", id) ?? BUILTIN_TYPES[id];
 export const items = () => entries<FlashItem>("cardItems").sort((a, b) => b[1].created - a[1].created);
 export const getItem = (id: string) => get<FlashItem>("cardItems", id);

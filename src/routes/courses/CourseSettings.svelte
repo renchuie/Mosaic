@@ -3,9 +3,10 @@
   import { PALETTE } from "../../lib/calendar";
   import IconPicker from "../../lib/components/IconPicker.svelte";
   import { DEFAULT_SCALE, type Category, type ScaleStep } from "../../lib/grades";
-  import { assessments, deleteCourse, getCourse, saveCourse, TERM, type Course } from "../../lib/stores/courses.svelte";
+  import { assessments, deleteCourse, getCourse, saveCourse, type Course } from "../../lib/stores/courses.svelte";
   import { newId } from "../../lib/stores/synced.svelte";
   import { courseEditor } from "./editor.svelte";
+  import { currentTerm, settings } from "../../lib/stores/settings.svelte";
 
   let dialog = $state<HTMLDialogElement>();
   let d = $state<Course | null>(null);
@@ -27,7 +28,7 @@
       const c = courseEditor.id ? getCourse(courseEditor.id) : null;
       d = c
         ? structuredClone($state.snapshot(c) as Course)
-        : { name: "", code: "", color: PALETTE[8], icon: "book", term: TERM, order: 99, grading: { mode: "category", categories: [], target: 90, scale: DEFAULT_SCALE } };
+        : { name: "", code: "", color: PALETTE[8], icon: "book", term: currentTerm(), order: 99, grading: { mode: "category", categories: [], target: 90, scale: DEFAULT_SCALE } };
       error = null;
       confirmDelete = false;
       dialog.showModal();
@@ -85,13 +86,13 @@
       <section>
         <h3 class="label">About</h3>
         <div class="two">
-          <label class="field"><span class="label">Name</span><input class="input" bind:value={d.name} placeholder="e.g. Therapeutics IV" /></label>
-          <label class="field"><span class="label">Short name</span><input class="input" bind:value={d.code} placeholder="e.g. Ther IV" /></label>
+          <label class="field"><span class="label">Name</span><input class="input" bind:value={d.name} /></label>
+          <label class="field"><span class="label">Short name</span><input class="input" bind:value={d.code} /></label>
           <label class="field"><span class="label">Term</span><input class="input" bind:value={d.term} /></label>
           <label class="field"><span class="label">Credits</span><input class="input" type="number" min="0" step="0.5" bind:value={d.credits} /></label>
           <label class="field"><span class="label">Instructor</span><input class="input" bind:value={d.instructor} /></label>
           <label class="field"><span class="label">Email</span><input class="input" type="email" bind:value={d.email} /></label>
-          <label class="field"><span class="label">Office hours</span><input class="input" bind:value={d.office} placeholder="e.g. Tue 2–4 PM, Rm 318" /></label>
+          <label class="field"><span class="label">Office hours</span><input class="input" bind:value={d.office} /></label>
           <label class="field"><span class="label">Class room</span><input class="input" bind:value={d.location} /></label>
         </div>
         <div class="field">
@@ -122,7 +123,7 @@
             {/if}
             {#each d.grading.categories as c (c.id)}
               <div class="cat">
-                <input class="input" bind:value={c.name} aria-label="Category name" placeholder="e.g. Exams" />
+                <input class="input" bind:value={c.name} aria-label="Category name" placeholder="Category" />
                 <label class="pct"><input class="input" type="number" min="0" max="100" step="0.5" bind:value={c.weight} aria-label="Weight of {c.name}" /><span>%</span></label>
                 <input class="input" type="number" min="0" max="20" bind:value={c.drop} aria-label="Drop the lowest in {c.name}" placeholder="0" />
                 <button type="button" class="rm" aria-label="Remove {c.name}" onclick={() => removeCat(c)}>×</button>
@@ -159,7 +160,7 @@
 
       <section>
         <h3 class="label">Extras</h3>
-        <label class="check"><input type="checkbox" checked={d.tracker === "drugs"} onchange={(e) => (d!.tracker = e.currentTarget.checked ? "drugs" : undefined)} /> Drug quiz tracker (Top 200/300)</label>
+        {#if settings.drugTools || d.tracker === "drugs"}<label class="check"><input type="checkbox" checked={d.tracker === "drugs"} onchange={(e) => (d!.tracker = e.currentTarget.checked ? "drugs" : undefined)} /> Drug quiz tracker (Top 200/300)</label>{/if}
         {#if d.tracker === "drugs"}
           <label class="field inline"><span class="label">Drugs on the list</span><input class="input" type="number" min="1" bind:value={d.drugTotal} placeholder="300" /></label>
         {/if}

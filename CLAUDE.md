@@ -674,8 +674,8 @@ Do not go back to thin coloured blocks on a plain grid.
 - Exams = a tag marked "Exam" (e.g. a custom Quiz tag), or tag Other with an exam keyword in the
   title (Settings, default "Exam"), plus Recall Lab folders with an exam date (skipped when a
   calendar exam is on the same day). So "Exam 4 sim run" tagged Study is not an exam.
-- Ther IV Exam 4 (2026-11-17) and Exam 5 (2026-12-04) are seeded as exam events; the four
-  built-in tags are seeded too (u=1, so any edit wins).
+- Only the four built-in tags are seeded (u=1, so any edit wins). The two exam events seeded
+  before Nov 19 stay in her synced store; new installs get none (see "Generic defaults").
 - Dashboard: countdown, mini month, next-exam tile and Today timeline read the calendar.
 
 ## Tasks (built early, at her request; Phase 4 builds on this)
@@ -749,8 +749,8 @@ The app's purpose is an all-in-one uni home base, and the course is what ties th
 
 - Courses (synced collection `courses`, store `src/lib/stores/courses.svelte.ts`): name, short name,
   colour, icon, term, credits, instructor, email, office hours, room, grading, notes pad, optional
-  drug-quiz tracker, archived. Seeded for Fall 2026 (ids ther4, law, pgx, app, capps, top200) with
-  no grading; she fills it in from each syllabus. `courseNames()` feeds every course picker.
+  drug-quiz tracker, archived. Nothing is seeded since Nov 19 (her six Fall 2026 courses, seeded
+  before, stay in her synced store); new courses get `currentTerm()` as their term. `courseNames()` feeds every course picker.
 - Other records (events, tasks, lab folder links, plan blocks) refer to a course by NAME.
   `saveCourse` rewrites those references when a course is renamed (tested). Keep it that way or
   migrate everything to ids in one go.
@@ -1248,6 +1248,27 @@ Recall Labs. Decisions she approved:
   throwaway HOME (`GoogleDrive/Pharmacy School/Study Lab/Notes/...`), `LIBGL_ALWAYS_SOFTWARE=1
   WEBKIT_DISABLE_COMPOSITING_MODE=1`, `STUDYDESK_ROUTE=study/notes/<rel>`, drive it with `xdotool`
   (installed in the test container with her OK) and check the saved files / `import -window root`.
+
+## Generic defaults (O1, Nov 19: "remove the very specific stuff about me")
+
+First step towards onboarding for friends. Nothing personal is a default or a seed any more:
+- `DEFAULT_SETTINGS`: `name: ""`, storage "local" with the vault `~/Mosaic` (Notes, Materials,
+  PDFs, Sync), sync off, no Drive backup place. Her own settings file holds every value
+  (`saveSettings` saves the whole snapshot), so new defaults never change her install.
+- `settings.onboarded` (onboarding, O2, shows when false / unset on a fresh install). Migration in
+  `loadSettings`: a saved settings file without `onboarded` = an existing install → `onboarded:
+  true` and `drugTools: true`, saved once.
+- **Drug tools** (`settings.drugTools`, Settings → You → Extras, off on new installs): the Drug
+  card type (`cardTypes()` filters it), drug of the day on Study Home, the Top 200 tracker on
+  course pages and in course settings (still shown on a course that already uses it), and the
+  Drug monograph / Disease state / Patient case note templates.
+- `settings.term` (Settings → You, blank = `currentTerm()`: Spring before May, Summer May–Jul,
+  Fall after) is the term for new courses. `settings.field` ("What are you studying?") is stored
+  for O2/O3.
+- No courses or exam events are seeded; greetings drop the comma when the name is blank; "e.g."
+  placeholders with her examples are gone.
+- Next: O2 onboarding screens (canvas boards "Onboarding" and "Onboarding2"), O3 .ics import,
+  existing-folder detection, templates by field, first-time hints, Getting started card.
 
 ## Other decisions
 

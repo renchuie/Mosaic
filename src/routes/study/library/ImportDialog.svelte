@@ -148,7 +148,7 @@
         {/if}
         <div class="two">
           <label class="field"><span class="label">Course</span><select class="input" bind:value={course}><option value="">None</option>{#each courseNames() as c}<option value={c}>{c}</option>{/each}</select></label>
-          <label class="field"><span class="label">Tags</span><input class="input" bind:value={tags} placeholder="e.g. top300" /></label>
+          <label class="field"><span class="label">Tags</span><input class="input" bind:value={tags} /></label>
         </div>
         <div class="pre">
           <span class="label">{rows.length} rows · first ones:</span>

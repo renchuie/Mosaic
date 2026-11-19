@@ -28,28 +28,13 @@ export type Course = {
   archived?: boolean;
 };
 
-export const TERM = "Fall 2026";
 const blank = (target = 90): Grading => ({ mode: "category", categories: [], target, scale: DEFAULT_SCALE });
+/** a new course's empty grading (filled in from the syllabus on its page) */
+export const blankGrading = blank;
 
-/** Fall 2026, as she listed them. Grading is filled in from each syllabus in the app. */
-const SEED: [string, Omit<Course, "order">][] = [
-  ["ther4", { name: "Therapeutics IV", code: "Ther IV", color: "#F2B8B5", icon: "pill", term: TERM, grading: blank() }],
-  ["law", { name: "Pharmacy Law", code: "Law", color: "#B9D4EE", icon: "book", term: TERM, grading: blank() }],
-  ["pgx", { name: "Clinical Pharmacogenetics", code: "PGx", color: "#CDB4F7", icon: "labs", term: TERM, grading: blank() }],
-  ["app", { name: "Advanced Pharmacy Practice", code: "APP", color: "#F6CFA8", icon: "users", term: TERM, grading: blank() }],
-  ["capps", { name: "Clinical Applications", code: "CApps", color: "#A9CDC3", icon: "heart", term: TERM, grading: blank() }],
-  [
-    "top200",
-    {
-      name: "Top 200/300 drugs", code: "Top 300", color: "#F7E3B0", icon: "flag", term: TERM, tracker: "drugs", drugTotal: 300,
-      grading: { mode: "category", categories: [{ id: "quizzes", name: "Quizzes", weight: 100 }], target: 90, scale: DEFAULT_SCALE },
-    },
-  ],
-];
-
-export function initCourses() {
-  SEED.forEach(([id, c], i) => seed("courses", id, { ...c, order: i }));
-}
+/** Nothing is seeded: a new install starts with no courses (onboarding adds them). Courses added
+ *  before Nov 19 by the old seed stay in the synced store, so an existing install keeps them. */
+export function initCourses() {}
 
 export const courses = (all = false) =>
   entries<Course>("courses")

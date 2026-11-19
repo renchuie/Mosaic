@@ -3,7 +3,8 @@
   import Icon from "../../lib/components/Icon.svelte";
   import { fromKey } from "../../lib/calendar";
   import { gpa } from "../../lib/grades";
-  import { courses, gradeOf, TERM } from "../../lib/stores/courses.svelte";
+  import { courses, gradeOf } from "../../lib/stores/courses.svelte";
+  import { currentTerm } from "../../lib/stores/settings.svelte";
   import { labsFor, upcomingFor } from "../../lib/stores/courseLinks.svelte";
   import { courseEditor } from "./editor.svelte";
 
@@ -35,7 +36,7 @@
   <header class="top">
     <div>
       <h1 class="display">Courses</h1>
-      <p class="muted">{TERM} · {rows.filter((r) => !r.c.archived).length} courses{credits ? ` · ${credits} credits` : ""}</p>
+      <p class="muted">{currentTerm()} · {rows.filter((r) => !r.c.archived).length} courses{credits ? ` · ${credits} credits` : ""}</p>
     </div>
     <div class="acts">
       {#if termGpa !== null}<span class="gpa"><small>Term GPA estimate</small><b class="display">{termGpa.toFixed(2)}</b></span>{/if}

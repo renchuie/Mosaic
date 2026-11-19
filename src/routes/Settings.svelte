@@ -6,7 +6,7 @@
   import Icon from "../lib/components/Icon.svelte";
   import { probe, setKey } from "../lib/labStorage";
   import { labs, refreshProgress, rescan } from "../lib/stores/labs.svelte";
-  import { ARROW_COLOURS, CLOZE_COLOURS, DEFAULT_SETTINGS, saveSettings, settings } from "../lib/stores/settings.svelte";
+  import { ARROW_COLOURS, CLOZE_COLOURS, DEFAULT_SETTINGS, currentTerm, saveSettings, settings } from "../lib/stores/settings.svelte";
   import { styleManager } from "../lib/stores/blockStyles.svelte";
   import { FAMILIES, THEMES, themeById } from "../lib/themes";
   import { inTauri } from "../lib/tauri";
@@ -55,6 +55,8 @@
   // ---- search: every setting, so it can be found from any group ----
   const INDEX: { id: string; g: GroupId; label: string; words: string }[] = [
     { id: "name", g: "you", label: "Your name", words: "name profile avatar" },
+    { id: "term", g: "you", label: "Term", words: "term semester quarter year" },
+    { id: "drugs", g: "you", label: "Drug tools", words: "drug pharmacy top 200 300 quiz tracker drug of the day card type" },
     { id: "theme", g: "appearance", label: "Theme", words: "theme colour color dark light glass neutral catppuccin gruvbox" },
     { id: "window", g: "appearance", label: "Window", words: "window frame curve glass rail floating border" },
     { id: "spacing", g: "appearance", label: "Spacing", words: "spacing density compact spacious roomy" },
@@ -118,7 +120,7 @@
     saved = what;
     setTimeout(() => (saved = ""), 2000);
   }
-  const saveName = () => name.trim() !== settings.name && saveSettings({ name: name.trim() || DEFAULT_SETTINGS.name });
+  const saveName = () => name.trim() !== settings.name && saveSettings({ name: name.trim() });
   const saveWords = () => keywords.trim() !== settings.examKeywords && saveSettings({ examKeywords: keywords.trim() || DEFAULT_SETTINGS.examKeywords });
 
   async function saveFolders(e: SubmitEvent) {
@@ -294,8 +296,19 @@
           <div class="rl"><b id="name-l">Your name</b><span>Shown on the dashboard.</span></div>
           <input class="input short" bind:value={name} aria-labelledby="name-l" autocomplete="given-name" onblur={saveName} onkeydown={(e) => e.key === "Enter" && (e.currentTarget as HTMLInputElement).blur()} />
         </div>
+        <div class="srow" id="set-term" class:flash={flash === "term"}>
+          <div class="rl"><b id="term-l">Term</b><span>For new courses.</span></div>
+          <input class="input short" aria-labelledby="term-l" value={settings.term ?? ""} placeholder={currentTerm()} onchange={(e) => saveSettings({ term: e.currentTarget.value.trim() || undefined })} />
+        </div>
         <div class="srow">
           <div class="rl"><b>Mosaic</b><span>Your student life in full view.</span></div>
+        </div>
+      </div>
+      <div class="scard">
+        <h3>Extras</h3>
+        <div class="srow" id="set-drugs" class:flash={flash === "drugs"}>
+          <div class="rl"><b id="drugs-l">Drug tools</b><span>Drug cards, drug of the day, Top 200 tracker.</span></div>
+          {@render seg("drugs", [{ v: "off", name: "Off" }, { v: "on", name: "On" }], settings.drugTools ? "on" : "off", (v) => saveSettings({ drugTools: v === "on" }))}
         </div>
       </div>
 

@@ -155,7 +155,7 @@
     <section class="hero span2">
       <div>
         <p class="date">{now.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}</p>
-        <h1 class="display">{greeting}, {settings.name}</h1>
+        <h1 class="display">{greeting}{settings.name ? `, ${settings.name}` : ""}</h1>
         <p class="sum">
           {dueNow} {dueNow === 1 ? "card" : "cards"} due · {studyBlocks.length - doneBlocks} plan {studyBlocks.length - doneBlocks === 1 ? "block" : "blocks"} left{#if nextExam}{` · ${nextExam.title} ${whenExam(nextExam.days).toLowerCase()}`}{/if}
         </p>
@@ -322,7 +322,7 @@
       </div>
     </section>
 
-    {#if drug}
+    {#if drug && settings.drugTools}
       <section class="card drug">
         <header class="ch"><span class="ic white"><Icon name="pill" size={18} /></span><h2 class="h2">Drug of the day</h2><span class="muted sm">{drugs.length} drugs</span></header>
         <p class="display dn">{drug.fields.Generic}</p>

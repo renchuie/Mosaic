@@ -118,7 +118,7 @@
           </div>
         {/if}
         <form class="add" onsubmit={(e) => { e.preventDefault(); add(c.id); }}>
-          <input class="input" placeholder={`Add to ${c.name}, e.g. ${c.name.toLowerCase().includes("exam") ? "Exam 3" : c.name.toLowerCase().includes("quiz") ? "Quiz 4" : "Case 2"}`} aria-label="New assessment in {c.name}"
+          <input class="input" placeholder={`Add to ${c.name}`} aria-label="New assessment in {c.name}"
             value={adding[c.id]?.name ?? ""} oninput={(e) => (adding[c.id] = { name: e.currentTarget.value, max: adding[c.id]?.max ?? "100" })} />
           <label class="outof">out of <input class="input" type="number" min="0" step="any" aria-label="Points possible"
             value={adding[c.id]?.max ?? "100"} oninput={(e) => (adding[c.id] = { name: adding[c.id]?.name ?? "", max: e.currentTarget.value })} /></label>

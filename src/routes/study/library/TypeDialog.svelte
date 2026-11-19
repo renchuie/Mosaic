@@ -59,7 +59,7 @@
   {#if d}
     <form onsubmit={save}>
       <header><h2 id="ty-title" class="h2">{id === "new" ? "New card type" : "Card type"}</h2><button type="button" class="x" aria-label="Close" onclick={close}>×</button></header>
-      <label class="field"><span class="label">Name</span><input class="input" bind:value={d.name} placeholder="e.g. Lab value" /></label>
+      <label class="field"><span class="label">Name</span><input class="input" bind:value={d.name} /></label>
       {#if d.kind !== "occlusion"}
         <div class="field">
           <span class="label">Fields</span>

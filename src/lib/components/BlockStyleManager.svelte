@@ -130,7 +130,7 @@
       </ul>
       <form class="add" onsubmit={add}>
         <input type="color" bind:value={newColor} aria-label="New callout colour" />
-        <input class="input" bind:value={newLabel} placeholder="New callout, e.g. Mnemonic or Clinical pearl" aria-label="New callout name" />
+        <input class="input" bind:value={newLabel} placeholder="New callout" aria-label="New callout name" />
         <button type="submit" class="btn primary" disabled={!newLabel.trim()}>Add</button>
       </form>
     </section>
@@ -139,8 +139,8 @@
     <section>
       <h3>Quotes</h3>
       <blockquote class="qprev" style="--bar: {q.bar ?? 'color-mix(in srgb, var(--text) 25%, transparent)'}" class:tint={q.tint} class:it={q.italic}>
-        <span>Drug therapy problems are the pharmacist's business.</span>
-        <b>— Pharmacotherapy, ch. 1</b>
+        <span>The more that you read, the more things you will know.</span>
+        <b>— Dr. Seuss</b>
       </blockquote>
       <div class="field">
         <span class="label">Bar colour</span>
@@ -225,7 +225,7 @@
       </ul>
       <form class="add" onsubmit={addPalette}>
         <span></span>
-        <input class="input" bind:value={newPalName} placeholder="New palette, e.g. Exam review" aria-label="New palette name" />
+        <input class="input" bind:value={newPalName} placeholder="New palette" aria-label="New palette name" />
         <button type="submit" class="btn primary" disabled={!newPalName.trim()}>Add</button>
       </form>
     </section>

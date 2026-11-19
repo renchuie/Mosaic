@@ -224,7 +224,7 @@
     <aside class="side">
       <form class="card addb" onsubmit={add}>
         <h2 class="h2">Add a block</h2>
-        <input class="input" bind:value={title} placeholder="e.g. Anticoagulation lecture review" aria-label="Block name" />
+        <input class="input" bind:value={title} aria-label="Block name" />
         <div class="mins" role="radiogroup" aria-label="Length">
           {#each MINS as m}
             <button type="button" role="radio" aria-checked={mins === m} class:on={mins === m} onclick={() => (mins = m)}>{fmtDuration(m)}</button>

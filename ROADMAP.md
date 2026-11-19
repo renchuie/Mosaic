@@ -193,6 +193,9 @@ Calendar) complete before anyone else uses it. In this order:
    materials folders and courses; nothing of hers is seeded (her Fall 2026 courses, Ther IV exam
    dates and Drive layout become her own data, not defaults). Features shaped around her habits
    (Recall Labs) are optional.
+   - **O1 done Nov 19** (pulled forward at her ask): nothing of hers is a default or a seed;
+     drug tools are a Settings toggle (off for new installs). O2 onboarding screens and O3 extras
+     (.ics import, existing folders, templates by field, hints, Getting started) are next.
 2. **Windows builds.** GitHub Actions builds a Windows installer (Tauri bundler, `.msi` / `.exe`)
    on a Windows runner and runs the automated checks there. Replace Linux-only bits: `xdg-open`
    → Tauri's opener, folder defaults, Windows paths (Google Drive for desktop is e.g.

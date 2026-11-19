@@ -65,7 +65,7 @@
   <div class="main">
     <header class="hello">
       <p class="label">{dateLine}</p>
-      <h1 class="display">Hi, {settings.name}.</h1>
+      <h1 class="display">{settings.name ? `Hi, ${settings.name}.` : "Hi."}</h1>
       <p class="summary">
         {#if next}<b>{next.title}</b> {next.days <= 1 ? `is ${when(next.days).toLowerCase()}` : `in ${next.days} days`} ·{/if}
         {dueLeft} due today{overdue ? ` · ${overdue} overdue` : ""} · {revisit} to revisit

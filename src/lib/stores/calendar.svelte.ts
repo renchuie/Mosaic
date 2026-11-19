@@ -9,9 +9,6 @@ import { del, entries, get, newId, put, seed } from "./synced.svelte";
 
 export function initCalendar() {
   for (const [id, t] of Object.entries(DEFAULT_TAGS)) seed("tags", id, t);
-  // The two exams you told me about, so countdowns work on day one.
-  seed("events", "seed-ther4-exam4", { title: "Ther IV Exam 4", kind: "exam", course: "Therapeutics IV", date: "2026-11-17", start: "09:00", end: "11:00" } satisfies CalEvent);
-  seed("events", "seed-ther4-exam5", { title: "Ther IV Exam 5", kind: "exam", course: "Therapeutics IV", date: "2026-12-04", start: "09:00", end: "11:00" } satisfies CalEvent);
 }
 
 // ---- tags --------------------------------------------------------------------

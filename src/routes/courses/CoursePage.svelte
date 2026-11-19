@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { settings } from "../../lib/stores/settings.svelte";
   import { pdfHref, pdfInfo, pdfName, pdfsForCourse } from "../../lib/stores/pdfs.svelte";
   import GradeRing from "../../lib/components/GradeRing.svelte";
   import Icon from "../../lib/components/Icon.svelte";
@@ -119,7 +120,7 @@
 
     <div class="cols">
       <div class="main">
-        {#if course.tracker === "drugs"}<DrugTracker {id} />{/if}
+        {#if course.tracker === "drugs" && settings.drugTools}<DrugTracker {id} />{/if}
         {#if g}<GradesModule {id} {g} bind:whatIf bind:whatIfOn />{/if}
       </div>
 
