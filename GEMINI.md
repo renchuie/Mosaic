@@ -15,7 +15,8 @@ student. Your job is **design**: mockups and UI skeletons. Claude builds the log
 | `ROADMAP.md` | The plan, week by week. Only work on what it says is current. |
 | `src/styles/tokens.css` | Every colour, spacing, radius and motion token. **Use these, never your own values.** |
 | `src/styles/base.css` | Shared classes: `.btn`, `.input`, `.field` + `.label`, `.card`, `.tag`, `.display`, `.muted`, and the dialog / menu surfaces. |
-| `CLAUDE.md` | The full technical record (long). Read the sections **Writing UI text**, **Look**, **Design** and **Performance**. Skim the rest only when a task touches that area. |
+| `CLAUDE.md` | The short project guide: rules for UI text, look and performance. |
+| `docs/dev/look.md` | The full look: themes, window frames, rail, motion. Other `docs/dev/` files only when a task touches that area. |
 
 Good examples of finished screens to copy patterns from: `src/routes/Settings.svelte` (cards of
 rows), `src/routes/study/CardsView.svelte` + `DeckRows.svelte` (dashboard + list),
