@@ -9,10 +9,9 @@
   import { counts, scopeKey } from "../../lib/stores/srs.svelte";
   import { shortExam } from "../../lib/stores/deckTree.svelte";
   import LinkPicker from "./LinkPicker.svelte";
-  import UploadDialog from "../labs/UploadDialog.svelte";
+  import AddFilesDialog from "../study/AddFilesDialog.svelte";
   import { addLinks } from "../../lib/stores/outline.svelte";
   import { dragHasFiles } from "../../lib/stores/noteOps.svelte";
-  import { addFiles, addedMessage } from "../../lib/stores/addFiles";
 
   let { courseId, id }: { courseId: string; id: string } = $props();
   const course = $derived(getCourse(courseId));
@@ -42,22 +41,10 @@
     toast = m;
     setTimeout(() => toast === m && (toast = ""), 4000);
   };
-  async function dropped(list: File[]) {
-    if (!course || !lec) return;
-    busy = "Adding…";
-    try {
-      const r = await addFiles(list, { name: course.name, code: course.code });
-      if (r.links.length) addLinks(id, r.links);
-      say(addedMessage(r, lec.title));
-      if (r.toUpload.length) {
-        upFiles = r.toUpload;
-        uploading = true;
-      }
-    } catch (e) {
-      say(String(e instanceof Error ? e.message : e));
-    } finally {
-      busy = "";
-    }
+  function dropped(list: File[]) {
+    if (!list.length) return;
+    upFiles = list;
+    uploading = true;
   }
   function rename(v: string) {
     if (v.trim() && v.trim() !== lec?.title) saveLecture(id, { title: v.trim() });
@@ -141,7 +128,7 @@
     {/if}
   </div>
   <LinkPicker bind:open={picking} lectureId={id} course={course.name} />
-  <UploadDialog bind:open={uploading} files={upFiles} course={course.name} exam={exam ? shortExam(exam) : ""} onsaved={(rels) => addLinks(id, rels.map((ref) => ({ kind: "file" as const, ref })))} />
+  <AddFilesDialog bind:open={uploading} files={upFiles} course={course.name} lecture={id} />
   {#if over}<div class="dropcover" aria-hidden="true"><Icon name="plus" size={26} /><b>Add to {lec.title}</b></div>{/if}
   {#if toast || busy}<div class="toast" role="status">{busy || toast}</div>{/if}
 {/if}
@@ -149,7 +136,7 @@
 <svelte:window
   ondragover={(e) => { if (dragHasFiles(e)) { e.preventDefault(); over = true; } }}
   ondragleave={(e) => { if (!e.relatedTarget) over = false; }}
-  ondrop={(e) => { if (!dragHasFiles(e)) return; e.preventDefault(); over = false; void dropped([...(e.dataTransfer?.files ?? [])]); }}
+  ondrop={(e) => { if (!dragHasFiles(e)) return; e.preventDefault(); over = false; dropped([...(e.dataTransfer?.files ?? [])]); }}
   onclick={(e) => { if (menu && !(e.target as HTMLElement).closest(".more")) { menu = false; confirmDelete = false; } }} />
 
 <style>

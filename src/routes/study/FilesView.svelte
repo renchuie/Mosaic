@@ -14,7 +14,6 @@
   import { shortExam } from "../../lib/stores/deckTree.svelte";
   import { SvelteSet } from "svelte/reactivity";
   import { dragHasFiles } from "../../lib/stores/noteOps.svelte";
-  import { addFiles, addedMessage } from "../../lib/stores/addFiles";
   import { adoptMaterials, labs } from "../../lib/stores/labs.svelte";
   import { createNote, dirOf, noteHref } from "../../lib/stores/notes.svelte";
   import { pdfLink } from "../../lib/stores/pdfs.svelte";
@@ -22,7 +21,7 @@
     AREA_NAMES, areaDirs, areaOf, baseName, childDirs, duplicateItem, files as fileMsg, folderCount, moveFolderTo, moveItem, newFolder,
     renameFolder, renameItem, reveal, tell, trashFolder, trashItem, type Area,
   } from "../../lib/stores/fileOps.svelte";
-  import UploadDialog from "../labs/UploadDialog.svelte";
+  import AddFilesDialog from "./AddFilesDialog.svelte";
   import PasteQuiz from "../labs/PasteQuiz.svelte";
   import { route } from "../../lib/router.svelte";
 
@@ -275,21 +274,10 @@
   let pasting = $state(false);
   let dropping = $state(false);
   let picker = $state<HTMLInputElement>();
-  async function add(list: File[]) {
+  function add(list: File[]) {
     if (!list.length) return;
-    const c = selCourse ? courseByName(selCourse)?.[1] : undefined;
-    try {
-      const r = await addFiles(list, c ? { name: c.name, code: c.code } : undefined);
-      if (selLecture && r.links.length) addLinks(selLecture, r.links);
-      const msg = addedMessage(r, selLecture ? title : undefined);
-      if (msg) tell(msg);
-      if (r.toUpload.length) {
-        upFiles = r.toUpload;
-        uploading = true;
-      }
-    } catch (e) {
-      tell(String(e instanceof Error ? e.message : e));
-    }
+    upFiles = list;
+    uploading = true;
   }
   let movingLegacy = $state(false);
   async function moveLegacy() {
@@ -375,7 +363,7 @@
   onmousedown={(e) => { if (menu && !(e.target as HTMLElement).closest(".fmenu")) menu = null; }}
   ondragover={(e) => { if (dragHasFiles(e)) { e.preventDefault(); dropping = true; } }}
   ondragleave={(e) => { if (!e.relatedTarget) dropping = false; }}
-  ondrop={(e) => { if (!dragHasFiles(e)) return; e.preventDefault(); dropping = false; void add([...(e.dataTransfer?.files ?? [])]); }}
+  ondrop={(e) => { if (!dragHasFiles(e)) return; e.preventDefault(); dropping = false; add([...(e.dataTransfer?.files ?? [])]); }}
 />
 
 {#snippet dirTree(area: Area, parent: string, depth: number)}
@@ -481,7 +469,7 @@
           <button type="button" class="btn quiet" onclick={() => (pasting = true)}><Icon name="note" size={15} /> Paste quiz</button>
         {/if}
         <button type="button" class="btn primary" onclick={() => picker?.click()}><Icon name="plus" size={15} /> Upload</button>
-        <input bind:this={picker} type="file" multiple hidden accept=".pdf,.md,.markdown,.txt,.html,.htm" onchange={(e) => { void add([...(e.currentTarget.files ?? [])]); e.currentTarget.value = ""; }} />
+        <input bind:this={picker} type="file" multiple hidden accept=".pdf,.md,.markdown,.txt,.html,.htm" onchange={(e) => { add([...(e.currentTarget.files ?? [])]); e.currentTarget.value = ""; }} />
       </div>
       <div class="chips">
         <button type="button" class="chip" class:on={kind === "all"} onclick={() => (kind = "all")}>All</button>
@@ -597,7 +585,7 @@
   {/if}
 
   {#if dropping}<div class="dropcover" aria-hidden="true"><Icon name="plus" size={26} /><b>{selLecture ? `Add to ${title}` : selCourse ? `Add to ${selCourse}` : "Add files"}</b></div>{/if}
-  <UploadDialog bind:open={uploading} files={upFiles} course={selCourse} onsaved={(rels) => selLecture && addLinks(selLecture, rels.map((ref) => ({ kind: "file" as const, ref })))} />
+  <AddFilesDialog bind:open={uploading} files={upFiles} course={selCourse} lecture={selLecture} />
   <PasteQuiz bind:open={pasting} onfile={(f) => { upFiles = [f]; uploading = true; }} />
   {#if drag}<div class="ghost" style="left: {drag.px + 12}px; top: {drag.py + 8}px"><Icon name={KIND_ICONS[drag.items[0].kind]} size={14} /> {drag.items.length === 1 ? drag.items[0].name : `${drag.items.length} files`}</div>{/if}
   {#if fileMsg.msg}<div class="toast" role="status">{fileMsg.msg}</div>{/if}

@@ -126,3 +126,17 @@ Her pick after the board "One Mosaic folder, with the course as the hub" (B + C)
   delete, Materials move + delete, path escape refused). Passed in the real app (Xvfb, throwaway
   HOME). Deleted PDFs / Materials files sit in that folder's `.trash/`; the in-app Trash lists
   notes only so far.
+
+## Add files window (Nov 20, her ask: "uploading is tedious; ask me the name, course and lecture")
+
+- `src/routes/study/AddFilesDialog.svelte` opens for every Upload, drop and Paste quiz on Files and
+  on lecture pages (replaces the UploadDialog there; `addFiles.ts` is no longer used by them). One
+  row per file: name (renamed on save), kind, course, lecture (grouped by exam, "+ New lecture…" →
+  made once per course + name under the next exam), and for a quiz / interactive page already in
+  Materials "Replace, keep progress" / "Add a copy". With 2+ files an "All files" bar sets course
+  and lecture (and one "New lecture" name) for every row. Unsupported kinds show "Can't add this
+  kind of file" and are skipped; × leaves a row out. It starts on the selected course / lecture.
+- Landing places: PDFs `<PDF folder>/<course code>/<name>.pdf`; notes `<notes>/<course>/<name>.md`
+  with `course:` set; quizzes and pages `Materials/<course folder>/<exam of the lecture>/<name>`
+  (course folder = the top folder linked to the course, else the code). Everything added is linked
+  to its lecture.
