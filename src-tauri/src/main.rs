@@ -1,6 +1,7 @@
 // Mosaic (internal id studydesk): Tauri shell. Modules: store (local JSON app data), labs (scanner + /__labs/ files),
 // sync (per-machine files in a Google Drive folder), notes, pdfs.
 
+mod files;
 mod anki;
 mod backup;
 mod history;
@@ -68,6 +69,11 @@ fn main() {
             pdfs::pdfs_stat,
             pdfs::pdfs_write,
             pdfs::pdfs_add,
+            files::files_move,
+            files::files_mkdir,
+            files::files_copy,
+            files::files_trash,
+            files::files_reveal,
             pdfs::pdfs_restore,
             pdfs::pdfs_open,
             backup::backup_write,

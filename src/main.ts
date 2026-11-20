@@ -17,7 +17,7 @@ import { initCourses } from "./lib/stores/courses.svelte";
 import { startFiles } from "./lib/stores/startup";
 import { initLibrary } from "./lib/stores/library.svelte";
 import { inTauri, invoke } from "./lib/tauri";
-import { materialsTest, pdfTest, selfTest, timerTest } from "./lib/selftest";
+import { filesTest, materialsTest, pdfTest, selfTest, timerTest } from "./lib/selftest";
 
 await loadSettings().catch((e) => console.error("settings", e));
 mount(App, { target: document.getElementById("app")! });
@@ -38,5 +38,6 @@ if (inTauri) {
   else if (start === "selftest-timer") void timerTest();
   else if (start === "selftest-pdf") void pdfTest();
   else if (start === "selftest-materials") setTimeout(() => void materialsTest(), 1500);
+  else if (start === "selftest-files") setTimeout(() => void filesTest(), 2500);
   else if (start) location.hash = `#/${start}`;
 }

@@ -37,6 +37,8 @@ pub struct PdfFile {
 pub struct PdfList {
     pub root: String,
     pub files: Vec<PdfFile>,
+    /// folders that hold a PDF somewhere inside, or nothing at all (a new folder)
+    pub dirs: Vec<String>,
 }
 
 fn mtime_ms(p: &Path) -> u64 {
@@ -69,9 +71,12 @@ fn rel_of(root: &Path, p: &Path) -> String {
         .join("/")
 }
 
-fn walk(root: &Path, dir: &Path, depth: u32, files: &mut Vec<PdfFile>) {
-    let Ok(rd) = fs::read_dir(dir) else { return };
+fn walk(root: &Path, dir: &Path, depth: u32, files: &mut Vec<PdfFile>, dirs: &mut Vec<String>) -> bool {
+    let Ok(rd) = fs::read_dir(dir) else { return false };
+    let mut has = false;
+    let mut empty = true;
     for e in rd.flatten() {
+        empty = false;
         let name = e.file_name().to_string_lossy().into_owned();
         if name.starts_with('.') {
             continue; // .trash, .studydesk-originals, temp files
@@ -79,13 +84,18 @@ fn walk(root: &Path, dir: &Path, depth: u32, files: &mut Vec<PdfFile>) {
         let p = e.path();
         let Ok(md) = fs::metadata(&p) else { continue };
         if md.is_dir() {
-            if depth > 0 {
-                walk(root, &p, depth - 1, files);
+            if depth > 0 && walk(root, &p, depth - 1, files, dirs) {
+                has = true;
             }
         } else if name.to_lowercase().ends_with(".pdf") {
             files.push(PdfFile { rel: rel_of(root, &p), mtime: mtime_ms(&p), size: md.len() });
+            has = true;
         }
     }
+    if (has || empty) && dir != root {
+        dirs.push(rel_of(root, dir));
+    }
+    has || empty
 }
 
 #[tauri::command]
@@ -97,10 +107,11 @@ pub async fn pdfs_list(state: State<'_, PdfsState>, root: String, depth: Option<
     *state.root.lock().unwrap() = Some(r.clone());
     let depth = depth.unwrap_or(6);
     tauri::async_runtime::spawn_blocking(move || {
-        let mut files = vec![];
-        walk(&r, &r, depth, &mut files);
+        let (mut files, mut dirs) = (vec![], vec![]);
+        walk(&r, &r, depth, &mut files, &mut dirs);
         files.sort_by(|a, b| a.rel.to_lowercase().cmp(&b.rel.to_lowercase()));
-        Ok(PdfList { root: r.display().to_string(), files })
+        dirs.sort_by_key(|d| d.to_lowercase());
+        Ok(PdfList { root: r.display().to_string(), files, dirs })
     })
     .await
     .map_err(|e| e.to_string())?
@@ -243,7 +254,7 @@ mod tests {
         fs::write(d.join(ORIGINALS).join("x.pdf"), b"%PDF-1.4").unwrap();
         fs::write(d.join("notes.md"), b"#").unwrap();
         let mut files = vec![];
-        walk(&d, &d, 6, &mut files);
+        walk(&d, &d, 6, &mut files, &mut vec![]);
         assert_eq!(files.len(), 1);
         assert_eq!(files[0].rel, "Ther IV/Lecture 1.PDF");
         backup_once(&d, "Ther IV/Lecture 1.PDF", &d.join("Ther IV/Lecture 1.PDF")).unwrap();

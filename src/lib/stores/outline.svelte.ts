@@ -52,18 +52,42 @@ export function removeLink(id: string, x: Link) {
 /** Lectures an item is linked to (for "in Heart failure" chips and the picker). */
 export const lecturesWith = (x: Link) => lectures().filter(([, l]) => l.links.some((y) => same(x, y)));
 
-/** A note (or a folder of notes) moved or was renamed: follow it. */
-export function relinkNotes(from: string, to: string | null) {
+/** A note, PDF or Materials file (or a folder of them) moved, was renamed or deleted: follow it. */
+export function relinkLinks(kind: LinkKind, from: string, to: string | null) {
   for (const [id, l] of entries<Lecture>("lectures")) {
     let changed = false;
     const links = l.links.flatMap((x) => {
-      if (x.kind !== "note" || !(x.ref === from || x.ref.startsWith(from + "/"))) return [x];
+      if (x.kind !== kind || !(x.ref === from || x.ref.startsWith(from + "/"))) return [x];
       changed = true;
-      return to === null ? [] : [{ kind: "note" as const, ref: to + x.ref.slice(from.length) }];
+      return to === null ? [] : [{ kind, ref: to + x.ref.slice(from.length) }];
     });
     if (changed) put("lectures", id, { ...l, links });
   }
+  // starred items follow too
+  for (const [k, v] of entries<{ at: number }>("stars")) {
+    const [sk, ...rest] = k.split("|");
+    const ref = rest.join("|");
+    if (sk !== kind || !(ref === from || ref.startsWith(from + "/"))) continue;
+    del("stars", k);
+    if (to !== null) put("stars", `${kind}|${to + ref.slice(from.length)}`, v);
+  }
 }
+
+// ---- starred (Files → Starred; synced collection `stars`, key "<kind>|<ref>") ----
+export const starKey = (x: Link) => `${x.kind}|${x.ref}`;
+export const isStarred = (x: Link) => !!get<{ at: number }>("stars", starKey(x));
+export function toggleStar(x: Link) {
+  if (isStarred(x)) del("stars", starKey(x));
+  else put("stars", starKey(x), { at: Date.now() });
+}
+export const starred = (): Link[] =>
+  entries<{ at: number }>("stars")
+    .sort((a, b) => b[1].at - a[1].at)
+    .map(([k]) => {
+      const [kind, ...rest] = k.split("|");
+      return { kind: kind as LinkKind, ref: rest.join("|") };
+    });
+export const relinkNotes = (from: string, to: string | null) => relinkLinks("note", from, to);
 /** A course was renamed: its lectures follow. */
 export function renameLectureCourse(from: string, to: string) {
   for (const [id, l] of entries<Lecture>("lectures")) if (l.course === from) put("lectures", id, { ...l, course: to });

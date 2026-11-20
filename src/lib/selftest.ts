@@ -105,3 +105,54 @@ export async function materialsTest() {
   }
   setTimeout(() => void invoke("debug_quit"), 800);
 }
+
+/** Files (Nov 20): rename / move / duplicate / delete in the PDF and Materials folders, and that
+ *  PDF state, lecture links and stars follow. STUDYDESK_ROUTE=selftest-files */
+export async function filesTest() {
+  const ops = await import("./stores/fileOps.svelte");
+  const outline = await import("./stores/outline.svelte");
+  const { get, put } = await import("./stores/synced.svelte");
+  try {
+    await refreshPdfs();
+    await rescan();
+    const pdf = pdfs.files[0]?.rel;
+    log(`files: pdfs=${pdfs.files.length} dirs=${pdfs.dirs.length} first=${pdf}`);
+    if (pdf) {
+      put("pdfState", pdf, { page: 3, opened: Date.now(), annots: 0, pages: 9 });
+      const lec = outline.addLecture("Selftest", "", "Selftest lecture");
+      outline.addLinks(lec, [{ kind: "pdf", ref: pdf }]);
+      outline.toggleStar({ kind: "pdf", ref: pdf });
+      const made = await ops.newFolder("pdf", "", "Selftest folder");
+      log(`new folder: ${made} in dirs=${pdfs.dirs.includes(made ?? "")}`);
+      await ops.moveItem("pdf", pdf, "Selftest folder");
+      const moved = `Selftest folder/${ops.baseName(pdf)}`;
+      log(`moved: listed=${pdfs.files.some((f) => f.rel === moved)} state page=${(get("pdfState", moved) as { page?: number })?.page} link=${outline.getLecture(lec)?.links[0]?.ref === moved} star=${outline.isStarred({ kind: "pdf", ref: moved })}`);
+      await ops.renameItem("pdf", moved, "Renamed selftest");
+      const renamed = "Selftest folder/Renamed selftest.pdf";
+      log(`renamed: listed=${pdfs.files.some((f) => f.rel === renamed)} link=${outline.getLecture(lec)?.links[0]?.ref}`);
+      const dup = await ops.duplicateItem("pdf", renamed);
+      log(`duplicate: ${dup} listed=${pdfs.files.some((f) => f.rel === dup)}`);
+      await ops.renameFolder("pdf", "Selftest folder", "Selftest folder 2");
+      log(`folder renamed: ${pdfs.files.filter((f) => f.rel.startsWith("Selftest folder 2/")).length} files inside, link=${outline.getLecture(lec)?.links[0]?.ref}`);
+      await ops.moveItem("pdf", "Selftest folder 2/Renamed selftest.pdf", "");
+      await ops.renameItem("pdf", "Renamed selftest.pdf", ops.baseName(pdf).replace(/\.pdf$/i, ""));
+      log(`back home: ${pdfs.files.some((f) => f.rel === ops.baseName(pdf))} link=${outline.getLecture(lec)?.links[0]?.ref}`);
+      await ops.trashFolder("pdf", "Selftest folder 2");
+      log(`folder deleted: dirs has it=${pdfs.dirs.includes("Selftest folder 2")}`);
+      outline.deleteLecture(lec);
+    }
+    await invoke("materials_write", { rel: "Selftest/page.html", content: '<meta name="recall-lab-version" content="1"><title>Selftest page</title>', replace: true });
+    await rescan();
+    await ops.moveItem("mat", "Selftest/page.html", "");
+    log(`mat moved: ${!!findFolder("")?.items.some((i) => i.rel === "page.html")}`);
+    await ops.trashItem("mat", "page.html");
+    await ops.trashFolder("mat", "Selftest");
+    log(`mat deleted: ${!findFolder("")?.items.some((i) => i.rel === "page.html")}`);
+    const clash = await invoke("files_move", { area: "pdf", from: "nope.pdf", to: "../x.pdf" }).then(() => "allowed!", (e) => String(e));
+    log(`escape refused: ${clash}`);
+    log(`message: ${ops.files.msg}`);
+  } catch (e) {
+    log(`files test failed: ${e}`);
+  }
+  setTimeout(() => void invoke("debug_quit"), 800);
+}

@@ -15,6 +15,8 @@ export type PdfInfo = { page: number; opened: number; annots: number; pages?: nu
 export const pdfs = $state({
   root: "",
   files: [] as PdfEntry[],
+  /** folders that hold PDFs (or nothing yet) */
+  dirs: [] as string[],
   loaded: false,
   loading: false,
   error: null as string | null,
@@ -62,10 +64,11 @@ async function doRefresh() {
   pdfs.loading = true;
   try {
     const r = inTauri
-      ? await invoke<{ root: string; files: PdfEntry[] }>("pdfs_list", { root: settings.pdfRoot, depth: settings.pdfDepth })
+      ? await invoke<{ root: string; files: PdfEntry[]; dirs?: string[] }>("pdfs_list", { root: settings.pdfRoot, depth: settings.pdfDepth })
       : await fetch("/__pdfs-list").then((x) => (x.ok ? x.json() : { root: "", files: [] }));
     pdfs.root = r.root;
     pdfs.files = r.files;
+    pdfs.dirs = r.dirs ?? [...new Set(r.files.flatMap((f: PdfEntry) => f.rel.split("/").slice(0, -1).map((_: string, i: number, a: string[]) => a.slice(0, i + 1).join("/"))))].sort();
     pdfs.error = null;
     pdfs.loaded = true;
     if (inTauri) void saveDoc("pdfs-cache", r);

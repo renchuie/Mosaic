@@ -99,3 +99,30 @@ Her pick after the board "One Mosaic folder, with the course as the hub" (B + C)
   shared with lecture pages): under the selected course, linked when a lecture is selected. The
   old "Move Recall Labs into Materials?" card shows on Files while `labs.legacy` is set.
 - PdfsHome.svelte and the Materials home are no longer reachable from the nav (files kept).
+
+## Files as a file manager (Nov 20, her ask: "basic features like Obsidian and RemNote")
+
+- Side list switch **Courses / Folders** (localStorage "mosaic.filesView"). Folders = the real
+  Notes, Materials and PDFs folders as trees (`areaDirs` / `childDirs` in fileOps); a folder shows
+  its subfolders first, then its files (search inside a folder searches everything below it);
+  breadcrumb on top. **Starred** (synced `stars`, `toggleStar` / `starred()` in outline.svelte.ts)
+  and All files sit above. Sort Changed / Name / Kind ("mosaic.filesSort").
+- Row menu (right-click or ⋯): Open, Rename (F2, in place), Move to… (folder picker for that place),
+  Duplicate, Star, Copy link (`[[Note]]`, PDF link, else the path), Show in file manager, Delete
+  (to the folder's `.trash/` with `.from`, confirm first). Folder menu: New folder inside, New
+  note here (Notes), Rename, Move to…, Show in file manager, Delete folder (says how many files).
+  Ctrl / Shift click (or the icon tile) picks several: bar with Move to…, Star, Delete; Ctrl+A,
+  Delete, Esc. Dragging rows onto a side folder or breadcrumb (`data-dir="<area>|<rel>"`) moves
+  them (same place only), onto a lecture links them.
+- `src/lib/stores/fileOps.svelte.ts`: notes go through noteOps (`doRenameNote`, `doMoveNote`,
+  `doTrashNote`, `doMoveFolder`, `doRenameFolder`, `doTrashFolder`, so links / history / the open
+  note follow); PDFs and Materials through Rust `src-tauri/src/files.rs` (`files_move` never
+  overwrites, refuses a folder into itself, moves a PDF's `.studydesk-originals` copy along;
+  `files_mkdir`, `files_copy`, `files_trash` (notes' `trash_into`), `files_reveal`; paths must stay
+  inside the folder and skip hidden parts; `cargo test files`). After a change: `relinkLinks`
+  (lecture links + stars), `pdfState`, Materials `folders` and `labOpens` keys follow, then
+  refresh. `pdfs_list` now also returns `dirs` (folders holding a PDF below, or empty ones).
+- Self-test `STUDYDESK_ROUTE=selftest-files` (new folder, move, rename, duplicate, folder rename,
+  delete, Materials move + delete, path escape refused). Passed in the real app (Xvfb, throwaway
+  HOME). Deleted PDFs / Materials files sit in that folder's `.trash/`; the in-app Trash lists
+  notes only so far.
