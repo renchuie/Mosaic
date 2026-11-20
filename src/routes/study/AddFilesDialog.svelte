@@ -34,6 +34,8 @@
     file: File; kind: Kind; name: string; ext: string; text?: string; bytes?: Uint8Array;
     course: string; lecture: string; newLecture: string;
     ins?: Inspected; quiz?: MaterialMeta; existing: Item | null; mode: "replace" | "new";
+    /** a .pptx: also make a PDF of it (highlights, cards from slides) */
+    makePdf?: boolean; progress?: string;
   };
   let dialog = $state<HTMLDialogElement>();
   let rows = $state<Row[]>([]);
@@ -76,7 +78,7 @@
         const ins = inspectHtml(text, file.name);
         const existing = ins.isLab ? (labsIn(labs.tree).find((l) => l.lab.slug === ins.slug)?.item ?? null) : null;
         list.push({ ...base, kind: "page", text, ins, existing, mode: existing ? "replace" : "new", name: ins.isLab && ins.title ? ins.title : base.name });
-      } else list.push({ ...base, bytes: new Uint8Array(await file.arrayBuffer()) });
+      } else list.push({ ...base, bytes: new Uint8Array(await file.arrayBuffer()), makePdf: ext === ".pptx" ? true : undefined });
     }
     rows = list;
   }
@@ -162,6 +164,19 @@
           await addAnyFile("mat", rel, r.bytes!);
           await rescan();
           link = { kind: "file", ref: rel };
+          if (r.makePdf) {
+            // the slides as a PDF too, beside the course's other PDFs
+            const { pptxToPdf } = await import("../../lib/pptxToPdf");
+            const made = await pptxToPdf(r.bytes!.slice().buffer, (d, t) => (r.progress = `Making a PDF ${d} / ${t}`));
+            const dir = c ? safeName(c.code || c.name) : "";
+            const taken = new Set(pdfs.files.map((x) => x.rel));
+            let pdfRel = `${dir ? dir + "/" : ""}${name}.pdf`;
+            for (let n = 2; taken.has(pdfRel); n++) pdfRel = `${dir ? dir + "/" : ""}${name} (${n}).pdf`;
+            await addPdf(pdfRel, made.pdf);
+            r.progress = "";
+            links.push({ kind: "pdf", ref: pdfRel });
+            if (lec) addLinks(lec, [{ kind: "pdf", ref: pdfRel }]);
+          }
         } else {
           let rel: string;
           let replace = false;
@@ -245,6 +260,9 @@
                   <input class="input" bind:value={r.newLecture} placeholder="New lecture" aria-label="New lecture name" autofocus />
                 {/if}
               </div>
+              {#if r.makePdf !== undefined}
+                <label class="mkpdf"><input type="checkbox" bind:checked={r.makePdf} /> Make a PDF too <span class="muted sm">{r.progress || "for highlights and cards"}</span></label>
+              {/if}
               {#if r.existing}
                 <div class="dupe" role="radiogroup" aria-label="Already added">
                   <span class="muted sm">Already in Materials.</span>
@@ -402,6 +420,12 @@
   .picks .input:not(select) {
     flex: 1;
     min-width: 150px;
+  }
+  .mkpdf {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
   }
   .dupe {
     display: flex;

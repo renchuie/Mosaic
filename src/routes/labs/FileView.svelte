@@ -9,6 +9,10 @@
   import { openFile, reveal } from "../../lib/stores/fileOps.svelte";
   import { isStarred, toggleStar } from "../../lib/stores/outline.svelte";
   import { inTauri } from "../../lib/tauri";
+  import { addLinks, lecturesWith } from "../../lib/stores/outline.svelte";
+  import { addPdf, pdfHref, pdfs } from "../../lib/stores/pdfs.svelte";
+  import { courseByName } from "../../lib/stores/courses.svelte";
+  import { safeName } from "../../lib/materials";
 
   let { item }: { item: Item } = $props();
   const t = $derived(fileType(item.name));
@@ -16,6 +20,33 @@
   const course = $derived(inherited(parentRel(item.rel), "course") ?? "");
   const size = $derived(item.size > 1e6 ? `${(item.size / 1e6).toFixed(1)} MB` : `${Math.max(1, Math.round(item.size / 1e3))} KB`);
   const folder = $derived(parentRel(item.rel));
+
+  // a .pptx: make a PDF of it (in the PDF folder, under the course) and link it where the deck is
+  const isPptx = $derived(/\.pptx$/i.test(item.name));
+  let making = $state("");
+  let failed = $state("");
+  async function makePdf() {
+    failed = "";
+    making = "Making a PDF…";
+    try {
+      const bytes = await (await fetch(`/__labs/${encodeRel(item.rel)}`)).arrayBuffer();
+      const { pptxToPdf } = await import("../../lib/pptxToPdf");
+      const made = await pptxToPdf(bytes, (d, t) => (making = `Making a PDF ${d} / ${t}`));
+      const c = course ? courseByName(course)?.[1] : undefined;
+      const dir = c ? safeName(c.code || c.name) : "";
+      const name = safeName(item.name.replace(/\.pptx$/i, ""));
+      const taken = new Set(pdfs.files.map((x) => x.rel));
+      let rel = `${dir ? dir + "/" : ""}${name}.pdf`;
+      for (let n = 2; taken.has(rel); n++) rel = `${dir ? dir + "/" : ""}${name} (${n}).pdf`;
+      await addPdf(rel, made.pdf);
+      for (const [id] of lecturesWith(link)) addLinks(id, [{ kind: "pdf", ref: rel }]);
+      location.hash = pdfHref(rel);
+    } catch (e) {
+      failed = String(e instanceof Error ? e.message : e);
+    } finally {
+      making = "";
+    }
+  }
 </script>
 
 <section class="fv">
@@ -30,9 +61,11 @@
       {#if course}<LectureMenu {link} {course} />{/if}
       <button type="button" class="btn quiet" onclick={() => toggleStar(link)}><Icon name="star" size={15} /> {isStarred(link) ? "Starred" : "Star"}</button>
       <button type="button" class="btn quiet" onclick={() => reveal("mat", item.rel)} disabled={!inTauri}><Icon name="external" size={15} /> Show in folder</button>
+      {#if isPptx}<button type="button" class="btn quiet" onclick={makePdf} disabled={!!making}><Icon name="file" size={15} /> {making || "Make a PDF"}</button>{/if}
       <button type="button" class="btn primary" onclick={() => openFile("mat", item.rel)} disabled={!inTauri}><Icon name="i:chevron-right" size={15} /> Open</button>
     </div>
   </header>
+  {#if failed}<p class="err" role="alert">Couldn't make a PDF ({failed}).</p>{/if}
   {#if t.group === "image"}
     <div class="card pic"><img src="/__labs/{encodeRel(item.rel)}" alt={item.name} /></div>
   {/if}
@@ -98,6 +131,10 @@
     gap: 8px;
     flex-wrap: wrap;
     align-items: center;
+  }
+  .err {
+    color: var(--alert-ink);
+    margin: 0;
   }
   .pic {
     padding: 12px;

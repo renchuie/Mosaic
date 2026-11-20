@@ -160,3 +160,28 @@ export async function filesTest() {
   }
   setTimeout(() => void invoke("debug_quit"), 800);
 }
+
+/** PowerPoint → PDF inside the real app's web engine. STUDYDESK_ROUTE=selftest-pptx (converts
+ *  the first .pptx found in Materials and prints pages, pictures and seconds) */
+export async function pptxTest() {
+  try {
+    await rescan();
+    const all: string[] = [];
+    const walk = (f: { items: { rel: string }[]; folders: unknown[] }) => {
+      f.items.forEach((i) => /\.pptx$/i.test(i.rel) && all.push(i.rel));
+      (f.folders as (typeof f)[]).forEach(walk);
+    };
+    if (labs.tree) walk(labs.tree);
+    log(`pptx: found ${all.length}`);
+    if (all[0]) {
+      const t0 = performance.now();
+      const bytes = await (await fetch(`/__labs/${all[0].split("/").map(encodeURIComponent).join("/")}`)).arrayBuffer();
+      const { pptxToPdf } = await import("./pptxToPdf");
+      const r = await pptxToPdf(bytes);
+      log(`pptx: ${all[0]} → ${r.pages} pages, ${r.pictures} as pictures, ${r.pdf.length} bytes, ${Math.round(performance.now() - t0) / 1000} s`);
+    }
+  } catch (e) {
+    log(`pptx test failed: ${e}`);
+  }
+  setTimeout(() => void invoke("debug_quit"), 800);
+}

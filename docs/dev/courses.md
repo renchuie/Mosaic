@@ -160,3 +160,25 @@ Her pick after the board "One Mosaic folder, with the course as the hub" (B + C)
   LibreOffice download (AppImage / Windows MSI admin extract) used quietly (`--headless
   --convert-to pdf`, own profile) when present; offered in onboarding, Settings → Extras, and on
   the first .pptx.
+
+## PowerPoint → PDF built in (Nov 20, step 2; no other app needed)
+
+- `src/lib/pptxToPdf.ts` `pptxToPdf(bytes, onProgress)` → {pdf, pages, pictures}: pptx-svg (MIT,
+  WebAssembly, ~414 KB) draws each slide as SVG; svg2pdf.js + jsPDF (MIT) make each slide its OWN
+  one-page PDF (a slide svg2pdf can't parse left the graphics state unbalanced and flipped the next
+  page when they shared one document); pdf-lib joins them. A slide that still fails becomes a
+  picture of itself (SVG → canvas at 2x → PNG page). `data:image/tiff` pictures become PNG first
+  with UTIF (MIT; browsers can't draw TIFF). Hidden slides are skipped. All four libraries load
+  only on conversion (own chunks). Only .pptx (not old .ppt / Keynote).
+- Chosen after trying pptx-svg, pptxviewjs and pptx-browser on a made deck and her real 47-slide
+  lecture (scratchpad only, never in the repo): pptx-svg drew everything; pptxviewjs jumbled
+  bullets and lost a table row; pptx-browser dropped text boxes and loads fonts from Google.
+  Known limits: fonts swap to look-alikes (long titles can run over a banner), table header styles
+  are lost, big TIFFs make big PDFs (her deck: 21 MB .pptx → 35 MB PDF).
+- Add files: a .pptx row has "Make a PDF too" (on): the deck goes to Materials, the PDF to
+  `<PDF folder>/<course code>/<name>.pdf`, both linked to the lecture; the row shows "Making a PDF
+  12 / 47". A .pptx's FileView has **Make a PDF** (same place; links it to the deck's lectures;
+  opens it).
+- Self-test `STUDYDESK_ROUTE=selftest-pptx` converts the first .pptx in Materials inside the real
+  app's WebKit: her deck → 47 pages, 1 as a picture, ~11 s on Xvfb software rendering.
+- Next: step 3, the optional portable LibreOffice download for exact copies.
