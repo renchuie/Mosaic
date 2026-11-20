@@ -31,3 +31,36 @@ The app's purpose is an all-in-one uni home base, and the course is what ties th
   (`CourseSettings.svelte`) with category templates and a weights-must-total-100 check.
 - Dashboard has a Courses card (ring with letter, grade, need line per course).
 - All placeholder pages are gone; every sidebar page is real.
+
+## Course hub H1 (Nov 20): exams → lectures → linked things
+
+Her pick after the board "One Mosaic folder, with the course as the hub" (B + C) and the question
+"links or folders": **links first**, files stay where they are (the one-folder move comes later).
+- Store `src/lib/stores/outline.svelte.ts`: synced collection `lectures` {course (name), exam (key
+  from `exams()`: "<event id>@<date>" or "folder:<rel>", "" = none), title, date?, order, links:
+  {kind: note | pdf | file | deck, ref}} (`file` = a Materials rel: quiz, interactive page, any
+  file). `addLecture`, `saveLecture`, `deleteLecture` (files untouched), `addLinks`, `removeLink`,
+  `lecturesWith(link)`. Notes moved / renamed / trashed are followed (`relinkNotes`, called from
+  noteOps `followMove`); a renamed course carries its lectures (`renameLectureCourse` in
+  `renameRefs`).
+- `src/lib/stores/linkInfo.svelte.ts`: `describe(link)` → kind (note / pdf / quiz / page / file /
+  deck), name, short progress (note: N due / N cards; PDF: p. X of Y + bar; quiz: best %; page:
+  avg best %), href, course, `gone` when the file isn't found; `candidates()` for the picker;
+  `noteCardStats()` counts cards per note in one pass. Icons `KIND_ICONS` (quiz `i:circle-help`,
+  page `i:app-window`, both added to iconSet with `chevron-down`).
+- Card scopes in srs: `lecture:<id>` (its notes' cards + its decks' cards) and
+  `unit:<course>|<exam key>` (every lecture under that exam); `scopeName` names them.
+- Course page main column starts with `CourseOutline.svelte`: a section per exam of the course
+  (upcoming first, soonest on top, then "Other" for lectures without an exam, then past exams
+  folded), "+ Lecture" (type, Enter for the next), lecture cards with a chip per linked thing,
+  drag a lecture onto another exam's section to move it (pointer-based), "+ Exam" (calendar
+  editor with kind exam). Side column: "Ready for <next exam>" (cards ready of total via
+  `readiness()` on the unit scope, quizzes' best average, pages tried) with "Study for <exam>".
+- Lecture page `LecturePage.svelte`, route `#/courses/<id>/l/<lectureId>` (Courses.svelte splits
+  the route): breadcrumb, editable title, date, exam picker, Review N cards (lecture scope), Quiz
+  (first linked quiz), Add, ⋯ Delete lecture; a tile per linked thing (× removes the link only).
+  Picker `LinkPicker.svelte`: search, kind chips, "This course" / "Everything", multi-select,
+  "Already here", shows other lectures an item is in.
+- Next (H1b): link from the item itself (note header, PDF viewer, Materials, deck options), the
+  Files tab with kind filters (board frame 3), drop files on a lecture (frame 5); later the
+  one-folder move (frame 6).

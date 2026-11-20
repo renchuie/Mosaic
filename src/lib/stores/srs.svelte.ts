@@ -13,6 +13,7 @@ import { imageUrl, noteHref, notes, saveNote, type NoteEntry } from "./notes.sve
 import { settings } from "./settings.svelte";
 import { del, entries, get, put } from "./synced.svelte";
 import { deckMatcher, getDeck } from "./decks.svelte";
+import { getLecture, lectures, type Lecture } from "./outline.svelte";
 
 /** FSRS card state as stored (dates as ms). */
 export type SrsRec = {
@@ -56,12 +57,17 @@ export type Scope =
   | { kind: "note"; rel: string; section?: string[] }
   | { kind: "library" }
   | { kind: "notes"; course: string }
+  /** a lecture of the course hub, or every lecture under one exam of a course */
+  | { kind: "lecture"; id: string }
+  | { kind: "unit"; course: string; exam: string }
   | { kind: "filter"; id: FilterId; in?: Scope };
 
 /** A scope as one string, for routes: all | library | deck:<id> | course:<name> | note:<rel>[#a › b] */
 export function scopeKey(s: Scope): string {
   if (s.kind === "filter") return `filter:${s.id}${s.in ? `|${scopeKey(s.in)}` : ""}`;
   if (s.kind === "notes") return `notes:${s.course}`;
+  if (s.kind === "lecture") return `lecture:${s.id}`;
+  if (s.kind === "unit") return `unit:${s.course}|${s.exam}`;
   if (s.kind === "deck") return `deck:${s.id}`;
   if (s.kind === "course") return `course:${s.name}`;
   if (s.kind === "note") return `note:${s.rel}${s.section?.length ? `#${s.section.join(" › ")}` : ""}`;
@@ -73,6 +79,11 @@ export function parseScope(k: string): Scope {
     return { kind: "filter", id: id as FilterId, ...(rest.length ? { in: parseScope(rest.join("|")) } : {}) };
   }
   if (k.startsWith("notes:")) return { kind: "notes", course: k.slice(6) };
+  if (k.startsWith("lecture:")) return { kind: "lecture", id: k.slice(8) };
+  if (k.startsWith("unit:")) {
+    const [course, ...exam] = k.slice(5).split("|");
+    return { kind: "unit", course, exam: exam.join("|") };
+  }
   if (k.startsWith("course:")) return { kind: "course", name: k.slice(7) };
   if (k.startsWith("deck:")) return { kind: "deck", id: k.slice(5) };
   if (k.startsWith("note:")) {
@@ -90,6 +101,11 @@ export function scopeName(s: Scope): string {
   if (s.kind === "library") return "Card library";
   if (s.kind === "deck") return getDeck(s.id)?.name ?? "Deck";
   if (s.kind === "course") return s.name;
+  if (s.kind === "lecture") return getLecture(s.id)?.title ?? "Lecture";
+  if (s.kind === "unit") {
+    const e = exams().find((x) => x.key === s.exam);
+    return e ? e.title : `${courseByName(s.course)?.[1].code || s.course} · Other`;
+  }
   return (notes.files[s.rel]?.p.title ?? "Note") + (s.section?.length ? ` › ${s.section.join(" › ")}` : "");
 }
 
@@ -167,8 +183,18 @@ function filterMatch(id: FilterId): (r: CardRef) => boolean {
   if (id === "missed") return (r) => !!r.rec && r.rec.lapses > 0 && !!r.rec.last_review && now - r.rec.last_review < WEEK;
   return (r) => !!r.rec && !r.rec.suspended && r.rec.state !== State.New && r.rec.due <= now + 2 * 86_400_000;
 }
+/** cards of some hub lectures: their linked notes' cards and their linked decks' cards */
+function linksMatcher(list: Lecture[]): (r: CardRef) => boolean {
+  const rels = new Set(list.flatMap((l) => l.links.filter((x) => x.kind === "note").map((x) => x.ref)));
+  const ds = [...new Set(list.flatMap((l) => l.links.filter((x) => x.kind === "deck").map((x) => x.ref)))].map((id) => deckMatcher(getDeck(id), id));
+  return (r) => (!!r.note && rels.has(r.note.rel)) || ds.some((m) => m(r));
+}
 export const inScope = (s: Scope): ((r: CardRef) => boolean) =>
-  s.kind === "deck"
+  s.kind === "lecture"
+    ? linksMatcher([getLecture(s.id)].filter((l): l is Lecture => !!l))
+    : s.kind === "unit"
+      ? linksMatcher(lectures(s.course).map(([, l]) => l).filter((l) => l.exam === s.exam))
+      : s.kind === "deck"
     ? deckMatcher(getDeck(s.id), s.id)
     : s.kind === "filter"
       ? ((m, inner) => (r: CardRef) => m(r) && (!inner || inner(r)))(filterMatch(s.id), s.in ? inScope(s.in) : null)

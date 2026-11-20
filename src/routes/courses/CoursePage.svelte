@@ -15,6 +15,12 @@
   import { fileNameFor } from "../../lib/notes";
   import { counts as cardCounts } from "../../lib/stores/srs.svelte";
   import DrugTracker from "./DrugTracker.svelte";
+  import CourseOutline from "./CourseOutline.svelte";
+  import { exams } from "../../lib/stores/calendar.svelte";
+  import { allCards, inScope, readiness } from "../../lib/stores/srs.svelte";
+  import { lectures } from "../../lib/stores/outline.svelte";
+  import { describe, materialItems, noteCardStats } from "../../lib/stores/linkInfo.svelte";
+  import { shortExam } from "../../lib/stores/deckTree.svelte";
   import GradesModule from "./GradesModule.svelte";
   import { courseEditor } from "./editor.svelte";
 
@@ -42,6 +48,22 @@
     location.hash = noteHref(rel);
   }
 
+  // "Ready for <next exam>": cards of its lectures seen and due after the exam's eve, plus its
+  // quizzes and interactive pages
+  const nextExam = $derived(course ? exams().find((e) => e.course === course.name && e.days >= 0) : undefined);
+  const ready = $derived.by(() => {
+    if (!course || !nextExam) return null;
+    const lecs = lectures(course.name).filter(([, l]) => l.exam === nextExam.key).map(([, l]) => l);
+    if (!lecs.length) return null;
+    const r = readiness(allCards().filter(inScope({ kind: "unit", course: course.name, exam: nextExam.key })), nextExam.date);
+    const stats = noteCardStats();
+    const mats = materialItems();
+    const shown = lecs.flatMap((l) => l.links.map((x) => describe(x, stats, mats)));
+    const quizzes = shown.filter((x) => x.kind === "quiz" && !x.gone);
+    const best = quizzes.map((x) => Number(/best (\d+)%/.exec(x.sub)?.[1] ?? NaN)).filter((n) => !isNaN(n));
+    const pages = shown.filter((x) => x.kind === "page" && !x.gone);
+    return { cards: r, quizzes: quizzes.length, quizAvg: best.length ? Math.round(best.reduce((a, b) => a + b, 0) / best.length) : null, pages: pages.length, tried: pages.filter((x) => x.sub !== "Not tried").length, pct: r.total ? Math.round((r.ready / r.total) * 100) : null };
+  });
   const ink = $derived(course ? `color-mix(in srgb, ${course.color} 60%, #3b3033)` : "");
   const targetLetter = $derived(course ? letterFor(course.grading.target, course.grading.scale) : null);
   const fmt = (n: number | null | undefined) => (n === null || n === undefined ? "–" : `${Number(n.toFixed(1))}%`);
@@ -120,11 +142,26 @@
 
     <div class="cols">
       <div class="main">
+        <CourseOutline {id} course={course.name} color={course.color} />
         {#if course.tracker === "drugs" && settings.drugTools}<DrugTracker {id} />{/if}
         {#if g}<GradesModule {id} {g} bind:whatIf bind:whatIfOn />{/if}
       </div>
 
       <aside class="side">
+        {#if ready && nextExam}
+          <section class="card ready">
+            <div class="sh"><h2 class="h2">Ready for {shortExam(nextExam)}</h2></div>
+            <div class="rrow">
+              <GradeRing pct={ready.pct} color={ink} size={72} width={7} sub="" />
+              <div class="rl">
+                {#if ready.cards.total}<span>Cards <b>{ready.cards.ready} of {ready.cards.total}</b></span>{/if}
+                {#if ready.quizzes}<span>Quizzes <b>{ready.quizAvg === null ? "not tried" : `best avg ${ready.quizAvg}%`}</b></span>{/if}
+                {#if ready.pages}<span>Pages <b>{ready.tried} of {ready.pages} tried</b></span>{/if}
+              </div>
+            </div>
+            {#if ready.cards.total}<a class="btn primary studyx" href="#/study/cards/review/unit:{course.name}|{nextExam.key}">Study for {shortExam(nextExam)}</a>{/if}
+          </section>
+        {/if}
         <section class="card">
           <div class="sh"><h2 class="h2">Coming up</h2>
             <span class="adds">
@@ -221,6 +258,21 @@
 {/if}
 
 <style>
+  .ready .rrow {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin: 6px 0 12px;
+  }
+  .ready .rl {
+    display: grid;
+    gap: 2px;
+    font-size: 14px;
+  }
+  .studyx {
+    width: 100%;
+    justify-content: center;
+  }
   .page {
     display: grid;
     gap: var(--gap);

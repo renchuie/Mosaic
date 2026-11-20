@@ -179,6 +179,22 @@ the next starts. Placement in the weeks above is a proposal (see "Proposed place
 - January, before and around the start of spring: **F1, P1, M3**, the Planner merge, Courses
   into Study. Then N2, M4, F2, P2, M5 during spring.
 
+## Course hub and files track (Nov 19–20, her pick B + C; board "One Mosaic folder, with the course as the hub")
+
+- **H1 done Nov 20:** exams → lectures on the course page, lecture pages, link notes / PDFs /
+  quizzes / interactive pages / decks to a lecture (links, files stay put), lecture and exam card
+  scopes, "Ready for <exam>".
+- H1b: link from the item itself (note header, PDF viewer, Materials, deck options); Files tab with
+  kind filters; drop files on a lecture.
+- Recall Labs become "interactive pages" in all wording (her Nov 19 pick).
+- H2: the one-folder move (with undo), Study tabs become Home / Files / Flashcards / Courses.
+
+## AI track (Nov 19, board "AI in Mosaic"; optional, bring your own key)
+
+- First: Copy prompt / Paste result for cards and study guides; NotebookLM import once she sends
+  an export. Then Settings → AI (providers incl. local), Make with AI panel, review-before-adding,
+  weak-spots quiz, AI in notes. Reverses the old "no AI features" decision, at her ask.
+
 ## Later (after v1.0, not before)
 
 - More course modules from the week 5 list.

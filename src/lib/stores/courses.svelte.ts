@@ -4,7 +4,8 @@
 import { courseGrade, DEFAULT_SCALE, type Assessment, type Grading } from "../grades";
 import type { CalEvent, Task } from "../calendar";
 import type { Plan } from "../plan";
-import { del, entries, get, newId, put, seed } from "./synced.svelte";
+import { del, entries, get, newId, put } from "./synced.svelte";
+import { renameLectureCourse } from "./outline.svelte";
 
 export type Course = {
   name: string;
@@ -60,6 +61,7 @@ function renameRefs(from: string, to: string) {
   for (const [rel, m] of entries<{ course?: string }>("folders")) if (m.course === from) put("folders", rel, { ...m, course: to });
   for (const [d, p] of entries<Plan>("plans"))
     if (p.blocks.some((b) => b.course === from)) put("plans", d, { ...p, blocks: p.blocks.map((b) => (b.course === from ? { ...b, course: to } : b)) });
+  renameLectureCourse(from, to);
 }
 
 export function deleteCourse(id: string) {

@@ -4,6 +4,7 @@
 // by NoteMenu.svelte, mounted once on the notes page. Drop targets are any element with
 // `data-drop-dir` (the folder path, "" = top level).
 import { del, entries, get, put } from "./synced.svelte";
+import { relinkNotes } from "./outline.svelte";
 import { dirOf, importNote, moveFolder, moveNote, noteHref, notes, renameNote, trashFolder, trashNote } from "./notes.svelte";
 import { setLastNote, ui } from "./ui.svelte";
 
@@ -50,6 +51,7 @@ async function beforeChange(rel: string) {
 /** the open note's (or the remembered last note's) path after `from` became `to` */
 function followMove(from: string, to: string | null) {
   const map = (r: string) => (r === from ? to : r.startsWith(from + "/") ? (to === null ? null : to + r.slice(from.length)) : r);
+  relinkNotes(from, to);
   if (notes.editing && isOpenIn(from)) noteHooks.moved?.(map(notes.editing));
   if (ui.lastNote && (ui.lastNote === from || ui.lastNote.startsWith(from + "/"))) setLastNote(map(ui.lastNote));
 }
