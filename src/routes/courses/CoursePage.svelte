@@ -237,14 +237,14 @@
 
         {#if coursePdfs.length}
           <section class="card">
-            <div class="sh"><h2 class="h2">PDFs</h2><a class="mini" href="#/study/pdfs">All</a></div>
+            <div class="sh"><h2 class="h2">PDFs</h2><a class="mini" href="#/study/files?kind=pdf">All</a></div>
             <ul class="cnotes">
               {#each coursePdfs.slice(0, 6) as f (f.rel)}
                 {@const info = pdfInfo(f.rel)}
                 <li><a href={pdfHref(f.rel)}><Icon name="file" size={14} /><span>{pdfName(f.rel)}</span>{#if info?.annots}<small>{info.annots} {info.annots === 1 ? "mark" : "marks"}</small>{:else if info?.opened}<small>p. {info.page}</small>{/if}</a></li>
               {/each}
             </ul>
-            {#if coursePdfs.length > 6}<a class="more" href="#/study/pdfs">All {coursePdfs.length} PDFs</a>{/if}
+            {#if coursePdfs.length > 6}<a class="more" href="#/study/files?kind=pdf">All {coursePdfs.length} PDFs</a>{/if}
           </section>
         {/if}
 

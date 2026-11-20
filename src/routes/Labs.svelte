@@ -49,6 +49,10 @@
     return findFolder(parentRel(route.rest))?.items.find((i) => i.rel === route.rest) ?? null;
   });
   const here = $derived(folder?.rel ?? "");
+  // the Materials tab is gone (Nov 20): its home is Files, showing interactive pages
+  $effect(() => {
+    if (!route.rest) location.replace("#/study/files?kind=page");
+  });
 </script>
 
 <svelte:window
@@ -81,7 +85,7 @@
   <section class="card empty">
     <h1 class="display">Not found</h1>
     <p class="muted">“{route.rest}” is not in your Materials folder any more. It may have been moved or renamed.</p>
-    <a class="btn quiet" href="#/labs">Back to Materials</a>
+    <a class="btn quiet" href="#/study/files?kind=page">Back to Files</a>
   </section>
 {:else if labs.error}
   <section class="card empty">

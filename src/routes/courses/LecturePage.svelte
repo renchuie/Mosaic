@@ -10,12 +10,9 @@
   import { shortExam } from "../../lib/stores/deckTree.svelte";
   import LinkPicker from "./LinkPicker.svelte";
   import UploadDialog from "../labs/UploadDialog.svelte";
-  import { addLinks, type Link } from "../../lib/stores/outline.svelte";
-  import { addPdf, pdfs } from "../../lib/stores/pdfs.svelte";
-  import { importNote } from "../../lib/stores/notes.svelte";
+  import { addLinks } from "../../lib/stores/outline.svelte";
   import { dragHasFiles } from "../../lib/stores/noteOps.svelte";
-  import { fileNameFor, joinNote, splitNote } from "../../lib/notes";
-  import { safeName } from "../../lib/materials";
+  import { addFiles, addedMessage } from "../../lib/stores/addFiles";
 
   let { courseId, id }: { courseId: string; id: string } = $props();
   const course = $derived(getCourse(courseId));
@@ -47,36 +44,13 @@
   };
   async function dropped(list: File[]) {
     if (!course || !lec) return;
-    const dir = safeName(course.code || course.name);
-    const links: Link[] = [];
-    const toUpload: File[] = [];
-    const skipped: string[] = [];
     busy = "Adding…";
     try {
-      for (const f of list) {
-        if (/\.pdf$/i.test(f.name)) {
-          const taken = new Set(pdfs.files.map((x) => x.rel));
-          const base = safeName(f.name.replace(/\.pdf$/i, "")) || "PDF";
-          let rel = `${dir}/${base}.pdf`;
-          for (let n = 2; taken.has(rel); n++) rel = `${dir}/${base} (${n}).pdf`;
-          await addPdf(rel, new Uint8Array(await f.arrayBuffer()));
-          links.push({ kind: "pdf", ref: rel });
-        } else if (/\.(md|markdown|txt)$/i.test(f.name)) {
-          const text = await f.text();
-          const { meta, body } = splitNote(text);
-          if (meta.mosaic) toUpload.push(f);
-          else {
-            const withCourse = meta.course ? text : joinNote({ ...meta, course: course.name }, body);
-            const rel = await importNote(fileNameFor(course.name).replace(/\.md$/, ""), f.name, withCourse);
-            links.push({ kind: "note", ref: rel });
-          }
-        } else if (/\.html?$/i.test(f.name)) toUpload.push(f);
-        else skipped.push(f.name);
-      }
-      if (links.length) addLinks(id, links);
-      say([links.length ? `Added ${links.length} to ${lec.title}` : "", skipped.length ? `Skipped ${skipped.join(", ")}` : ""].filter(Boolean).join(". "));
-      if (toUpload.length) {
-        upFiles = toUpload;
+      const r = await addFiles(list, { name: course.name, code: course.code });
+      if (r.links.length) addLinks(id, r.links);
+      say(addedMessage(r, lec.title));
+      if (r.toUpload.length) {
+        upFiles = r.toUpload;
         uploading = true;
       }
     } catch (e) {

@@ -674,7 +674,7 @@
 
 <div class="pwrap"><div class="viewer">
   <header class="bar">
-    <a class="ib" href="#/study/pdfs" aria-label="All PDFs" title="All PDFs"><Icon name="back" size={18} /></a>
+    <a class="ib" href="#/study/files?kind=pdf" aria-label="All PDFs" title="All PDFs"><Icon name="back" size={18} /></a>
     <div class="ttl">
       <b title={rel}>{name}</b>
       <span class="muted small">{#if course}{`${course} · `}{/if}<span class:warn={save === "failed"} title={save === "failed" ? saveError : backed ? "The untouched original is kept in .studydesk-originals" : ""}>{saveLabel}</span></span>

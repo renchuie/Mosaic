@@ -86,3 +86,16 @@ Her pick after the board "One Mosaic folder, with the course as the hub" (B + C)
   (routes `#/labs`, `labsRoot`, `recallLab.*` keys, the `labs` store) keep their names. The
   "Move Recall Labs into Materials?" card keeps the old folder's name.
 - Next: the one-folder move (frame 6) and Courses inside Study (H2).
+
+## Materials and PDFs tabs retired (Nov 20, her ask: "all of that will just be in files")
+
+- Study tabs are **Home · Files · Notes · Flashcards**. `#/labs` (no path) and `#/study/pdfs`
+  redirect to `#/study/files?kind=page` / `?kind=pdf`; FilesView reads `?kind=` on load and when
+  the route changes. Interactive pages and quizzes still open at `#/labs/<rel>`, PDFs at
+  `#/study/pdfs/<rel>`, Materials folder pages (Link this folder, exam dates) at `#/labs/<folder>`;
+  those keep the Files tab lit.
+- Files has **Upload** (file picker: PDF, Markdown, HTML), **Paste quiz** (PasteQuiz → UploadDialog)
+  and drop-anywhere; all go through `src/lib/stores/addFiles.ts` (`addFiles(list, course?)`,
+  shared with lecture pages): under the selected course, linked when a lecture is selected. The
+  old "Move Recall Labs into Materials?" card shows on Files while `labs.legacy` is set.
+- PdfsHome.svelte and the Materials home are no longer reachable from the nav (files kept).

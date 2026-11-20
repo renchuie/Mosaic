@@ -38,7 +38,7 @@
     else if (kind === "event") newEvent({});
     else if (kind === "note") noteOpen = true;
     else if (kind === "card") location.hash = "#/study/cards/add";
-    else location.hash = "#/study/pdfs";
+    else location.hash = "#/study/files?kind=pdf";
   }
   const initial = $derived((settings.name || "?").trim().charAt(0).toUpperCase());
   // the avatar menu: opens on hover (CSS) or click / keyboard (state)

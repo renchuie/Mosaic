@@ -134,7 +134,7 @@
       <section>
         <div class="sec-head">
           <h2 class="h2">Interactive pages</h2>
-          <a class="link" href="#/labs">All folders <Icon name="arrow" size={14} /></a>
+          <a class="link" href="#/study/files?kind=page">All <Icon name="arrow" size={14} /></a>
         </div>
         <div class="lectures">
           {#each allLabs.slice(0, 4) as l, i}

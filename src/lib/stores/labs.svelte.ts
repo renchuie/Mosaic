@@ -241,7 +241,7 @@ export function streakInfo() {
 }
 
 export const encodeRel = (rel: string) => rel.split("/").map(encodeURIComponent).join("/");
-export const folderHref = (rel: string) => (rel ? `#/labs/${encodeRel(rel)}` : "#/labs");
+export const folderHref = (rel: string) => (rel ? `#/labs/${encodeRel(rel)}` : "#/study/files?kind=page");
 export const labHref = (rel: string) => `#/labs/${encodeRel(rel)}`;
 
 // ---- Materials: the labs folder under its new name ---------------------------------------

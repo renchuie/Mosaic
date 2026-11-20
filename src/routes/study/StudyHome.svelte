@@ -362,7 +362,7 @@
     </section>
 
     <section class="card">
-      <header class="ch"><span class="ic sage"><Icon name="labs" size={18} /></span><h2 class="h2">Interactive pages</h2><a class="lnk" href="#/labs">All</a></header>
+      <header class="ch"><span class="ic sage"><Icon name="labs" size={18} /></span><h2 class="h2">Interactive pages</h2><a class="lnk" href="#/study/files?kind=page">All</a></header>
       <div class="jump">
         {#each topLabs as l (l.item.rel)}
           <a href={labHref(l.item.rel)}>

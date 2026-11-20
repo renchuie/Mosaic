@@ -11,10 +11,19 @@
   import { candidates, describe, KIND_ICONS, KIND_NAMES, materialItems, noteCardStats, type Shown, type ShowKind } from "../../lib/stores/linkInfo.svelte";
   import { shortExam } from "../../lib/stores/deckTree.svelte";
   import { SvelteSet } from "svelte/reactivity";
+  import { courseByName } from "../../lib/stores/courses.svelte";
+  import { dragHasFiles } from "../../lib/stores/noteOps.svelte";
+  import { addFiles, addedMessage } from "../../lib/stores/addFiles";
+  import { adoptMaterials, labs } from "../../lib/stores/labs.svelte";
+  import UploadDialog from "../labs/UploadDialog.svelte";
+  import { route } from "../../lib/router.svelte";
+  import PasteQuiz from "../labs/PasteQuiz.svelte";
 
   type Sel = { kind: "all" } | { kind: "course"; name: string } | { kind: "loose"; name: string } | { kind: "lecture"; id: string };
   let sel = $state<Sel>({ kind: "all" });
-  let kind = $state<ShowKind | "all">("all");
+  // #/study/files?kind=pdf|page|quiz|note|deck|file opens on one kind (the old PDFs and Materials tabs)
+  const startKind = /[?&]kind=(\w+)/.exec(location.hash)?.[1] as ShowKind | undefined;
+  let kind = $state<ShowKind | "all">(startKind && ["note", "pdf", "quiz", "page", "deck", "file"].includes(startKind) ? startKind : "all");
   let q = $state("");
   const open = new SvelteSet<string>();
 
@@ -73,6 +82,56 @@
   const when = (ms?: number) => (ms ? new Date(ms).toLocaleDateString("en-US", { month: "short", day: "numeric" }) : "");
   const isSel = (s: Sel) => JSON.stringify(s) === JSON.stringify(sel);
 
+  $effect(() => {
+    const k = /[?&]kind=(\w+)/.exec(route.rest)?.[1] as ShowKind | undefined;
+    if (k && ["note", "pdf", "quiz", "page", "deck", "file"].includes(k)) kind = k;
+  });
+  // adding files: Upload, Paste quiz, or dropping files anywhere on Files. They go under the
+  // selected course (and get linked when a lecture is selected).
+  const selCourse = $derived.by(() => {
+    if (sel.kind === "course" || sel.kind === "loose") return sel.name;
+    if (sel.kind === "lecture") return lecs.find(([id]) => id === (sel as { id: string }).id)?.[1].course ?? "";
+    return "";
+  });
+  const selLecture = $derived(sel.kind === "lecture" ? sel.id : "");
+  let upFiles = $state<File[]>([]);
+  let uploading = $state(false);
+  let pasting = $state(false);
+  let dropping = $state(false);
+  let picker = $state<HTMLInputElement>();
+  async function add(list: File[]) {
+    if (!list.length) return;
+    const c = selCourse ? courseByName(selCourse)?.[1] : undefined;
+    try {
+      const r = await addFiles(list, c ? { name: c.name, code: c.code } : undefined);
+      if (selLecture && r.links.length) addLinks(selLecture, r.links);
+      const msg = addedMessage(r, selLecture ? title : undefined);
+      if (msg) say(msg);
+      if (r.toUpload.length) {
+        upFiles = r.toUpload;
+        uploading = true;
+      }
+    } catch (e) {
+      say(String(e instanceof Error ? e.message : e));
+    }
+  }
+  function say(m: string) {
+    toast = m;
+    setTimeout(() => toast === m && (toast = ""), 3500);
+  }
+  let moving = $state(false);
+  async function moveLegacy() {
+    moving = true;
+    try {
+      const r = await adoptMaterials();
+      say(`Moved ${r.moved} ${r.moved === 1 ? "item" : "items"}.${r.skipped.length ? ` Left: ${r.skipped.join(", ")}` : ""}`);
+    } catch (e) {
+      say(String(e));
+    } finally {
+      moving = false;
+    }
+  }
+
   // dragging a row onto a lecture in the side list links it (pointer-based, 6px threshold)
   let drag = $state<{ x: Shown; px: number; py: number } | null>(null);
   let overLec = $state<string | null>(null);
@@ -93,8 +152,7 @@
       if (moved && drag && overLec) {
         addLinks(overLec, [drag.x.link]);
         const l = lecs.find(([id]) => id === overLec)?.[1];
-        toast = `Added to ${l?.title ?? "lecture"}`;
-        setTimeout(() => (toast = ""), 2500);
+        say(`Added to ${l?.title ?? "lecture"}`);
       }
       if (moved) window.addEventListener("click", (c) => c.preventDefault(), { capture: true, once: true });
       drag = null;
@@ -105,7 +163,19 @@
   }
 </script>
 
+<svelte:window
+  ondragover={(e) => { if (dragHasFiles(e)) { e.preventDefault(); dropping = true; } }}
+  ondragleave={(e) => { if (!e.relatedTarget) dropping = false; }}
+  ondrop={(e) => { if (!dragHasFiles(e)) return; e.preventDefault(); dropping = false; void add([...(e.dataTransfer?.files ?? [])]); }}
+/>
+
 <div class="fwrap">
+  {#if labs.legacy}
+    <section class="card legacy">
+      <span><b>Move Recall Labs into Materials?</b> Progress, folder links and exam dates come along.</span>
+      <button type="button" class="btn primary sm" onclick={moveLegacy} disabled={moving}>{moving ? "Moving…" : "Move"}</button>
+    </section>
+  {/if}
   <div class="files" class:dragging={!!drag}>
     <nav class="side" aria-label="Courses and lectures">
       <button type="button" class="si" class:on={isSel({ kind: "all" })} onclick={() => (sel = { kind: "all" })}><Icon name="folder" size={15} /> All files</button>
@@ -137,6 +207,9 @@
       <div class="head">
         <h1 class="h1">{title}</h1>
         <div class="search"><Icon name="search" size={15} /><input bind:value={q} placeholder="Search" aria-label="Search files" /></div>
+        <button type="button" class="btn quiet" onclick={() => (pasting = true)}><Icon name="note" size={15} /> Paste quiz</button>
+        <button type="button" class="btn primary" onclick={() => picker?.click()}><Icon name="plus" size={15} /> Upload</button>
+        <input bind:this={picker} type="file" multiple hidden accept=".pdf,.md,.markdown,.txt,.html,.htm" onchange={(e) => { void add([...(e.currentTarget.files ?? [])]); e.currentTarget.value = ""; }} />
       </div>
       <div class="chips">
         <button type="button" class="chip" class:on={kind === "all"} onclick={() => (kind = "all")}>All</button>
@@ -163,6 +236,9 @@
       </div>
     </section>
   </div>
+  {#if dropping}<div class="dropcover" aria-hidden="true"><Icon name="plus" size={26} /><b>{selLecture ? `Add to ${title}` : selCourse ? `Add to ${selCourse}` : "Add files"}</b></div>{/if}
+  <UploadDialog bind:open={uploading} files={upFiles} course={selCourse} onsaved={(rels) => selLecture && addLinks(selLecture, rels.map((ref) => ({ kind: "file" as const, ref })))} />
+  <PasteQuiz bind:open={pasting} onfile={(f) => { upFiles = [f]; uploading = true; }} />
   {#if drag}<div class="ghost" style="left: {drag.px + 12}px; top: {drag.py + 8}px"><Icon name={KIND_ICONS[drag.x.kind]} size={14} /> {drag.x.name}</div>{/if}
   {#if toast}<div class="toast" role="status">{toast}</div>{/if}
 </div>
@@ -411,6 +487,30 @@
     .tr { grid-template-columns: 34px minmax(0, 1fr) minmax(100px, 160px); }
     .tr .k, .tr .w { display: none; }
     .th span:nth-child(3), .th span:nth-child(5) { display: none; }
+  }
+  .legacy {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 12px 16px;
+    margin-bottom: 16px;
+  }
+  .dropcover {
+    position: fixed;
+    inset: 16px;
+    z-index: 150;
+    border-radius: 30px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    background: color-mix(in srgb, var(--lavender) 22%, transparent);
+    box-shadow: inset 0 0 0 3px color-mix(in srgb, var(--lavender) 85%, var(--text));
+    color: var(--text);
+    font-size: 18px;
+    pointer-events: none;
   }
   .ghost {
     position: fixed;

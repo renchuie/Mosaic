@@ -33,6 +33,10 @@
   });
   // #/study/pdfs/<rel>?p=<page>
   const pdf = $derived(route.rest.startsWith("pdfs/") ? parsePdfRoute(route.rest.slice(5)) : null);
+  // the PDFs tab is gone (Nov 20): its home is Files, showing PDFs
+  $effect(() => {
+    if (route.rest === "pdfs") location.replace("#/study/files?kind=pdf");
+  });
   const libItem = $derived(route.rest.startsWith("cards/library/") ? route.rest.slice("cards/library/".length) : null);
 </script>
 

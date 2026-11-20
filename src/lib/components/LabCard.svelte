@@ -6,7 +6,7 @@
     progress,
     revisit,
     tone,
-    href = "#/labs",
+    href = "#/study/files?kind=page",
   }: { title: string; kicker: string; progress: number; revisit: number; tone: Tone; href?: string } = $props();
 </script>
 
