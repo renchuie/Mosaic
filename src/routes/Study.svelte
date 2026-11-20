@@ -13,6 +13,7 @@
   import { parseScope, type Scope } from "../lib/stores/srs.svelte";
   import Library from "./study/library/Library.svelte";
   import PdfsHome from "./study/pdfs/PdfsHome.svelte";
+  import FilesView from "./study/FilesView.svelte";
   import PdfViewer from "./study/pdfs/PdfViewer.svelte";
   import { parsePdfRoute } from "../lib/stores/pdfs.svelte";
 
@@ -55,6 +56,8 @@
     <CardsView />
   {:else if pdf}
     {#key pdf.rel}<PdfViewer rel={pdf.rel} startPage={pdf.page} />{/key}
+  {:else if route.rest.startsWith("files")}
+    <FilesView />
   {:else if route.rest.startsWith("pdfs")}
     <PdfsHome />
   {:else if route.rest.startsWith("notes")}

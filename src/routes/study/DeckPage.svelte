@@ -1,4 +1,5 @@
 <script lang="ts">
+  import LectureMenu from "../../lib/components/LectureMenu.svelte";
   // One deck's page (canvas "Flashcards tab: A + C", boards 2 and 3): the deck tree on the left to
   // hop between decks, then the deck: breadcrumb, header, New / Learning / To review and Study now,
   // "Study a different way" (practice: never changes the schedule), its sub-decks in the home's
@@ -158,6 +159,7 @@
       <span class="ic"><Icon name={icon} size={24} /></span>
       <div class="ttl"><h2>{name}</h2><span class="small muted">{subtitle}</span></div>
       <span class="grow"></span>
+      {#if scope.kind === "deck" && deck?.courses?.length === 1}<LectureMenu link={{ kind: "deck", ref: scope.id }} course={deck.courses[0]} />{/if}
       {#if scope.kind === "deck"}<button type="button" class="btn" onclick={() => options(scope.id)}><Icon name="i:settings" size={15} /> Options</button>{/if}
       {#if scope.kind === "note"}<a class="btn" href={noteHref(scope.rel)}><Icon name="i:file-text" size={15} /> Open note</a>{/if}
       {#if scope.kind === "deck" && subs.length}

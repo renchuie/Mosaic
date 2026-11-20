@@ -85,6 +85,8 @@ likes or dislikes in each inspiration).
 - **Synced store:** records `{u, m, x, v}`, newest wins; `seed()` writes u=1 so any real edit wins.
   Removing a seed doesn't delete existing records. Courses are referred to by NAME everywhere
   (`saveCourse` rewrites references on rename).
+- **Words:** Recall Labs are "interactive pages" in the UI (code keeps `labs` names). Notes, PDFs,
+  quizzes, pages and decks belong to lectures by LINKS (`stores/outline.svelte.ts`), not folders.
 - **Labs** are served on the app's own origin (`/__labs/`), never a separate origin (WebKitGTK gave
   that session-only storage and progress vanished).
 - **Settings:** `saveSettings` saves the whole snapshot, so changing a default never changes her

@@ -70,7 +70,7 @@
           {:else}
             <span class="chip muted">Nothing due soon</span>
           {/if}
-          {#if r.labCount}<span class="chip"><Icon name="labs" size={13} /> {r.labCount} {r.labCount === 1 ? "lab" : "labs"}</span>{/if}
+          {#if r.labCount}<span class="chip"><Icon name="labs" size={13} /> {r.labCount} {r.labCount === 1 ? "page" : "pages"}</span>{/if}
         </div>
       </a>
     {/each}

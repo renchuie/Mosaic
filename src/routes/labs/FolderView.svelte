@@ -1,4 +1,5 @@
 <script lang="ts">
+  import LectureMenu from "../../lib/components/LectureMenu.svelte";
   import Icon from "../../lib/components/Icon.svelte";
   import Wave from "../../lib/components/Wave.svelte";
   import { courseNames } from "../../lib/stores/courses.svelte";
@@ -105,7 +106,7 @@
       </div>
     </div>
     <div class="hero-stats">
-      <div><span class="label">Recall labs</span><b class="display">{stats.count}</b></div>
+      <div><span class="label">Interactive pages</span><b class="display">{stats.count}</b></div>
       <div><span class="label">Average best</span><b class="display">{pct(stats.progress.avgBest)}</b></div>
       <div><span class="label">To revisit</span><b class="display">{stats.progress.missed}</b></div>
       <div><span class="label">Best sim</span><b class="display">{pct(stats.progress.bestSim)}</b></div>
@@ -126,13 +127,13 @@
     <div class="browse" role="group" aria-label="Browse materials">
       <button type="button" class:on={!byCourse} onclick={() => (byCourse = "")}><Icon name="folder" size={15} /> Folders</button>
       {#each courseChips as c}<button type="button" class:on={byCourse === c} onclick={() => (byCourse = byCourse === c ? "" : c)}>{c}</button>{/each}
-      <span class="types muted"><Icon name="labs" size={14} /> {allLabs.length} recall {allLabs.length === 1 ? "lab" : "labs"} · {allQuizzes.length} {allQuizzes.length === 1 ? "quiz" : "quizzes"}</span>
+      <span class="types muted"><Icon name="labs" size={14} /> {allLabs.length} interactive {allLabs.length === 1 ? "page" : "pages"} · {allQuizzes.length} {allQuizzes.length === 1 ? "quiz" : "quizzes"}</span>
     </div>
   {/if}
 
   {#if isRoot && byCourse}
     <section class="card courselist">
-      <h2 class="h2">{byCourse} · {courseLabs.length} {courseLabs.length === 1 ? "lab" : "labs"}</h2>
+      <h2 class="h2">{byCourse} · {courseLabs.length} {courseLabs.length === 1 ? "page" : "pages"}</h2>
       <ul>
         {#each courseLabs as l (l.item.rel)}
           <li>
@@ -156,7 +157,7 @@
               {@const s = folderStats(f)}
               {@const n = f.items.filter((x) => x.kind !== "lab").length}
               <a class="sub t-{subTone(f, i)}" href={folderHref(f.rel)}>
-                <span class="sub-top"><Icon name="folder" size={18} /> <span class="label">{s.count} {s.count === 1 ? "lab" : "labs"} · {n} {n === 1 ? "file" : "files"}</span></span>
+                <span class="sub-top"><Icon name="folder" size={18} /> <span class="label">{s.count} {s.count === 1 ? "page" : "pages"} · {n} {n === 1 ? "file" : "files"}</span></span>
                 <b class="display">{f.name}</b>
                 <span class="bar"><span style="width: {s.progress.avgBest ?? 0}%"></span></span>
                 <span class="sub-foot">{s.progress.avgBest === null ? "No progress yet" : `${s.progress.avgBest}% avg best`}{s.progress.missed ? ` · ${s.progress.missed} to revisit` : ""}</span>
@@ -168,7 +169,7 @@
 
       {#if ownLabs.length}
         <section>
-          <h2 class="h2 sec">Recall labs</h2>
+          <h2 class="h2 sec">Interactive pages</h2>
           <div class="labgrid">
             {#each ownLabs as l}
               <article class="card lab">
@@ -185,6 +186,7 @@
                 </dl>
                 <div class="lab-foot">
                   <span class="muted">{ago(l.lastOpened)}{l.lab.slug_guessed ? " · progress key guessed from file name" : ""}</span>
+                  {#if course}<LectureMenu link={{ kind: "file", ref: l.item.rel }} {course} />{/if}
                   <a class="btn primary" href={labHref(l.item.rel)}><Icon name="play" size={15} /> Open</a>
                 </div>
               </article>
@@ -193,8 +195,8 @@
         </section>
       {:else if !folder.folders.length && !ownQuizzes.length}
         <section class="card empty">
-          <h2 class="h2">No recall labs here yet</h2>
-          <p class="muted">Drop lab files here, or use Upload.</p>
+          <h2 class="h2">No interactive pages here yet.</h2>
+          <p class="muted">Drop files here, or use Upload.</p>
         </section>
       {/if}
 
@@ -204,12 +206,15 @@
           <div class="quizgrid">
             {#each ownQuizzes as m (m.item.rel)}
               {@const s = quizSummary(m.mat.id)}
+              <div class="qwrap">
               <a class="card quiz" href={labHref(m.item.rel)}>
                 <span class="qhead"><span class="qic"><Icon name="check" size={18} /></span><b class="display">{m.mat.title}</b></span>
                 <span class="muted qsub">{m.mat.count} {m.mat.count === 1 ? "question" : "questions"}{s.attempts ? ` · ${s.attempts} ${s.attempts === 1 ? "attempt" : "attempts"}` : " · not tried yet"}</span>
                 <span class="bar big"><span style="width: {s.best ?? 0}%"></span></span>
                 <span class="qfoot"><span>{s.best === null ? "No score yet" : `Best ${s.best}%`}{s.last !== null && s.last !== s.best ? ` · last ${s.last}%` : ""}</span>{#if s.missed}<span class="tag alert">{s.missed} to redo</span>{/if}</span>
               </a>
+              {#if course || m.mat.course}<span class="qlec"><LectureMenu chip link={{ kind: "file", ref: m.item.rel }} course={m.mat.course ?? course ?? ""} /></span>{/if}
+              </div>
             {/each}
           </div>
         </section>
@@ -349,6 +354,15 @@
   .cl-n {
     font-size: 13px;
     white-space: nowrap;
+  }
+  .qwrap {
+    position: relative;
+    display: grid;
+  }
+  .qlec {
+    position: absolute;
+    top: 14px;
+    right: 14px;
   }
   .quizgrid {
     display: grid;

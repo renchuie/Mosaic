@@ -9,6 +9,13 @@
   import { counts, scopeKey } from "../../lib/stores/srs.svelte";
   import { shortExam } from "../../lib/stores/deckTree.svelte";
   import LinkPicker from "./LinkPicker.svelte";
+  import UploadDialog from "../labs/UploadDialog.svelte";
+  import { addLinks, type Link } from "../../lib/stores/outline.svelte";
+  import { addPdf, pdfs } from "../../lib/stores/pdfs.svelte";
+  import { importNote } from "../../lib/stores/notes.svelte";
+  import { dragHasFiles } from "../../lib/stores/noteOps.svelte";
+  import { fileNameFor, joinNote, splitNote } from "../../lib/notes";
+  import { safeName } from "../../lib/materials";
 
   let { courseId, id }: { courseId: string; id: string } = $props();
   const course = $derived(getCourse(courseId));
@@ -26,6 +33,58 @@
   let picking = $state(false);
   let menu = $state(false);
   let confirmDelete = $state(false);
+  // dropping files on the lecture: PDFs go to the PDF folder, notes to the notes folder (both in a
+  // folder named after the course), quizzes and interactive pages through the Materials upload
+  // dialog; everything that lands is linked here
+  let over = $state(false);
+  let busy = $state("");
+  let toast = $state("");
+  let upFiles = $state<File[]>([]);
+  let uploading = $state(false);
+  const say = (m: string) => {
+    toast = m;
+    setTimeout(() => toast === m && (toast = ""), 4000);
+  };
+  async function dropped(list: File[]) {
+    if (!course || !lec) return;
+    const dir = safeName(course.code || course.name);
+    const links: Link[] = [];
+    const toUpload: File[] = [];
+    const skipped: string[] = [];
+    busy = "Adding…";
+    try {
+      for (const f of list) {
+        if (/\.pdf$/i.test(f.name)) {
+          const taken = new Set(pdfs.files.map((x) => x.rel));
+          const base = safeName(f.name.replace(/\.pdf$/i, "")) || "PDF";
+          let rel = `${dir}/${base}.pdf`;
+          for (let n = 2; taken.has(rel); n++) rel = `${dir}/${base} (${n}).pdf`;
+          await addPdf(rel, new Uint8Array(await f.arrayBuffer()));
+          links.push({ kind: "pdf", ref: rel });
+        } else if (/\.(md|markdown|txt)$/i.test(f.name)) {
+          const text = await f.text();
+          const { meta, body } = splitNote(text);
+          if (meta.mosaic) toUpload.push(f);
+          else {
+            const withCourse = meta.course ? text : joinNote({ ...meta, course: course.name }, body);
+            const rel = await importNote(fileNameFor(course.name).replace(/\.md$/, ""), f.name, withCourse);
+            links.push({ kind: "note", ref: rel });
+          }
+        } else if (/\.html?$/i.test(f.name)) toUpload.push(f);
+        else skipped.push(f.name);
+      }
+      if (links.length) addLinks(id, links);
+      say([links.length ? `Added ${links.length} to ${lec.title}` : "", skipped.length ? `Skipped ${skipped.join(", ")}` : ""].filter(Boolean).join(". "));
+      if (toUpload.length) {
+        upFiles = toUpload;
+        uploading = true;
+      }
+    } catch (e) {
+      say(String(e instanceof Error ? e.message : e));
+    } finally {
+      busy = "";
+    }
+  }
   function rename(v: string) {
     if (v.trim() && v.trim() !== lec?.title) saveLecture(id, { title: v.trim() });
   }
@@ -108,9 +167,16 @@
     {/if}
   </div>
   <LinkPicker bind:open={picking} lectureId={id} course={course.name} />
+  <UploadDialog bind:open={uploading} files={upFiles} course={course.name} exam={exam ? shortExam(exam) : ""} onsaved={(rels) => addLinks(id, rels.map((ref) => ({ kind: "file" as const, ref })))} />
+  {#if over}<div class="dropcover" aria-hidden="true"><Icon name="plus" size={26} /><b>Add to {lec.title}</b></div>{/if}
+  {#if toast || busy}<div class="toast" role="status">{busy || toast}</div>{/if}
 {/if}
 
-<svelte:window onclick={(e) => { if (menu && !(e.target as HTMLElement).closest(".more")) { menu = false; confirmDelete = false; } }} />
+<svelte:window
+  ondragover={(e) => { if (dragHasFiles(e)) { e.preventDefault(); over = true; } }}
+  ondragleave={(e) => { if (!e.relatedTarget) over = false; }}
+  ondrop={(e) => { if (!dragHasFiles(e)) return; e.preventDefault(); over = false; void dropped([...(e.dataTransfer?.files ?? [])]); }}
+  onclick={(e) => { if (menu && !(e.target as HTMLElement).closest(".more")) { menu = false; confirmDelete = false; } }} />
 
 <style>
   .page {
@@ -393,6 +459,35 @@
     font-weight: 400;
     font-size: 14px;
     color: var(--text-muted);
+  }
+  .dropcover {
+    position: fixed;
+    inset: 16px;
+    z-index: 150;
+    border-radius: 30px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    background: color-mix(in srgb, var(--lavender) 22%, transparent);
+    box-shadow: inset 0 0 0 3px color-mix(in srgb, var(--lavender) 85%, var(--text));
+    color: var(--text);
+    font-size: 18px;
+    pointer-events: none;
+  }
+  .toast {
+    position: fixed;
+    left: 50%;
+    bottom: 28px;
+    transform: translateX(-50%);
+    z-index: 300;
+    max-width: min(560px, calc(100vw - 32px));
+    padding: 10px 18px;
+    border-radius: var(--radius-pill);
+    background: var(--primary);
+    color: var(--on-primary);
+    font-size: 14px;
   }
   @media (prefers-reduced-motion: reduce) {
     .item, .menu { animation: none; transition: none; }

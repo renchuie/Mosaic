@@ -61,6 +61,28 @@ Her pick after the board "One Mosaic folder, with the course as the hub" (B + C)
   (first linked quiz), Add, ⋯ Delete lecture; a tile per linked thing (× removes the link only).
   Picker `LinkPicker.svelte`: search, kind chips, "This course" / "Everything", multi-select,
   "Already here", shows other lectures an item is in.
-- Next (H1b): link from the item itself (note header, PDF viewer, Materials, deck options), the
-  Files tab with kind filters (board frame 3), drop files on a lecture (frame 5); later the
-  one-folder move (frame 6).
+
+## Course hub H1b (Nov 20)
+
+- `src/lib/components/LectureMenu.svelte`: a Lecture chip / button on the item itself. Opens a menu
+  (moved to `<body>`, position fixed) of the course's lectures grouped by exam, ticked when linked;
+  click links / unlinks; "New lecture" makes one under the next exam and links it; with no course
+  it asks for one. Placed in: the note header chips (when the note has a course), the PDF viewer
+  bar, Materials interactive-page cards and quiz cards (beside the card link, `.qlec`), deck pages
+  of a one-course deck.
+- Study → **Files** (`src/routes/study/FilesView.svelte`, `#/study/files`, tab after Home): every
+  note, PDF, quiz, interactive page, deck and Materials file (`candidates()`, newest first, `mtime`
+  now in `Shown`), kind chips, search; left: All files, then course → exam → lectures and "Not in a
+  lecture" per course. A row's Lecture column is a LectureMenu; dragging a row onto a lecture in
+  the side list links it (pointer-based, `data-lec`, ghost + "Added to …" toast).
+- Dropping files on a lecture page (window drag events; `dragDropEnabled: false` lets HTML5 drops
+  through): PDFs → `addPdf` (new Rust `pdfs_add`: raw body + `x-rel`, refuses an existing file,
+  makes the folder; name made unique) into `<PDF folder>/<course code>/`; plain .md / .txt →
+  `importNote` into the course's notes folder, with `course:` added to the front matter if missing;
+  .md with `mosaic:` front matter and .html → the Materials UploadDialog (new props `course` /
+  `exam` start it on the lecture's course and exam folder), `onsaved` links what was written;
+  anything else is skipped and named in the toast.
+- "Recall Labs" / "labs" in the UI became **interactive pages** (her Nov 19 pick); internals
+  (routes `#/labs`, `labsRoot`, `recallLab.*` keys, the `labs` store) keep their names. The
+  "Move Recall Labs into Materials?" card keeps the old folder's name.
+- Next: the one-folder move (frame 6) and Courses inside Study (H2).

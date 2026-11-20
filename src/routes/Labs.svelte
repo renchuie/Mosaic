@@ -20,7 +20,7 @@
     if (list.length) {
       upFiles = list;
       upOpen = true;
-    } else if (e.dataTransfer?.files.length) toast = "Only labs (.html) and quizzes (.md) can be added.";
+    } else if (e.dataTransfer?.files.length) toast = "Only interactive pages and quizzes can be added.";
   }
   const isFiles = (e: DragEvent) => [...(e.dataTransfer?.types ?? [])].includes("Files");
 
@@ -61,7 +61,7 @@
 {#if labs.legacy && !(item && item.kind === "lab")}
   <section class="card legacy">
     <div>
-      <h2 class="h2">Move your labs into Materials?</h2>
+      <h2 class="h2">Move Recall Labs into Materials?</h2>
       <p class="muted">Your labs are still in <b>{labs.legacy.split("/").pop()}</b>. Progress, folder links and exam dates come along.</p>
     </div>
     <button type="button" class="btn primary" onclick={move} disabled={moving}>{moving ? "Moving…" : "Move into Materials"}</button>

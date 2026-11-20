@@ -8,13 +8,14 @@
   // it is a slim strip across the top of the main panel, on the glass, with a hairline under it,
   // exactly where the note page's top bar sits; the note page puts it inside its own bar instead.
   let { bar = true }: { bar?: boolean } = $props();
-  const tab = $derived(route.page === "labs" ? "labs" : route.rest.startsWith("notes") ? "notes" : route.rest.startsWith("cards") ? "cards" : route.rest.startsWith("pdfs") ? "pdfs" : "home");
+  const tab = $derived(route.page === "labs" ? "labs" : route.rest.startsWith("notes") ? "notes" : route.rest.startsWith("cards") ? "cards" : route.rest.startsWith("pdfs") ? "pdfs" : route.rest.startsWith("files") ? "files" : "home");
   const due = $derived(counts());
   const sub = $derived(route.rest.startsWith("cards/browse") ? "browse" : route.rest.startsWith("cards/stats") ? "stats" : "decks");
   // Notes picks up the note she had open; clicked while already on Notes it goes to the home (folders)
   const notesHref = $derived(tab !== "notes" && ui.lastNote && getNote(ui.lastNote) ? noteHref(ui.lastNote) : "#/study/notes");
   const TABS = $derived([
     { id: "home", label: "Home", href: "#/study", icon: "dashboard" },
+    { id: "files", label: "Files", href: "#/study/files", icon: "folder" },
     { id: "notes", label: "Notes", href: notesHref, icon: "pen" },
     { id: "cards", label: "Flashcards", href: "#/study/cards", icon: "star" },
     { id: "pdfs", label: "PDFs", href: "#/study/pdfs", icon: "file" },

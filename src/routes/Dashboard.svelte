@@ -86,7 +86,7 @@
       <div class="stat card">
         <span class="label">To revisit</span>
         <span class="num display">{revisit}</span>
-        <span class="sub">across {allLabs.length} {allLabs.length === 1 ? "lab" : "labs"}</span>
+        <span class="sub">across {allLabs.length} {allLabs.length === 1 ? "page" : "pages"}</span>
       </div>
       <div class="stat card">
         <span class="label">Streak</span>
@@ -133,14 +133,14 @@
 
       <section>
         <div class="sec-head">
-          <h2 class="h2">Recall labs</h2>
+          <h2 class="h2">Interactive pages</h2>
           <a class="link" href="#/labs">All folders <Icon name="arrow" size={14} /></a>
         </div>
         <div class="lectures">
           {#each allLabs.slice(0, 4) as l, i}
             <LabCard
               title={l.lab.title}
-              kicker={l.folder.name || "Recall Labs"}
+              kicker={l.folder.name || "Materials"}
               progress={l.progress.avgBest ?? 0}
               revisit={l.progress.missed}
               tone={toneFor(l.folder.rel, i)}
@@ -153,7 +153,7 @@
       <section class="continue">
         <Wave />
         <div class="c-body">
-          <span class="label">Recall Labs</span>
+          <span class="label">Interactive pages</span>
           <h2 class="display">{labs.error ? "Can’t reach your labs folder" : labs.scanning ? "Looking for your labs…" : "No labs found yet"}</h2>
           <p>{labs.error ?? "No labs found."}</p>
         </div>
@@ -164,7 +164,7 @@
     <section class="card">
       <div class="sec-head">
         <h2 class="h2">Activity</h2>
-        <span class="tag">Study time, labs and tasks</span>
+        <span class="tag">Study time, pages and tasks</span>
       </div>
       <Heatmap />
     </section>
@@ -298,7 +298,7 @@
         {#each allLabs.slice(0, 5) as l}
           <a class="btn quiet" href={labHref(l.item.rel)}><Icon name="play" size={14} /> {l.lab.title}</a>
         {:else}
-          <p class="muted">No labs yet.</p>
+          <p class="muted">No interactive pages yet.</p>
         {/each}
       </div>
     </section>

@@ -11,7 +11,7 @@ import type { Link } from "./outline.svelte";
 
 /** quiz and interactive page are files in Materials, told apart for the hub */
 export type ShowKind = "note" | "pdf" | "quiz" | "page" | "file" | "deck";
-export type Shown = { link: Link; kind: ShowKind; name: string; sub: string; href: string; course?: string; tone?: "rose" | "sage" | "peach"; gone?: boolean; done?: number };
+export type Shown = { link: Link; kind: ShowKind; name: string; sub: string; href: string; course?: string; tone?: "rose" | "sage" | "peach"; gone?: boolean; done?: number; mtime?: number };
 
 export const KIND_NAMES: Record<ShowKind, string> = { note: "Note", pdf: "PDF", quiz: "Quiz", page: "Interactive page", file: "File", deck: "Deck" };
 export const KIND_ICONS: Record<ShowKind, string> = { note: "note", pdf: "file", quiz: "i:circle-help", page: "i:app-window", file: "folder", deck: "cards" };
@@ -49,16 +49,17 @@ export function describe(link: Link, stats = noteCardStats(), mats = materialIte
     if (!e) return { link, kind: "note", name: stripExt(link.ref.split("/").pop() ?? link.ref), sub: "Not found", href: "", gone: true };
     const s = stats.get(link.ref);
     return {
-      link, kind: "note", name: e.p.title, href: noteHref(link.ref), course: e.p.meta.course ? String(e.p.meta.course) : undefined,
+      link, kind: "note", name: e.p.title, href: noteHref(link.ref), mtime: e.mtime, course: e.p.meta.course ? String(e.p.meta.course) : undefined,
       sub: s?.due ? `${s.due} due` : s?.total ? `${s.total} ${s.total === 1 ? "card" : "cards"}` : "",
       tone: s?.due ? "rose" : undefined,
     };
   }
   if (link.kind === "pdf") {
     const i = pdfInfo(link.ref);
-    const here = pdfs.files.some((f) => f.rel === link.ref);
+    const f = pdfs.files.find((x) => x.rel === link.ref);
+    const here = !!f;
     const sub = !here ? "Not found" : i?.opened && i.pages ? `p. ${i.page} of ${i.pages}` : i?.opened ? `p. ${i.page}` : "Not opened";
-    return { link, kind: "pdf", name: pdfName(link.ref), sub, href: here ? pdfHref(link.ref, i?.page) : "", course: courseOfPdf(link.ref), gone: !here, done: i?.pages ? i.page / i.pages : undefined };
+    return { link, kind: "pdf", name: pdfName(link.ref), sub, href: here ? pdfHref(link.ref, i?.page) : "", course: courseOfPdf(link.ref), gone: !here, mtime: f?.mtime, done: i?.pages ? i.page / i.pages : undefined };
   }
   if (link.kind === "deck") {
     const d = getDeck(link.ref);
@@ -67,16 +68,17 @@ export function describe(link: Link, stats = noteCardStats(), mats = materialIte
   const it = mats.get(link.ref);
   if (!it) return { link, kind: /\.html?$/i.test(link.ref) ? "page" : "file", name: stripExt(link.ref.split("/").pop() ?? link.ref), sub: "Not found", href: "", gone: true };
   const kind = fileKind(it);
+  const mtime = it.mtime;
   const course = it.mat?.course ?? inherited(parentRel(it.rel), "course") ?? undefined;
   if (kind === "quiz" && it.mat) {
     const q = quizSummary(it.mat.id);
-    return { link, kind, name: it.mat.title || stripExt(it.name), href: labHref(it.rel), course, sub: q.best !== null ? `best ${q.best}%` : q.attempts ? `last ${q.last}%` : `${it.mat.count} questions`, tone: q.best !== null ? (q.best >= 80 ? "sage" : "peach") : undefined };
+    return { link, kind, name: it.mat.title || stripExt(it.name), href: labHref(it.rel), course, mtime, sub: q.best !== null ? `best ${q.best}%` : q.attempts ? `last ${q.last}%` : `${it.mat.count} questions`, tone: q.best !== null ? (q.best >= 80 ? "sage" : "peach") : undefined };
   }
   if (kind === "page") {
     const p = progressOf(it.lab);
-    return { link, kind, name: it.lab?.title || stripExt(it.name), href: labHref(it.rel), course, sub: p.avgBest !== null ? `${p.avgBest}%` : "Not tried", tone: p.avgBest !== null ? (p.avgBest >= 80 ? "sage" : "peach") : undefined };
+    return { link, kind, name: it.lab?.title || stripExt(it.name), href: labHref(it.rel), course, mtime, sub: p.avgBest !== null ? `${p.avgBest}%` : "Not tried", tone: p.avgBest !== null ? (p.avgBest >= 80 ? "sage" : "peach") : undefined };
   }
-  return { link, kind, name: it.name, href: folderHref(parentRel(it.rel)), course, sub: "" };
+  return { link, kind, name: it.name, href: folderHref(parentRel(it.rel)), course, mtime, sub: "" };
 }
 
 /** Everything that can be linked, newest first per kind (for the Add picker). */

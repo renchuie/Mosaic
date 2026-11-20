@@ -28,7 +28,7 @@
     { id: "sync", name: "Sync", icon: "refresh", note: "Keeping your PC and laptop in step." },
     { id: "backups", name: "Backups", icon: "i:archive", note: "A daily copy of your data and notes." },
     { id: "calendar", name: "Calendar", icon: "calendar", note: "Exams and events." },
-    { id: "advanced", name: "Labs & advanced", icon: "labs", note: "Lab storage and bringing over old progress." },
+    { id: "advanced", name: "Advanced", icon: "labs", note: "Page storage and bringing over old progress." },
   ] as const;
   type GroupId = (typeof GROUPS)[number]["id"];
   const group = $derived<GroupId>((GROUPS.find((g) => g.id === route.rest.split("/")[0])?.id ?? "appearance") as GroupId);
@@ -85,7 +85,7 @@
     { id: "backupplaces", g: "backups", label: "Note history", words: "history version versions undo earlier recover note" },
     { id: "restore", g: "backups", label: "Restore a backup", words: "restore backup undo lost recover import file" },
     { id: "examwords", g: "calendar", label: "Words that mark an exam", words: "exam keywords quiz final calendar" },
-    { id: "labstorage", g: "advanced", label: "Lab storage", words: "lab storage rescan check scan" },
+    { id: "labstorage", g: "advanced", label: "Page storage", words: "lab page interactive storage rescan check scan" },
     { id: "import", g: "advanced", label: "Bring over progress", words: "import browser progress recall lab paste" },
   ];
   let q = $state("");
@@ -217,10 +217,10 @@
     try {
       const prev = probe();
       probeResult = prev
-        ? `Lab storage is working and kept its data from ${new Date(Number(prev)).toLocaleString()}.`
-        : "Lab storage works.";
+        ? `Page storage is working and kept its data from ${new Date(Number(prev)).toLocaleString()}.`
+        : "Page storage works.";
     } catch (e) {
-      probeResult = `Lab storage problem: ${e instanceof Error ? e.message : e}`;
+      probeResult = `Page storage problem: ${e instanceof Error ? e.message : e}`;
     }
   }
 
@@ -234,7 +234,7 @@
       const keys = Object.keys(data).filter((k) => k.startsWith("recallLab."));
       if (!keys.length) throw new Error("No recallLab.* keys found in what you pasted.");
       const existing = keys.filter((k) => labs.storage[k] !== undefined);
-      if (existing.length && !confirm(`${existing.length} of these labs already have progress in the app. Replace it with the pasted progress?`)) return;
+      if (existing.length && !confirm(`${existing.length} of these pages already have progress in the app. Replace it with the pasted progress?`)) return;
       for (const k of keys) setKey(k, typeof data[k] === "string" ? data[k] : JSON.stringify(data[k]));
       refreshProgress();
       importResult = `Imported progress for ${keys.length} ${keys.length === 1 ? "lab" : "labs"}.`;
@@ -457,7 +457,7 @@
       <form class="scard" id="set-folders" class:flash={flash === "folders"} onsubmit={saveFolders}>
         <h3>Folders</h3>
         <label class="srow col"><span class="rl"><b>Notes</b><span>Markdown files.</span></span><input class="input" bind:value={notesRoot} spellcheck="false" /></label>
-        <label class="srow col"><span class="rl"><b>Materials</b><span>Labs, quizzes and study files.</span></span><input class="input" bind:value={root} spellcheck="false" /></label>
+        <label class="srow col"><span class="rl"><b>Materials</b><span>Interactive pages, quizzes and study files.</span></span><input class="input" bind:value={root} spellcheck="false" /></label>
         <label class="srow"><span class="rl"><b>Materials: folder levels to scan</b><span>Lower is faster.</span></span><input class="input num" type="number" min="1" max="8" bind:value={depth} /></label>
         <label class="srow col"><span class="rl"><b>PDFs</b><span>Marks are saved into the PDF; the original is kept.</span></span><input class="input" bind:value={pdfRoot} spellcheck="false" /></label>
         <label class="srow"><span class="rl"><b>PDFs: folder levels to search</b></span><input class="input num" type="number" min="1" max="12" bind:value={pdfDepth} /></label>
@@ -577,13 +577,13 @@
 
     {:else if group === "advanced"}
       <div class="scard" id="set-labstorage" class:flash={flash === "labstorage"}>
-        <h3>Lab storage</h3>
+        <h3>Page storage</h3>
         <div class="srow">
           <div class="rl"><b>Last scan</b><span>{labs.scannedAt ? new Date(labs.scannedAt * 1000).toLocaleString() : "never"} · {Object.keys(labs.storage).length} labs have saved progress in the app.</span></div>
           <button class="btn quiet sm" type="button" onclick={() => rescan()} disabled={!inTauri || labs.scanning}>{labs.scanning ? "Scanning…" : "Rescan now"}</button>
         </div>
         <div class="srow">
-          <div class="rl"><b>Check lab storage</b><span>Proves lab progress survives a restart.</span></div>
+          <div class="rl"><b>Check page storage</b><span>Proves page progress survives a restart.</span></div>
           <button class="btn quiet sm" type="button" onclick={checkStorage} disabled={!inTauri}>Check</button>
         </div>
         {#if probeResult}<p class="result">{probeResult}</p>{/if}
@@ -591,7 +591,7 @@
       <div class="scard" id="set-import" class:flash={flash === "import"}>
         <h3>Bring over progress from your browser</h3>
         <div class="srow col">
-          <div class="rl"><span>In that browser, open a lab, press F12 → Console and run this line. Then paste here.</span></div>
+          <div class="rl"><span>In that browser, open the page, press F12 → Console and run this line. Then paste here.</span></div>
           <pre><code>{snippet}</code></pre>
           <textarea class="input" bind:value={importText} rows="4" spellcheck="false" placeholder="Paste it here" aria-label="Paste your progress here"></textarea>
           <div class="btns"><button class="btn primary" type="button" onclick={importProgress} disabled={!inTauri || !importText.trim()}>Import progress</button></div>

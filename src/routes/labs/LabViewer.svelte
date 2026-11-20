@@ -36,7 +36,7 @@
   {#if inTauri}
     <iframe bind:this={frame} src={labUrl(item.rel)} title={item.lab?.title ?? item.name}></iframe>
   {:else}
-    <div class="preview muted">The lab opens here inside the app. (This browser preview cannot load files from Drive.)</div>
+    <div class="preview muted">The page opens here inside the app. (This browser preview cannot load files from Drive.)</div>
   {/if}
 </div>
 

@@ -80,7 +80,7 @@
 
   <p class="muted hint">
     Exams are events with a tag marked “Exam” (change this under Edit tags), events tagged Other whose title contains
-    “{settings.examKeywords}”, and Recall Lab folders with an exam date.
+    “{settings.examKeywords}”, and Materials folders with an exam date.
   </p>
 </div>
 

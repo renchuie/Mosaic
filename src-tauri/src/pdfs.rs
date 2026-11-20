@@ -171,6 +171,35 @@ pub async fn pdfs_write(state: State<'_, PdfsState>, request: Request<'_>) -> Re
     .map_err(|e| e.to_string())?
 }
 
+/// Body: a new PDF's bytes, header `x-rel` (percent-encoded path). Adds a PDF to the folder (a file
+/// dropped on a lecture); never replaces one that is already there ("exists").
+#[tauri::command]
+pub async fn pdfs_add(state: State<'_, PdfsState>, request: Request<'_>) -> Result<u64, String> {
+    let InvokeBody::Raw(bytes) = request.body() else { return Err("Expected PDF bytes".into()) };
+    if !bytes.starts_with(b"%PDF") {
+        return Err("That isn't a PDF".into());
+    }
+    let rel = header(&request, "x-rel").ok_or("Missing path")?;
+    let root = root_of(&state)?;
+    if !root.is_dir() {
+        return Err("The PDF folder isn't there. Is your synced folder connected?".into());
+    }
+    let p = path_in(&root, &rel)?;
+    let bytes = bytes.clone();
+    tauri::async_runtime::spawn_blocking(move || {
+        if p.exists() {
+            return Err("exists".to_string());
+        }
+        if let Some(dir) = p.parent() {
+            fs::create_dir_all(dir).map_err(|e| e.to_string())?;
+        }
+        write_atomic(&p, &bytes)?;
+        Ok(mtime_ms(&p))
+    })
+    .await
+    .map_err(|e| e.to_string())?
+}
+
 /// Put the backed-up original back (annotations made in Mosaic are gone after this).
 #[tauri::command]
 pub async fn pdfs_restore(state: State<'_, PdfsState>, rel: String) -> Result<u64, String> {

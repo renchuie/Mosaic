@@ -126,6 +126,17 @@ export async function writePdf(rel: string, bytes: Uint8Array, expected: number)
   });
 }
 
+/** Add a new PDF at `rel` (never over an existing file); the list is refreshed after. */
+export async function addPdf(rel: string, bytes: Uint8Array): Promise<void> {
+  if (!inTauri) {
+    memory.set(rel, bytes);
+    pdfs.files = [...pdfs.files, { rel, mtime: Date.now(), size: bytes.length }];
+    return;
+  }
+  await invoke<number>("pdfs_add", bytes, { headers: { "x-rel": encodeURIComponent(rel) } });
+  await refreshPdfs();
+}
+
 export async function restorePdf(rel: string): Promise<void> {
   if (!inTauri) {
     memory.delete(rel);

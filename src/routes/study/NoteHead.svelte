@@ -18,6 +18,7 @@
   import NoteToolbar from "./NoteToolbar.svelte";
   import type { Meta } from "../../lib/notes";
   import { courseByName, courseNames } from "../../lib/stores/courses.svelte";
+  import LectureMenu from "../../lib/components/LectureMenu.svelte";
   import { allTags, dirOf } from "../../lib/stores/notes.svelte";
 
   let {
@@ -119,6 +120,7 @@
           </div>
         {/if}
       </div>
+      {#if meta.course}<LectureMenu chip link={{ kind: "note", ref: rel }} course={String(meta.course)} />{/if}
       <label class="chip"><Icon name="calendar" size={13} /><input type="date" class:empty={!meta.date} value={meta.date ?? ""} aria-label="Date" onchange={(e) => onmeta({ date: e.currentTarget.value || undefined })} /></label>
       {#each tags as t (t)}
         <span class="chip tag">#{t}<button type="button" aria-label="Remove tag {t}" onclick={() => onmeta({ tags: tags.filter((x) => x !== t) })}>×</button></span>

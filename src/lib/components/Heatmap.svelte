@@ -19,7 +19,7 @@
   const tip = (c: (typeof h.cols)[0][0]) => {
     const parts = [
       c.a.minutes ? `${fmtDuration(c.a.minutes)} studied` : "",
-      c.a.labs ? `${c.a.labs} lab${c.a.labs === 1 ? "" : "s"} opened` : "",
+      c.a.labs ? `${c.a.labs} ${c.a.labs === 1 ? "page" : "pages"} opened` : "",
       c.a.blocks ? `${c.a.blocks} block${c.a.blocks === 1 ? "" : "s"} done` : "",
       c.a.tasks ? `${c.a.tasks} task${c.a.tasks === 1 ? "" : "s"} done` : "",
       c.a.reviews ? `${c.a.reviews} card${c.a.reviews === 1 ? "" : "s"} reviewed` : "",

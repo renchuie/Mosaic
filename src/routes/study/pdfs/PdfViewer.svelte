@@ -1,4 +1,5 @@
 <script lang="ts">
+  import LectureMenu from "../../../lib/components/LectureMenu.svelte";
   // PDF viewer with annotations saved into the PDF (pdf.js draws the page without our
   // marks; we draw ours on top as SVG and write them back with pdf-lib, see pdfAnnots.ts).
   // Tools: select (menu on selected text), highlight, underline, strike, box, pen, note.
@@ -688,6 +689,7 @@
       <button class="ib" aria-label="Zoom in" title="Zoom in (Ctrl +)" onclick={() => setZoom(zoom * 1.15)}>+</button>
     </div>
     <span class="sp"></span>
+    <LectureMenu link={{ kind: "pdf", ref: rel }} course={course ?? ""} />
     <button class="btn quiet sm" onclick={openNote} title="The note that goes with this PDF"><Icon name="note" size={15} /> Notes</button>
     <button class="ib" class:on={side === "marks"} aria-label="Marks" title="Marks" onclick={() => (side = side === "marks" ? null : "marks")}><Icon name="panel" size={18} /></button>
     <div class="more">

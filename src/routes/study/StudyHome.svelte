@@ -90,7 +90,7 @@
     return [
       { name: "Flashcards", on: days.map((d) => (act.get(d)?.reviews ?? 0) > 0) },
       { name: "Studied 1 h", on: days.map((d) => (act.get(d)?.minutes ?? 0) >= 60) },
-      { name: "Recall lab", on: days.map((d) => (act.get(d)?.labs ?? 0) > 0) },
+      { name: "Interactive page", on: days.map((d) => (act.get(d)?.labs ?? 0) > 0) },
       { name: "Notes", on: days.map((d) => noteDays.has(d)) },
     ];
   });
@@ -182,7 +182,7 @@
           </svg>
           <div class="ex-lines">
             {#if ready?.r}<span>Cards ready: <b>{ready.cardsReady} / {ready.r.total}</b></span>{:else}<span class="soft">No cards for this course yet</span>{/if}
-            {#if ready?.labAvg !== null && ready?.labAvg !== undefined}<span>Labs avg best: <b>{ready.labAvg}%</b></span>{/if}
+            {#if ready?.labAvg !== null && ready?.labAvg !== undefined}<span>Pages avg best: <b>{ready.labAvg}%</b></span>{/if}
             {#if nextExam.course}<span class="soft">{nextExam.course}</span>{/if}
           </div>
         </div>
@@ -242,7 +242,7 @@
           </li>
         {/each}
       </ul>
-      <p class="muted sm foot">Mature cards and recall lab best scores, per course.</p>
+      <p class="muted sm foot">Mature cards and page best scores, per course.</p>
     </section>
 
     <section class="card">
@@ -264,7 +264,7 @@
         {#if lastLab}
           <a href={labHref(lastLab.item.rel)}>
             <span class="ic sage"><Icon name="labs" size={16} /></span>
-            <span class="jt"><b>{lastLab.lab.title}</b><span class="muted sm">Lab{lastLab.progress.avgBest !== null ? ` · best ${lastLab.progress.avgBest}%` : ""}{lastLab.progress.missed ? ` · ${lastLab.progress.missed} to revisit` : ""}</span></span>
+            <span class="jt"><b>{lastLab.lab.title}</b><span class="muted sm">Page{lastLab.progress.avgBest !== null ? ` · best ${lastLab.progress.avgBest}%` : ""}{lastLab.progress.missed ? ` · ${lastLab.progress.missed} to revisit` : ""}</span></span>
           </a>
         {/if}
         {#if !lastPdf && !lastNote && !lastLab}<p class="muted">Nothing opened yet.</p>{/if}
@@ -362,7 +362,7 @@
     </section>
 
     <section class="card">
-      <header class="ch"><span class="ic sage"><Icon name="labs" size={18} /></span><h2 class="h2">Recall labs</h2><a class="lnk" href="#/labs">All</a></header>
+      <header class="ch"><span class="ic sage"><Icon name="labs" size={18} /></span><h2 class="h2">Interactive pages</h2><a class="lnk" href="#/labs">All</a></header>
       <div class="jump">
         {#each topLabs as l (l.item.rel)}
           <a href={labHref(l.item.rel)}>
@@ -370,7 +370,7 @@
               <span class="bar thin"><span style="width: {l.progress.avgBest ?? 0}%"></span></span></span>
           </a>
         {:else}
-          <p class="muted">No labs yet.</p>
+          <p class="muted">No interactive pages yet.</p>
         {/each}
       </div>
     </section>

@@ -15,7 +15,9 @@
     files = [],
     dir = "",
     onsaved,
-  }: { open: boolean; files: File[]; dir?: string; onsaved?: (rels: string[]) => void } = $props();
+    course: startCourse = "",
+    exam: startExam = "",
+  }: { open: boolean; files: File[]; dir?: string; onsaved?: (rels: string[]) => void; course?: string; exam?: string } = $props();
 
   type Row = {
     file: File; text: string; ins: Inspected; course: string; exam: string; existing: Item | null; mode: "replace" | "new"; include: boolean;
@@ -47,9 +49,9 @@
   });
 
   async function load() {
-    const here = dir ? (folderMeta(dir).course ?? inherited(dir, "course") ?? "") : "";
+    const here = dir ? (folderMeta(dir).course ?? inherited(dir, "course") ?? "") : startCourse;
     const top = dir.split("/")[0] ?? "";
-    const examFromDir = dir.includes("/") ? dir.slice(top.length + 1) : "";
+    const examFromDir = dir.includes("/") ? dir.slice(top.length + 1) : startExam;
     const list: Row[] = [];
     for (const file of files) {
       const text = await file.text();
@@ -130,7 +132,7 @@
           {#if r.include}
             {#if r.existing}
               <div class="dupe" role="radiogroup" aria-label="Already in Materials">
-                <span class="sm">You already have this {r.quiz ? "quiz" : "lab"} at <b>{r.existing.rel}</b>.</span>
+                <span class="sm">You already have this {r.quiz ? "quiz" : "page"} at <b>{r.existing.rel}</b>.</span>
                 <label><input type="radio" bind:group={r.mode} value="replace" /> Replace it, keep my progress</label>
                 <label><input type="radio" bind:group={r.mode} value="new" /> Add a second copy (both share the same progress)</label>
               </div>

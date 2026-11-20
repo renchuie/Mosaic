@@ -205,11 +205,11 @@
             <div class="folders">
               {#each folders as f (f.rel)}
                 {@const s = folderStats(f)}
-                <a href={folderHref(f.rel)} class="folder"><Icon name="folder" size={15} /> {f.name} <span class="muted">· {s.count} labs · {f.items.filter((x) => x.kind !== "lab").length} files</span></a>
+                <a href={folderHref(f.rel)} class="folder"><Icon name="folder" size={15} /> {f.name} <span class="muted">· {s.count} pages · {f.items.filter((x) => x.kind !== "lab").length} files</span></a>
               {/each}
             </div>
           {:else}
-            <p class="muted small">Link a Recall Labs folder to this course (Labs → folder → Link this folder) to see its labs, notes and files here.</p>
+            <p class="muted small">No Materials folder linked.</p>
           {/if}
           {#if cardsHere?.total}
             <div class="cardsrow">

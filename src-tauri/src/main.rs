@@ -67,6 +67,7 @@ fn main() {
             pdfs::pdfs_list,
             pdfs::pdfs_stat,
             pdfs::pdfs_write,
+            pdfs::pdfs_add,
             pdfs::pdfs_restore,
             pdfs::pdfs_open,
             backup::backup_write,

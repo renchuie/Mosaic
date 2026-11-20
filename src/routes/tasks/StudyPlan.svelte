@@ -267,7 +267,7 @@
             {/each}
           {/if}
           {#if labIdeas.length}
-            <h3 class="label">Recall Labs</h3>
+            <h3 class="label">Interactive pages</h3>
             {#each labIdeas as s (s.key)}
               <button type="button" class="idea" onclick={() => addBlock(date, { title: s.title, minutes: s.minutes, labRel: s.rel })}>
                 <span class="plus">+</span><span class="it"><b>{s.title}</b><span>{fmtDuration(s.minutes)} · {s.note}</span></span>

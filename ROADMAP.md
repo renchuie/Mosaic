@@ -184,9 +184,8 @@ the next starts. Placement in the weeks above is a proposal (see "Proposed place
 - **H1 done Nov 20:** exams → lectures on the course page, lecture pages, link notes / PDFs /
   quizzes / interactive pages / decks to a lecture (links, files stay put), lecture and exam card
   scopes, "Ready for <exam>".
-- H1b: link from the item itself (note header, PDF viewer, Materials, deck options); Files tab with
-  kind filters; drop files on a lecture.
-- Recall Labs become "interactive pages" in all wording (her Nov 19 pick).
+- **H1b done Nov 20:** Lecture menu on notes, PDFs, Materials and decks; Study → Files with kind
+  filters and drag-onto-lecture; drop files on a lecture; "interactive pages" wording everywhere.
 - H2: the one-folder move (with undo), Study tabs become Home / Files / Flashcards / Courses.
 
 ## AI track (Nov 19, board "AI in Mosaic"; optional, bring your own key)
