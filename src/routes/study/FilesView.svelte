@@ -469,7 +469,7 @@
           <button type="button" class="btn quiet" onclick={() => (pasting = true)}><Icon name="note" size={15} /> Paste quiz</button>
         {/if}
         <button type="button" class="btn primary" onclick={() => picker?.click()}><Icon name="plus" size={15} /> Upload</button>
-        <input bind:this={picker} type="file" multiple hidden accept=".pdf,.md,.markdown,.txt,.html,.htm" onchange={(e) => { add([...(e.currentTarget.files ?? [])]); e.currentTarget.value = ""; }} />
+        <input bind:this={picker} type="file" multiple hidden onchange={(e) => { add([...(e.currentTarget.files ?? [])]); e.currentTarget.value = ""; }} />
       </div>
       <div class="chips">
         <button type="button" class="chip" class:on={kind === "all"} onclick={() => (kind = "all")}>All</button>
@@ -519,7 +519,7 @@
           {@const ls = inLec.get(key(x)) ?? []}
           <div class="tr" class:gone={x.gone} class:picked={picked.has(key(x))} class:held={drag?.items.some((y) => key(y) === key(x))} oncontextmenu={(e) => openMenu(e, { item: x })} role="row" tabindex="-1">
             <button type="button" class="ti k-{x.kind}" aria-label={picked.has(key(x)) ? "Unpick" : "Pick"} onclick={(e) => pickRow(e, i, x)}>
-              {#if picked.has(key(x))}<Icon name="check" size={14} />{:else}<Icon name={KIND_ICONS[x.kind]} size={14} />{/if}
+              {#if picked.has(key(x))}<Icon name="check" size={14} />{:else}<Icon name={x.icon ?? KIND_ICONS[x.kind]} size={14} />{/if}
             </button>
             {#if renaming === key(x)}
               <!-- svelte-ignore a11y_autofocus -->

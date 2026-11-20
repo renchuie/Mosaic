@@ -435,11 +435,7 @@ pub fn open_in_system(state: State<'_, LabsState>, rel: String) -> Result<(), St
     if !path.exists() {
         return Err(format!("Not found: {}", path.display()));
     }
-    std::process::Command::new("xdg-open")
-        .arg(&path)
-        .spawn()
-        .map(|_| ())
-        .map_err(|e| format!("Could not run xdg-open: {e}"))
+    crate::files::open_path(&path)
 }
 
 pub fn percent_decode(s: &str) -> String {

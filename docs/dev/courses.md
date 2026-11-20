@@ -140,3 +140,23 @@ Her pick after the board "One Mosaic folder, with the course as the hub" (B + C)
   with `course:` set; quizzes and pages `Materials/<course folder>/<exam of the lecture>/<name>`
   (course folder = the top folder linked to the course, else the code). Everything added is linked
   to its lecture.
+
+## Any file in Mosaic (Nov 20, step 1 of PowerPoint / Word support)
+
+- Add files takes ANY file: slides, documents, spreadsheets, pictures, anything (`kind: "other"`)
+  go to `Materials/<course folder>/<exam>/<name>.<ext>` through Rust `files_add` (raw body,
+  headers `x-area` mat|pdf + `x-rel`; never replaces: "exists"; written via a temp file). Files'
+  Upload no longer limits types.
+- `fileType(name)` in linkInfo: Slides (pptx ppt key odp pps ppsx), Document (docx doc odt rtf
+  pages gdoc), Spreadsheet (xlsx xls ods csv numbers), Picture (png jpg … heic svg), else the
+  extension; `Shown.icon` carries its icon (presentation / file-text / grid-2x2 / image) and Files,
+  lecture pages and course chips use it.
+- A Materials file that isn't a page or quiz opens `src/routes/labs/FileView.svelte` at
+  `#/labs/<rel>`: name, kind, size, folder, Lecture menu, Star, Show in folder, **Open** (Rust
+  `files_open` → `open_path`: `cmd /C start` on Windows, `open` on macOS, `xdg-open` on Linux;
+  `open_in_system` uses it too). Pictures are shown on the page (`/__labs/<rel>`).
+- Next: step 2, a built-in .pptx → PDF reader (try pptx-svg / Pagus / pptxviewjs / pptx-browser on
+  real decks first; SVG keeps text selectable for highlights); step 3, optional portable
+  LibreOffice download (AppImage / Windows MSI admin extract) used quietly (`--headless
+  --convert-to pdf`, own profile) when present; offered in onboarding, Settings → Extras, and on
+  the first .pptx.

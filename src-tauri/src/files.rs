@@ -4,6 +4,7 @@
 //! commands). Never overwrites; never touches anything outside the chosen folder.
 use std::fs;
 use std::path::{Path, PathBuf};
+use tauri::ipc::{InvokeBody, Request};
 use tauri::State;
 
 use crate::labs::{resolve, LabsState};
@@ -103,6 +104,59 @@ pub async fn files_trash(area: String, rel: String, l: State<'_, LabsState>, p: 
     let r = root(&area, &l, &p, &n)?;
     let a = inside(&r, &rel)?;
     tauri::async_runtime::spawn_blocking(move || trash_into(&r, &a, &rel)).await.map_err(|e| e.to_string())?
+}
+
+/// Body: a new file's bytes; headers `x-area` and `x-rel` (percent-encoded). Adds any kind of file
+/// (slides, documents, pictures) to the PDF or Materials folder. Never replaces one ("exists").
+#[tauri::command]
+pub async fn files_add(request: Request<'_>, l: State<'_, LabsState>, p: State<'_, PdfsState>, n: State<'_, NotesState>) -> Result<(), String> {
+    let InvokeBody::Raw(bytes) = request.body() else { return Err("Expected file bytes".into()) };
+    let head = |k: &str| request.headers().get(k).and_then(|v| v.to_str().ok()).map(crate::labs::percent_decode);
+    let area = head("x-area").ok_or("Missing folder")?;
+    let rel = head("x-rel").ok_or("Missing path")?;
+    if area == "note" {
+        return Err("Notes are added as notes".into());
+    }
+    let r = root(&area, &l, &p, &n)?;
+    let dest = inside(&r, &rel)?;
+    let bytes = bytes.clone();
+    tauri::async_runtime::spawn_blocking(move || {
+        if dest.exists() {
+            return Err("exists".to_string());
+        }
+        if let Some(dir) = dest.parent() {
+            fs::create_dir_all(dir).map_err(|e| e.to_string())?;
+        }
+        let tmp = dest.with_extension("mosaic-part");
+        fs::write(&tmp, &bytes).map_err(|e| e.to_string())?;
+        fs::rename(&tmp, &dest).map_err(|e| e.to_string())
+    })
+    .await
+    .map_err(|e| e.to_string())?
+}
+
+/// Open a file in the computer's own app for it (PowerPoint, Word, a picture viewer…).
+#[tauri::command]
+pub async fn files_open(area: String, rel: String, l: State<'_, LabsState>, p: State<'_, PdfsState>, n: State<'_, NotesState>) -> Result<(), String> {
+    let r = root(&area, &l, &p, &n)?;
+    let t = inside(&r, &rel)?;
+    if !t.exists() {
+        return Err(format!("“{rel}” isn't there any more"));
+    }
+    open_path(&t)
+}
+
+pub fn open_path(t: &Path) -> Result<(), String> {
+    let mut c = if cfg!(windows) {
+        let mut c = std::process::Command::new("cmd");
+        c.args(["/C", "start", ""]);
+        c
+    } else if cfg!(target_os = "macos") {
+        std::process::Command::new("open")
+    } else {
+        std::process::Command::new("xdg-open")
+    };
+    c.arg(t).spawn().map(|_| ()).map_err(|e| format!("Could not open it: {e}"))
 }
 
 /// Show a file's folder (or a folder) in the system file manager.

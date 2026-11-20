@@ -11,9 +11,18 @@ import type { Link } from "./outline.svelte";
 
 /** quiz and interactive page are files in Materials, told apart for the hub */
 export type ShowKind = "note" | "pdf" | "quiz" | "page" | "file" | "deck";
-export type Shown = { link: Link; kind: ShowKind; name: string; sub: string; href: string; course?: string; tone?: "rose" | "sage" | "peach"; gone?: boolean; done?: number; mtime?: number };
+export type Shown = { link: Link; kind: ShowKind; name: string; sub: string; href: string; course?: string; tone?: "rose" | "sage" | "peach"; gone?: boolean; done?: number; mtime?: number; icon?: string };
 
 export const KIND_NAMES: Record<ShowKind, string> = { note: "Note", pdf: "PDF", quiz: "Quiz", page: "Interactive page", file: "File", deck: "Deck" };
+/** what an ordinary file is, from its extension: Slides, Document, Spreadsheet, Picture, File */
+export function fileType(name: string): { name: string; icon: string; group: "slides" | "doc" | "sheet" | "image" | "other" } {
+  const e = (/\.([^.]+)$/.exec(name)?.[1] ?? "").toLowerCase();
+  if (["pptx", "ppt", "key", "odp", "pps", "ppsx"].includes(e)) return { name: "Slides", icon: "i:presentation", group: "slides" };
+  if (["docx", "doc", "odt", "rtf", "pages", "gdoc"].includes(e)) return { name: "Document", icon: "i:file-text", group: "doc" };
+  if (["xlsx", "xls", "ods", "csv", "numbers"].includes(e)) return { name: "Spreadsheet", icon: "i:grid-2x2", group: "sheet" };
+  if (["png", "jpg", "jpeg", "gif", "webp", "svg", "heic", "bmp", "avif"].includes(e)) return { name: "Picture", icon: "image", group: "image" };
+  return { name: e ? e.toUpperCase() : "File", icon: "folder", group: "other" };
+}
 export const KIND_ICONS: Record<ShowKind, string> = { note: "note", pdf: "file", quiz: "i:circle-help", page: "i:app-window", file: "folder", deck: "cards" };
 
 /** cards per note in one pass: total and due now (new ones count as to learn) */
@@ -78,7 +87,8 @@ export function describe(link: Link, stats = noteCardStats(), mats = materialIte
     const p = progressOf(it.lab);
     return { link, kind, name: it.lab?.title || stripExt(it.name), href: labHref(it.rel), course, mtime, sub: p.avgBest !== null ? `${p.avgBest}%` : "Not tried", tone: p.avgBest !== null ? (p.avgBest >= 80 ? "sage" : "peach") : undefined };
   }
-  return { link, kind, name: it.name, href: folderHref(parentRel(it.rel)), course, mtime, sub: "" };
+  const t = fileType(it.name);
+  return { link, kind, name: stripExt(it.name), href: labHref(it.rel), course, mtime, sub: t.name, icon: t.icon };
 }
 
 /** Everything that can be linked, newest first per kind (for the Add picker). */

@@ -148,6 +148,10 @@ export async function filesTest() {
     await ops.trashItem("mat", "page.html");
     await ops.trashFolder("mat", "Selftest");
     log(`mat deleted: ${!findFolder("")?.items.some((i) => i.rel === "page.html")}`);
+    await ops.addAnyFile("mat", "Ther IV/Exam 5/HF slides.pptx", new TextEncoder().encode("PK fake pptx"));
+    await rescan();
+    const again = await ops.addAnyFile("mat", "Ther IV/Exam 5/HF slides.pptx", new Uint8Array([1])).then(() => "overwrote!", (e) => String(e));
+    log(`any file added: ${!!findFolder("Ther IV/Exam 5")?.items.some((i) => i.name === "HF slides.pptx")} second add: ${again}`);
     const clash = await invoke("files_move", { area: "pdf", from: "nope.pdf", to: "../x.pdf" }).then(() => "allowed!", (e) => String(e));
     log(`escape refused: ${clash}`);
     log(`message: ${ops.files.msg}`);

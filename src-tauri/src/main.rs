@@ -74,6 +74,8 @@ fn main() {
             files::files_copy,
             files::files_trash,
             files::files_reveal,
+            files::files_add,
+            files::files_open,
             pdfs::pdfs_restore,
             pdfs::pdfs_open,
             backup::backup_write,

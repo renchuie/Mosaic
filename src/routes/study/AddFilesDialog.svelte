@@ -17,7 +17,9 @@
   import { exams } from "../../lib/stores/calendar.svelte";
   import { addLecture, addLinks, getLecture, lectures, type Link } from "../../lib/stores/outline.svelte";
   import { shortExam } from "../../lib/stores/deckTree.svelte";
-  import { tell } from "../../lib/stores/fileOps.svelte";
+  import { addAnyFile, tell } from "../../lib/stores/fileOps.svelte";
+  import { fileType } from "../../lib/stores/linkInfo.svelte";
+  import { rescan } from "../../lib/stores/labs.svelte";
 
   let {
     open = $bindable(false),
@@ -27,7 +29,7 @@
     ondone,
   }: { open: boolean; files: File[]; course?: string; lecture?: string; ondone?: (links: Link[]) => void } = $props();
 
-  type Kind = "pdf" | "note" | "quiz" | "page" | "skip";
+  type Kind = "pdf" | "note" | "quiz" | "page" | "other";
   type Row = {
     file: File; kind: Kind; name: string; ext: string; text?: string; bytes?: Uint8Array;
     course: string; lecture: string; newLecture: string;
@@ -57,7 +59,7 @@
     const list: Row[] = [];
     for (const file of files) {
       const ext = (/\.[^.]+$/.exec(file.name)?.[0] ?? "").toLowerCase();
-      const base: Row = { file, kind: "skip", name: stem(file.name), ext, course: startCourse, lecture: startLecture, newLecture: "", existing: null, mode: "new" };
+      const base: Row = { file, kind: "other", name: stem(file.name), ext, course: startCourse, lecture: startLecture, newLecture: "", existing: null, mode: "new" };
       if (ext === ".pdf") list.push({ ...base, kind: "pdf", bytes: new Uint8Array(await file.arrayBuffer()) });
       else if ([".md", ".markdown", ".txt"].includes(ext)) {
         const text = await file.text();
@@ -74,7 +76,7 @@
         const ins = inspectHtml(text, file.name);
         const existing = ins.isLab ? (labsIn(labs.tree).find((l) => l.lab.slug === ins.slug)?.item ?? null) : null;
         list.push({ ...base, kind: "page", text, ins, existing, mode: existing ? "replace" : "new", name: ins.isLab && ins.title ? ins.title : base.name });
-      } else list.push(base);
+      } else list.push({ ...base, bytes: new Uint8Array(await file.arrayBuffer()) });
     }
     rows = list;
   }
@@ -99,9 +101,11 @@
     }
     if (field === "course" && allLecture && allLecture !== "new" && getLecture(allLecture)?.course !== v) allLecture = "";
   }
-  const KIND_TEXT: Record<Kind, string> = { pdf: "PDF", note: "Note", quiz: "Quiz", page: "Interactive page", skip: "Can't add this kind of file" };
-  const KIND_ICON: Record<Kind, string> = { pdf: "file", note: "note", quiz: "i:circle-help", page: "i:app-window", skip: "i:x" };
-  const count = $derived(rows.filter((r) => r.kind !== "skip").length);
+  const KIND_TEXT: Record<Kind, string> = { pdf: "PDF", note: "Note", quiz: "Quiz", page: "Interactive page", other: "File" };
+  const KIND_ICON: Record<Kind, string> = { pdf: "file", note: "note", quiz: "i:circle-help", page: "i:app-window", other: "folder" };
+  const kindText = (r: Row) => (r.kind === "other" ? fileType(r.file.name).name : KIND_TEXT[r.kind]);
+  const kindIcon = (r: Row) => (r.kind === "other" ? fileType(r.file.name).icon : KIND_ICON[r.kind]);
+  const count = $derived(rows.length);
 
   /** the Materials folder that holds a course's quizzes and pages */
   function courseDir(course: string): string {
@@ -120,7 +124,6 @@
     try {
       const takenMat = allRels();
       for (const r of rows) {
-        if (r.kind === "skip") continue;
         // the lecture it goes in (a new one is made once per course + name)
         let lec = r.lecture;
         if (lec === "new") {
@@ -150,6 +153,15 @@
           const text = c && meta.course !== c.name ? joinNote({ ...meta, course: c.name }, body) : r.text!;
           const rel = await importNote(c ? fileNameFor(c.name).replace(/\.md$/, "") : "", `${name}.md`, text);
           link = { kind: "note", ref: rel };
+        } else if (r.kind === "other") {
+          // slides, documents, pictures…: kept in Materials beside the course's quizzes and pages
+          const l = lec ? getLecture(lec) : undefined;
+          const ex = l?.exam ? exams().find((e) => e.key === l.exam) : undefined;
+          const rel = uniqueRel(destRel(courseDir(r.course), ex ? shortExam(ex) : "", name + r.ext), (x) => takenMat.has(x));
+          takenMat.add(rel);
+          await addAnyFile("mat", rel, r.bytes!);
+          await rescan();
+          link = { kind: "file", ref: rel };
         } else {
           let rel: string;
           let replace = false;
@@ -215,15 +227,12 @@
     {#if !rows.length}<p class="muted">Reading…</p>{/if}
     <ul class="rows">
       {#each rows as r (r.file)}
-        <li class="row" class:skip={r.kind === "skip"}>
-          <span class="ti k-{r.kind}"><Icon name={KIND_ICON[r.kind]} size={16} /></span>
+        <li class="row">
+          <span class="ti k-{r.kind}"><Icon name={kindIcon(r)} size={16} /></span>
           <div class="body">
-            {#if r.kind === "skip"}
-              <b class="skipname">{r.file.name}</b><span class="muted sm">{KIND_TEXT.skip}</span>
-            {:else}
               <div class="nameline">
                 <input class="input name" bind:value={r.name} aria-label="Name for {r.file.name}" />
-                <span class="kind">{KIND_TEXT[r.kind]}{r.quiz ? ` · ${r.quiz.count} ${r.quiz.count === 1 ? "question" : "questions"}` : ""}</span>
+                <span class="kind">{kindText(r)}{r.quiz ? ` · ${r.quiz.count} ${r.quiz.count === 1 ? "question" : "questions"}` : ""}</span>
               </div>
               <div class="picks">
                 <select class="input" bind:value={r.course} aria-label="Course" onchange={() => { if (r.lecture && r.lecture !== "new" && getLecture(r.lecture)?.course !== r.course) r.lecture = ""; }}>
@@ -243,7 +252,6 @@
                   <label><input type="radio" bind:group={r.mode} value="new" /> Add a copy</label>
                 </div>
               {/if}
-            {/if}
           </div>
           <button type="button" class="rm" aria-label="Leave out {r.file.name}" onclick={() => (rows = rows.filter((x) => x !== r))}><Icon name="i:x" size={14} /></button>
         </li>
@@ -351,9 +359,6 @@
     background: var(--surface);
     box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--text) 7%, transparent);
   }
-  .row.skip {
-    opacity: 0.6;
-  }
   .ti {
     width: 38px;
     height: 38px;
@@ -366,16 +371,13 @@
   .k-pdf { background: color-mix(in srgb, var(--rose) 35%, var(--white)); }
   .k-quiz { background: color-mix(in srgb, var(--peach) 40%, var(--white)); }
   .k-page { background: color-mix(in srgb, var(--sage) 35%, var(--white)); }
-  .k-skip { background: var(--chip); }
+  .k-other { background: var(--chip); }
   .body {
     flex: 1;
     min-width: 0;
     display: flex;
     flex-direction: column;
     gap: 8px;
-  }
-  .skipname {
-    font-weight: 500;
   }
   .nameline {
     display: flex;

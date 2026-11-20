@@ -83,7 +83,7 @@
               {#if shown.length}
                 <div class="chips">
                   {#each shown as x (x.link.kind + x.link.ref)}
-                    <span class="chip k-{x.kind}" class:gone={x.gone}><Icon name={KIND_ICONS[x.kind]} size={13} /><span class="cn">{x.name}</span>{#if x.sub && !x.gone}<span class="cs" class:rose={x.tone === "rose"} class:sage={x.tone === "sage"} class:peach={x.tone === "peach"}>{x.sub}</span>{/if}</span>
+                    <span class="chip k-{x.kind}" class:gone={x.gone}><Icon name={x.icon ?? KIND_ICONS[x.kind]} size={13} /><span class="cn">{x.name}</span>{#if x.sub && !x.gone}<span class="cs" class:rose={x.tone === "rose"} class:sage={x.tone === "sage"} class:peach={x.tone === "peach"}>{x.sub}</span>{/if}</span>
                   {/each}
                 </div>
               {:else}

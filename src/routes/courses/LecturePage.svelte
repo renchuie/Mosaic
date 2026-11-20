@@ -106,7 +106,7 @@
         {#each shown as x (x.link.kind + x.link.ref)}
           <div class="item" class:gone={x.gone}>
             <a class="main" href={x.href || undefined} draggable="false">
-              <span class="ti k-{x.kind}"><Icon name={KIND_ICONS[x.kind]} size={19} /></span>
+              <span class="ti k-{x.kind}"><Icon name={x.icon ?? KIND_ICONS[x.kind]} size={19} /></span>
               <span class="tx"><b>{x.name}</b><small>{KIND_NAMES[x.kind]}{x.sub && x.sub !== KIND_NAMES[x.kind] ? ` · ${x.sub}` : ""}</small></span>
               {#if x.kind === "pdf" && x.done !== undefined}
                 <span class="bar" aria-hidden="true"><i style="width: {Math.round(x.done * 100)}%"></i></span>

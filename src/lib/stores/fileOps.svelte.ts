@@ -213,6 +213,20 @@ export async function trashFolder(a: Area, rel: string): Promise<void> {
   }
 }
 
+/** Add any file's bytes to the PDF or Materials folder (never over an existing one). */
+export async function addAnyFile(a: "pdf" | "mat", rel: string, bytes: Uint8Array): Promise<void> {
+  if (!inTauri) throw new Error("Not available in the preview");
+  await invoke("files_add", bytes, { headers: { "x-area": a, "x-rel": encodeURIComponent(rel) } });
+}
+/** Open a file in the computer's own app for it. */
+export async function openFile(a: Area, rel: string) {
+  try {
+    await raw("files_open", { area: a, rel });
+  } catch (e) {
+    tell(errText(e));
+  }
+}
+
 export async function reveal(a: Area, rel: string) {
   try {
     await raw("files_reveal", { area: a, rel });

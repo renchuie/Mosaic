@@ -2,6 +2,7 @@
   import { route } from "../lib/router.svelte";
   import { findFolder, labs, parentRel } from "../lib/stores/labs.svelte";
   import FolderView from "./labs/FolderView.svelte";
+  import FileView from "./labs/FileView.svelte";
   import LabViewer from "./labs/LabViewer.svelte";
   import StudyNav from "./study/StudyNav.svelte";
   import UploadDialog from "./labs/UploadDialog.svelte";
@@ -79,6 +80,8 @@
   {#key item.rel}
     <QuizPlayer {item} />
   {/key}
+{:else if item}
+  {#key item.rel}<FileView {item} />{/key}
 {:else if folder}
   <FolderView {folder} />
 {:else if labs.tree}
